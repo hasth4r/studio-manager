@@ -45,18 +45,36 @@ class Media extends BaseController
             $this->response->setHeader('Content-Range', "bytes $start-$end/$fileSize");
             $this->response->setHeader('Content-Length', (string)$length);
             
-            // Read the requested chunk
+            $this->response->sendHeaders();
+            
+            // Read and stream the requested chunk in 8KB pieces
             $fp = fopen($filePath, 'rb');
             fseek($fp, $start);
-            $buffer = fread($fp, $length);
-            fclose($fp);
             
-            $this->response->setBody($buffer);
+            $bytesLeft = $length;
+            $bufferSize = 8192; // 8KB chunks
+            
+            while ($bytesLeft > 0 && !feof($fp)) {
+                $readSize = min($bufferSize, $bytesLeft);
+                echo fread($fp, $readSize);
+                ob_flush();
+                flush();
+                $bytesLeft -= $readSize;
+            }
+            fclose($fp);
+            exit; // End execution to prevent CI4 from loading anything else into memory
         } else {
-            // Serve the whole file
-            $this->response->setBody(file_get_contents($filePath));
+            // Serve the whole file efficiently via stream
+            $this->response->sendHeaders();
+            
+            $fp = fopen($filePath, 'rb');
+            while (!feof($fp)) {
+                echo fread($fp, 8192);
+                ob_flush();
+                flush();
+            }
+            fclose($fp);
+            exit;
         }
-
-        return $this->response;
     }
 }
