@@ -12,7 +12,7 @@ class CloudflareStorage
 
     public function __construct()
     {
-        $config = config('CloudflareR2');
+        $config = new \Config\CloudflareR2();
         
         $this->bucket = $config->bucket;
 
