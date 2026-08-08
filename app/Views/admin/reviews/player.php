@@ -91,8 +91,8 @@ if (!function_exists('renderCommentBox')) {
 <body class="h-screen w-screen flex flex-col bg-ytBg">
 
     <!-- Top Bar -->
-    <header class="h-[60px] bg-ytCard border-b border-ytBorder/50 flex items-center justify-between px-6 shrink-0 z-10 shadow-md">
-        <div class="flex items-center gap-4">
+    <header class="h-auto md:h-[60px] p-4 md:px-6 md:py-0 bg-ytCard border-b border-ytBorder/50 flex flex-col md:flex-row items-start md:items-center justify-between shrink-0 z-10 shadow-md gap-4 md:gap-0 overflow-hidden">
+        <div class="flex items-center gap-4 w-full md:w-auto">
             <a href="javascript:void(0)" onclick="window.history.length > 1 ? window.history.back() : window.location.href='<?= ($userRole ?? 'artist') === 'artist' ? '/user/dashboard' : '/' . $routePrefix . '/reviews' ?>'" class="text-ytMuted hover:text-ytText transition-colors p-1.5 rounded-full hover:bg-ytHover">
                 <span class="material-symbols-outlined">arrow_back</span>
             </a>
@@ -110,7 +110,7 @@ if (!function_exists('renderCommentBox')) {
             </div>
         </div>
 
-        <div class="flex items-center gap-4">
+        <div class="flex flex-wrap items-center gap-3 w-full md:w-auto overflow-hidden">
             <?php if(isset($versions) && count($versions) > 1): ?>
             <div class="flex items-center mr-2 bg-[#111] border border-ytBorder/50 rounded-lg px-2 py-1">
                 <span class="material-symbols-outlined text-[14px] text-ytMuted mr-1">history</span>
@@ -198,7 +198,7 @@ if (!function_exists('renderCommentBox')) {
     </header>
 
     <!-- Main Workspace -->
-    <div class="flex flex-1 overflow-hidden">
+    <div class="flex flex-col md:flex-row flex-1 overflow-y-auto md:overflow-hidden">
         
         <!-- Player Area -->
         <div class="flex-1 flex flex-col bg-black relative group">
@@ -210,7 +210,7 @@ if (!function_exists('renderCommentBox')) {
             </button>
 
             <!-- Toolbar Overlay -->
-            <div id="drawingToolbar" class="absolute top-4 left-1/2 -translate-x-1/2 bg-ytCard border border-ytBorder/80 px-4 py-2 rounded-full shadow-2xl flex items-center gap-4 z-20 hidden backdrop-blur-md bg-opacity-90 transition-opacity">
+            <div id="drawingToolbar" class="absolute top-4 left-1/2 -translate-x-1/2 w-[95%] md:w-auto bg-ytCard border border-ytBorder/80 px-2 md:px-4 py-2 rounded-xl md:rounded-full shadow-2xl flex flex-wrap justify-center items-center gap-2 md:gap-4 z-20 hidden backdrop-blur-md bg-opacity-90 transition-opacity">
                 <!-- Tool Selection -->
                 <div class="flex gap-2 mr-2">
                     <button id="toolSelectBtn" class="text-ytMuted hover:text-ytText p-1.5 rounded transition-colors tool-btn" data-tool="select" title="Selection Tool">
@@ -315,9 +315,9 @@ if (!function_exists('renderCommentBox')) {
                 </div>
 
                 <!-- Bottom Row: Playback Controls & Data -->
-                <div class="flex items-stretch h-[36px] bg-[#2d2d2d] text-[#ccc]">
+                <div class="flex flex-col md:flex-row md:items-stretch h-auto md:h-[36px] bg-[#2d2d2d] text-[#ccc]">
                     <!-- Left: Playback Cluster -->
-                    <div class="flex h-full border-r border-[#222]">
+                    <div class="flex justify-center h-[36px] md:h-full border-b md:border-b-0 md:border-r border-[#222]">
                         <button id="stopBtn" class="w-[36px] h-full flex justify-center items-center hover:bg-[#4a4a4a] border-r border-[#2d2d2d] transition-colors" title="Stop">
                             <div class="w-3 h-3 bg-[#ccc] rounded-sm"></div>
                         </button>
@@ -341,7 +341,7 @@ if (!function_exists('renderCommentBox')) {
                         </button>
                     </div>
 
-                    <div class="flex-1 flex justify-between items-center px-4 font-mono text-[11px]">
+                    <div class="flex-1 flex justify-between items-center px-4 py-2 md:py-0 font-mono text-[11px] overflow-x-auto">
                         <div class="flex items-center gap-4">
                             <!-- FPS Selector -->
                             <div class="flex items-center gap-1 bg-[#1a1a1a] border border-[#111] rounded-[2px] px-1.5 py-0.5 cursor-pointer hover:bg-[#333]">
@@ -370,7 +370,7 @@ if (!function_exists('renderCommentBox')) {
                         </div>
                     </div>
                     
-                    <div class="w-[40px] h-full flex justify-center items-center cursor-pointer border-l border-[#222] hover:bg-[#4a4a4a] transition-colors" id="fullscreenBtn">
+                    <div class="hidden md:flex w-[40px] h-full justify-center items-center cursor-pointer border-l border-[#222] hover:bg-[#4a4a4a] transition-colors" id="fullscreenBtn">
                         <span class="material-symbols-outlined text-[20px] text-[#ccc]">crop_free</span>
                     </div>
                 </div>
@@ -379,7 +379,7 @@ if (!function_exists('renderCommentBox')) {
         </div>
 
         <!-- Sidebar (Comments) -->
-        <div class="w-[350px] bg-ytCard border-l border-ytBorder/50 flex flex-col shrink-0 shadow-[-10px_0_30px_rgba(0,0,0,0.5)] z-10">
+        <div class="w-full md:w-[350px] min-h-[400px] md:min-h-0 bg-ytCard md:border-l border-t md:border-t-0 border-ytBorder/50 flex flex-col shrink-0 shadow-[-10px_0_30px_rgba(0,0,0,0.5)] z-10">
             
             <div class="px-5 py-4 border-b border-ytBorder/50">
                 <h3 class="text-[14px] font-semibold text-ytText flex items-center gap-2">
@@ -439,7 +439,7 @@ if (!function_exists('renderCommentBox')) {
                     <input type="hidden" id="canvas_data" name="canvas_data" value="">
                     <input type="hidden" id="parent_id" name="parent_id" value="">
                     
-                    <div id="drawingIndicator" class="hidden absolute -top-8 left-0 right-0 text-center">
+                    <div id="drawingIndicator" class="hidden text-center mb-1">
                         <span class="bg-red-500/20 text-red-400 text-[10px] uppercase font-bold px-2 py-1 rounded border border-red-500/30 animate-pulse">Drawing Mode Active</span>
                     </div>
 

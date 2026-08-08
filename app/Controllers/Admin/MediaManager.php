@@ -195,6 +195,15 @@ class MediaManager extends BaseController
         $file->move($uploadDir, $originalFileName, true);
         $savedFilePath = $mirrorPath . '/' . $originalFileName;
 
+        // Push to Cloudflare R2 if configured
+        $r2 = new \App\Libraries\CloudflareStorage();
+        if ($r2->isConfigured()) {
+            if ($r2->uploadFile($uploadDir . '/' . $originalFileName, 'uploads/' . $savedFilePath)) {
+                // Delete local file to save space if R2 upload succeeded
+                unlink($uploadDir . '/' . $originalFileName);
+            }
+        }
+
         // Check if review_files record exists
         $existingFile = $db->table('review_files')->where('review_id', $reviewId)->get()->getRow();
         

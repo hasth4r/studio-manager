@@ -17,6 +17,15 @@ class Media extends BaseController
         // Reconstruct the path from the wildcard segments
         $path = implode('/', $pathArr);
         
+        $r2 = new \App\Libraries\CloudflareStorage();
+        if ($r2->isConfigured()) {
+            $signedUrl = $r2->getSignedUrl('uploads/' . $path, '+2 hours');
+            if ($signedUrl) {
+                return redirect()->to($signedUrl);
+            }
+        }
+
+        // FALLBACK: Local File Streaming
         $filePath = WRITEPATH . 'uploads/' . $path;
 
         if (!is_file($filePath)) {

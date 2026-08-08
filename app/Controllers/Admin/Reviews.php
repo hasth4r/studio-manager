@@ -180,6 +180,15 @@ class Reviews extends BaseController
         $newName = $file->getRandomName();
         $file->move($uploadDir, $newName);
 
+        // Push to Cloudflare R2 if configured
+        $r2 = new \App\Libraries\CloudflareStorage();
+        if ($r2->isConfigured()) {
+            if ($r2->uploadFile($uploadDir . $newName, 'uploads/references/' . $newName)) {
+                // Delete local file to save space if R2 upload succeeded
+                unlink($uploadDir . $newName);
+            }
+        }
+
         return $this->response->setJSON([
             'status' => 'success',
             'url' => 'references/' . $newName,
