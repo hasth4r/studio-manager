@@ -54,6 +54,68 @@
 </head>
 <body class="bg-ytBg text-ytText font-sans antialiased" style="background: radial-gradient(circle at 15% 0%, #060b1c 0%, transparent 40%), radial-gradient(circle at 85% 0%, #0a081a 0%, #010103 50%); background-color: #010103; background-attachment: fixed;">
     
+    <!-- Mobile Top Bar -->
+    <header class="md:hidden flex items-center justify-between px-4 h-14 fixed top-0 w-full z-40 bg-ytBg border-b border-ytBorder backdrop-blur-md bg-opacity-80">
+        <div class="flex items-center space-x-3">
+            <button id="mobileTopMenuToggle" class="text-ytText flex items-center justify-center hover:bg-ytHover rounded-full transition-colors">
+                <span class="material-symbols-outlined text-[26px]">menu</span>
+            </button>
+            <div class="flex items-center space-x-2">
+                <img src="/assets/images/enso8_logo_Slim.png" alt="Enso8 Logo" class="h-7 w-7 object-contain">
+                <span class="text-lg font-bold tracking-tighter text-ytText">EnsoFlow</span>
+            </div>
+        </div>
+        <div class="flex items-center">
+            <!-- Notification widget floats here -->
+            <img src="https://ui-avatars.com/api/?name=<?= urlencode(session()->get('userName')) ?>&background=8b5cf6&color=fff&size=64&rounded=true" alt="Profile" class="h-8 w-8 rounded-full border-2 border-ytBorder">
+        </div>
+    </header>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="md:hidden fixed bottom-0 w-full z-40 bg-[#000107] border-t border-ytBorder flex justify-around items-center h-16 pb-safe">
+        <?php 
+            $dashLink = '/admin/dashboard';
+            if (session()->get('userRole') === 'client') $dashLink = '/client/dashboard';
+            elseif (session()->get('userRole') === 'internal_artist') $dashLink = '/user/dashboard';
+            $isActiveDash = (strpos(uri_string(), ltrim($dashLink, '/')) === 0);
+        ?>
+        <a href="<?= $dashLink ?>" class="flex flex-col items-center justify-center w-full h-full space-y-1 <?= $isActiveDash ? 'text-ytBlue' : 'text-ytMuted hover:text-ytText' ?>">
+            <span class="material-symbols-outlined text-[24px]">dashboard</span>
+            <span class="text-[10px] font-medium">Home</span>
+        </a>
+        
+        <?php if(session()->get('userRole') !== 'client'): ?>
+        <?php $isActiveProj = (strpos(uri_string(), 'admin/projects') === 0 || strpos(uri_string(), 'admin/shots') === 0); ?>
+        <a href="/admin/projects" class="flex flex-col items-center justify-center w-full h-full space-y-1 <?= $isActiveProj ? 'text-ytBlue' : 'text-ytMuted hover:text-ytText' ?>">
+            <span class="material-symbols-outlined text-[24px]">video_library</span>
+            <span class="text-[10px] font-medium">Projects</span>
+        </a>
+        
+        <?php $isActiveRev = (strpos(uri_string(), 'admin/reviews') === 0); ?>
+        <a href="/admin/reviews" class="flex flex-col items-center justify-center w-full h-full space-y-1 <?= $isActiveRev ? 'text-ytBlue' : 'text-ytMuted hover:text-ytText' ?>">
+            <span class="material-symbols-outlined text-[24px]">rate_review</span>
+            <span class="text-[10px] font-medium">Reviews</span>
+        </a>
+        <?php endif; ?>
+        
+    </nav>
+
+    <!-- Mobile Sidebar Drawer Overlay -->
+    <div id="mobileSidebarOverlay" class="fixed inset-0 bg-black/60 z-[60] hidden md:hidden transition-opacity opacity-0"></div>
+    <div id="mobileSidebar" class="fixed inset-y-0 left-0 w-64 bg-[#000107] z-[70] transform -translate-x-full transition-transform duration-300 md:hidden flex flex-col">
+        <div class="h-14 flex items-center justify-between px-4 border-b border-ytBorder flex-shrink-0">
+            <div class="flex items-center space-x-2">
+                <img src="/assets/images/enso8_logo_Slim.png" alt="Enso8 Logo" class="h-8 w-8 object-contain">
+                <span class="text-xl font-bold tracking-tighter text-ytText">EnsoFlow</span>
+            </div>
+            <button id="mobileMenuClose" class="p-1 hover:bg-ytHover rounded-full flex items-center justify-center">
+                <span class="material-symbols-outlined text-ytText">close</span>
+            </button>
+        </div>
+        <div class="flex-1 overflow-y-auto py-2" id="mobileNavContainer">
+            <!-- Populated by JS -->
+        </div>
+    </div>
     <!-- Left Sidebar: FIXED position, completely independent from content -->
     <aside id="sidebar" class="hidden md:flex flex-col fixed top-0 left-0 h-screen z-50" style="width: 256px; background-color: #000107;">
             <!-- Sidebar Header / Logo -->
@@ -200,7 +262,7 @@
     </aside>
 
     <!-- Main Content Area: margin-left matches sidebar width, scrolls independently -->
-    <main id="main-content" class="overflow-y-auto bg-ytBg <?= isset($fullScreen) && $fullScreen ? '' : 'px-8' ?>" style="margin-left: 256px; height: 100vh;">
+    <main id="main-content" class="overflow-y-auto bg-ytBg pt-14 pb-16 md:pt-0 md:pb-0 md:ml-[256px] <?= isset($fullScreen) && $fullScreen ? '' : 'px-4 md:px-8' ?>" style="height: 100vh;">
         <!-- Page Content injected here -->
         <?= $this->renderSection('content') ?>
     </main>
@@ -217,6 +279,10 @@
             const SIDEBAR_COLLAPSED = '76px';
 
             function applyCollapsedState(collapsed) {
+                if (window.innerWidth < 768) {
+                    if (mainContent) mainContent.style.marginLeft = '0px';
+                    return;
+                }
                 if (collapsed) {
                     sidebar.classList.add('sidebar-collapsed');
                     if (mainContent) mainContent.style.marginLeft = SIDEBAR_COLLAPSED;
@@ -229,6 +295,39 @@
             // Restore state from LocalStorage
             const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
             applyCollapsedState(isCollapsed);
+            
+            window.addEventListener('resize', () => {
+                applyCollapsedState(sidebar.classList.contains('sidebar-collapsed'));
+            });
+            
+            // Mobile Menu Logic
+            const mobileMenuToggle = document.getElementById('mobileTopMenuToggle');
+            const mobileMenuClose = document.getElementById('mobileMenuClose');
+            const mobileSidebar = document.getElementById('mobileSidebar');
+            const mobileSidebarOverlay = document.getElementById('mobileSidebarOverlay');
+            
+            // Copy desktop nav to mobile nav
+            const desktopNav = document.querySelector('aside#sidebar nav');
+            const mobileNavContainer = document.getElementById('mobileNavContainer');
+            if(desktopNav && mobileNavContainer) {
+                mobileNavContainer.appendChild(desktopNav.cloneNode(true));
+            }
+            
+            function openMobileMenu() {
+                mobileSidebarOverlay.classList.remove('hidden');
+                setTimeout(() => mobileSidebarOverlay.classList.remove('opacity-0'), 10);
+                mobileSidebar.classList.remove('-translate-x-full');
+            }
+            
+            function closeMobileMenu() {
+                mobileSidebar.classList.add('-translate-x-full');
+                mobileSidebarOverlay.classList.add('opacity-0');
+                setTimeout(() => mobileSidebarOverlay.classList.add('hidden'), 300);
+            }
+            
+            if(mobileMenuToggle) mobileMenuToggle.addEventListener('click', openMobileMenu);
+            if(mobileMenuClose) mobileMenuClose.addEventListener('click', closeMobileMenu);
+            if(mobileSidebarOverlay) mobileSidebarOverlay.addEventListener('click', closeMobileMenu);
             
             menuToggle.addEventListener('click', () => {
                 const nowCollapsed = !sidebar.classList.contains('sidebar-collapsed');
