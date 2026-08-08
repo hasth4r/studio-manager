@@ -115,6 +115,9 @@ $routes->group('admin', ['filter' => 'auth', 'namespace' => 'App\Controllers\Adm
 
     // Cloudflare R2 Migration
     $routes->get('migrate-r2', 'MigrateR2::index');
+    
+    // Web Installer
+    $routes->get('install-composer', 'InstallComposer::index');
 });
 
 // Secure Media Serving Route
