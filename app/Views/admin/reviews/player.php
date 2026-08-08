@@ -251,21 +251,15 @@ if (!function_exists('renderCommentBox')) {
 
             <!-- Media Container -->
             <div class="media-container flex-1 flex items-center justify-center relative">
-                <?php $mediaUrl = base_url('writable/uploads/' . $review->proxy_path) . '?v=' . strtotime($review->file_updated_at ?? $review->updated_at ?? time()); ?>
+                <?php $mediaUrl = base_url('media/serve/' . esc($review->proxy_path)); ?>
                 
-                <div id="loadingOverlay" class="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-50">
-                    <span class="material-symbols-outlined text-[48px] text-ytBlue animate-spin mb-4">progress_activity</span>
-                    <span class="text-white text-[14px] font-medium tracking-wide">Decrypting Secure Stream...</span>
-                    <span id="loadingProgress" class="text-ytMuted text-[12px] mt-2">0%</span>
-                </div>
-
                 <?php if($review->file_type === 'video'): ?>
-                    <video id="mediaElement" class="w-full h-full object-contain hidden" disablePictureInPicture controlsList="nodownload" oncontextmenu="return false;">
-                        <!-- Source is injected via secure Blob JS -->
+                    <video id="mediaElement" class="w-full h-full object-contain" disablePictureInPicture controlsList="nodownload" oncontextmenu="return false;">
+                        <!-- Source injected securely via JS -->
                         Your browser does not support the video tag.
                     </video>
                 <?php else: ?>
-                    <img id="mediaElement" class="w-full h-full object-contain hidden" oncontextmenu="return false;">
+                    <img id="mediaElement" class="w-full h-full object-contain" oncontextmenu="return false;">
                 <?php endif; ?>
                 
                 <!-- The Drawing Canvas -->
@@ -704,54 +698,19 @@ if (!function_exists('renderCommentBox')) {
         // Force initial resize
         setTimeout(resizeCanvas, 100);
 
-        // --- SECURE BLOB FETCH LOGIC ---
-        async function loadSecureMedia() {
-            const mediaUrl = '<?= base_url('media/serve/' . esc($review->proxy_path)) ?>';
-            const loadingOverlay = document.getElementById('loadingOverlay');
-            const loadingProgress = document.getElementById('loadingProgress');
-            const mediaEl = document.getElementById('mediaElement');
-
-            try {
-                const response = await fetch(mediaUrl);
-                if (!response.ok) throw new Error('Network response was not ok');
-
-                const reader = response.body.getReader();
-                const contentLength = +response.headers.get('Content-Length');
-                let receivedLength = 0;
-                let chunks = [];
-
-                while(true) {
-                    const {done, value} = await reader.read();
-                    if (done) break;
-                    chunks.push(value);
-                    receivedLength += value.length;
-                    
-                    if (contentLength) {
-                        const percent = Math.round((receivedLength / contentLength) * 100);
-                        loadingProgress.textContent = percent + '%';
-                    }
-                }
-
-                const blob = new Blob(chunks, { type: '<?= $review->file_type === 'video' ? 'video/mp4' : 'image/jpeg' ?>' });
-                const blobUrl = URL.createObjectURL(blob);
-                
-                mediaEl.src = blobUrl;
-                mediaEl.classList.remove('hidden');
-                loadingOverlay.classList.add('hidden');
-                
-                // For images, we need to trigger resize after load
-                if (mediaEl.tagName !== 'VIDEO') {
-                    mediaEl.onload = resizeCanvas;
-                }
-                
-            } catch (error) {
-                console.error('Error securely loading media:', error);
-                loadingOverlay.innerHTML = '<span class="text-red-500 font-bold">Error loading secure stream. Please refresh.</span>';
-            }
+        // --- DYNAMIC SOURCE INJECTION (Security) ---
+        // We inject the src dynamically so it doesn't appear in the HTML source code,
+        // preventing casual users from finding the link by right clicking -> View Page Source.
+        const secureUrl = '<?= base_url('media/serve/' . esc($review->proxy_path)) ?>';
+        if (media.tagName === 'VIDEO') {
+            const sourceEl = document.createElement('source');
+            sourceEl.src = secureUrl;
+            sourceEl.type = 'video/mp4';
+            media.appendChild(sourceEl);
+        } else {
+            media.src = secureUrl;
+            media.onload = resizeCanvas;
         }
-        
-        // Start secure load immediately
-        loadSecureMedia();
 
         // --- DJV PLAYBACK LOGIC ---
         if(media.tagName === 'VIDEO') {
