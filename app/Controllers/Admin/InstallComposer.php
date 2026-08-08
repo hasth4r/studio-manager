@@ -19,12 +19,14 @@ class InstallComposer extends BaseController
         // Put the environment variables so Composer runs correctly
         putenv('COMPOSER_HOME=' . WRITEPATH . 'composer_home');
         
-        // Run composer install using the local phar file
         $output = null;
         $resultCode = null;
         
-        // Use 2>&1 to capture standard error (red text) into the output
-        exec('php composer.phar install --no-dev --optimize-autoloader 2>&1', $output, $resultCode);
+        // Change to the root directory where composer.phar and composer.json live
+        $rootPath = FCPATH . '..';
+        
+        // Run composer install using the local phar file with absolute paths
+        exec("cd {$rootPath} && php composer.phar install --no-dev --optimize-autoloader 2>&1", $output, $resultCode);
 
         foreach ($output as $line) {
             echo htmlspecialchars($line) . "\n";
