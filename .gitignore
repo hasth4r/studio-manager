@@ -1,0 +1,7 @@
+writable/logs/*
+writable/session/*
+writable/debugbar/*
+writable/cache/*
+writable/uploads/*
+*.sql
+.env
