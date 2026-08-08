@@ -19,7 +19,8 @@ class Media extends BaseController
         
         $r2 = new \App\Libraries\CloudflareStorage();
         if ($r2->isConfigured() && $r2->fileExists('uploads/' . $path)) {
-            $signedUrl = $r2->getSignedUrl('uploads/' . $path, '+2 hours');
+            // Anti-Download: Shorten URL lifespan to 10 minutes so shared links die quickly
+            $signedUrl = $r2->getSignedUrl('uploads/' . $path, '+10 minutes');
             if ($signedUrl) {
                 return redirect()->to($signedUrl);
             }
