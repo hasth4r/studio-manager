@@ -18,7 +18,7 @@ class Media extends BaseController
         $path = implode('/', $pathArr);
         
         $r2 = new \App\Libraries\CloudflareStorage();
-        if ($r2->isConfigured()) {
+        if ($r2->isConfigured() && $r2->fileExists('uploads/' . $path)) {
             $signedUrl = $r2->getSignedUrl('uploads/' . $path, '+2 hours');
             if ($signedUrl) {
                 return redirect()->to($signedUrl);

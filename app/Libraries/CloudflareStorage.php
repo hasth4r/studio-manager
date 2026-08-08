@@ -71,6 +71,24 @@ class CloudflareStorage
     }
 
     /**
+     * Check if a file exists on R2
+     *
+     * @param string $path The path in the R2 bucket
+     * @return bool
+     */
+    public function fileExists(string $path): bool
+    {
+        if (!$this->client) return false;
+
+        try {
+            return $this->client->doesObjectExist($this->bucket, ltrim($path, '/'));
+        } catch (\Exception $e) {
+            log_message('error', 'R2 Exists Error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Generate a securely signed URL valid for a specific duration
      *
      * @param string $path The path in the R2 bucket

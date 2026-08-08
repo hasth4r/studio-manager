@@ -112,6 +112,9 @@ $routes->group('admin', ['filter' => 'auth', 'namespace' => 'App\Controllers\Adm
     // Project Types Management
     $routes->get('project-types', 'ProjectTypes::index');
     $routes->post('project-types/store', 'ProjectTypes::store');
+
+    // Cloudflare R2 Migration
+    $routes->get('migrate-r2', 'MigrateR2::index');
 });
 
 // Secure Media Serving Route
