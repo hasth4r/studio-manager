@@ -26,7 +26,7 @@ class InstallComposer extends BaseController
         $rootPath = FCPATH . '..';
         
         // Run composer install using the local phar file with absolute paths
-        exec("cd {$rootPath} && php composer.phar install --no-dev --optimize-autoloader 2>&1", $output, $resultCode);
+        exec("cd {$rootPath} && php composer.phar install --no-dev --optimize-autoloader --ignore-platform-reqs 2>&1", $output, $resultCode);
 
         foreach ($output as $line) {
             echo htmlspecialchars($line) . "\n";
