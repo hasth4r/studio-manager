@@ -106,7 +106,19 @@ class CloudflareStorage
             ]);
 
             $request = $this->client->createPresignedRequest($cmd, $expires);
-            return (string) $request->getUri();
+            $url = (string) $request->getUri();
+            
+            $config = new \Config\CloudflareR2();
+            if (!empty($config->custom_domain)) {
+                // Parse the original URL
+                $parsed = parse_url($url);
+                // Strip the bucket name from the path (because custom domains route directly to the bucket)
+                $newPath = str_replace('/' . $this->bucket . '/', '/', $parsed['path']);
+                // Rebuild the URL with the custom domain
+                $url = rtrim($config->custom_domain, '/') . $newPath . '?' . ($parsed['query'] ?? '');
+            }
+
+            return $url;
         } catch (AwsException $e) {
             log_message('error', 'R2 Signed URL Error: ' . $e->getMessage());
             return '';

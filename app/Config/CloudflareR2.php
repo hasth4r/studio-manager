@@ -11,6 +11,7 @@ class CloudflareR2 extends BaseConfig
     public string $bucket   = '';
     public string $endpoint = '';
     public string $region   = 'auto';
+    public string $custom_domain = '';
 
     public function __construct()
     {
@@ -22,5 +23,6 @@ class CloudflareR2 extends BaseConfig
         $this->bucket   = env('r2.bucket', '');
         $this->endpoint = env('r2.endpoint', '');
         $this->region   = env('r2.region', 'auto');
+        $this->custom_domain = env('r2.custom_domain', '');
     }
 }
