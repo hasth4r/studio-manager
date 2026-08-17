@@ -36,6 +36,9 @@ class Projects extends BaseController
         $builder->join('clients', 'clients.id = projects.client_id', 'left');
         $builder->join('project_types', 'project_types.id = projects.project_type_id', 'left');
         $builder->join('collaborators', 'collaborators.id = projects.collaborator_id', 'left');
+        $builder->orderBy('projects.created_at', 'DESC');
+        $projects = $builder->get()->getResult();
+
         $settingsModel = new \App\Models\SettingsModel();
         $studioCurrency = $settingsModel->getSetting('studio_currency', '₹');
         $opsHourlyRate = (float)$settingsModel->getSetting('studio_ops_hourly_rate', 100.00);
