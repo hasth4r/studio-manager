@@ -96,17 +96,13 @@ if (file_exists($envFile)) {
 // 2. Check Database Shots Table & Auto-Linker
 echo "<h3>2. Database Status &amp; Auto-Linker</h3>";
 
-$sqlitePath = dirname(__DIR__) . '/writable/database.db';
 $envPath = dirname(__DIR__) . '/.env';
+$sqlitePath = dirname(__DIR__) . '/writable/database.db';
 
 $pdo = null;
-if (file_exists($sqlitePath)) {
-    try {
-        $pdo = new PDO('sqlite:' . $sqlitePath);
-    } catch (\Throwable $e) {}
-}
 
-if (!$pdo && file_exists($envPath)) {
+// 1. Connect via .env (MySQL/Postgres) first
+if (file_exists($envPath)) {
     $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     $dbHost = 'localhost'; $dbName = 'enso8_manager'; $dbUser = 'root'; $dbPass = ''; $dbPort = 3306;
     foreach ($lines as $line) {
@@ -125,6 +121,13 @@ if (!$pdo && file_exists($envPath)) {
     }
     try {
         $pdo = new PDO("mysql:host={$dbHost};port={$dbPort};dbname={$dbName};charset=utf8mb4", $dbUser, $dbPass);
+    } catch (\Throwable $e) {}
+}
+
+// 2. Fallback to SQLite only if MySQL failed
+if (!$pdo && file_exists($sqlitePath)) {
+    try {
+        $pdo = new PDO('sqlite:' . $sqlitePath);
     } catch (\Throwable $e) {}
 }
 
@@ -263,10 +266,10 @@ if ($pdo) {
             // Filter rows that are NOT yet in standard uploads/{pCode}/{sName}/{sCode}/ folder
             $shotsToMove = [];
             foreach ($allRows as $r) {
-                $pCode = !empty($r['project_code']) ? $r['project_code'] : (!empty($r['project_name']) ? $r['project_name'] : 'Project_' . $r['project_id']);
+                $pCode = !empty($r['project_code']) ? $r['project_code'] : (!empty($r['project_name']) ? $r['project_name'] : ($r['project_id'] == 2 ? 'MHLYA-1' : 'Project_' . $r['project_id']));
                 $pCode = preg_replace('/[^a-zA-Z0-9_-]/', '_', trim($pCode));
 
-                $sName = !empty($r['seq_name']) ? $r['seq_name'] : 'WAR';
+                $sName = !empty($r['seq_name']) ? $r['seq_name'] : ($r['project_id'] == 2 ? 'War' : 'WAR');
                 $sName = preg_replace('/[^a-zA-Z0-9_-]/', '_', trim($sName));
 
                 $sCode = preg_replace('/[^a-zA-Z0-9_-]/', '_', trim($r['shot_number']));
