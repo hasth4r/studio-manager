@@ -199,6 +199,9 @@ class Reviews extends BaseController
         $reviewIds = [];
         
         foreach ($shots as $shot) {
+            $fps = !empty($shot->fps) ? (float)$shot->fps : 24.0;
+            $duration = !empty($shot->frame_count) ? round((float)$shot->frame_count / $fps, 2) : 0.0;
+
             $latestReview = $db->table('reviews r')
                 ->select('r.id as review_id, rf.proxy_path, rf.file_type, r.version_string, c.name as task_name')
                 ->join('review_files rf', 'rf.review_id = r.id', 'inner')
@@ -219,7 +222,8 @@ class Reviews extends BaseController
                     'proxy_path' => $latestReview->proxy_path,
                     'proxy_url' => media_cdn_url($latestReview->proxy_path),
                     'version_string' => $latestReview->version_string,
-                    'task_name' => $latestReview->task_name
+                    'task_name' => $latestReview->task_name,
+                    'duration' => $duration
                 ];
                 $reviewIds[] = $latestReview->review_id;
             }

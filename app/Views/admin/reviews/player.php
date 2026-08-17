@@ -274,26 +274,26 @@ if (!function_exists('renderCommentBox')) {
                 <div class="flex-1 flex flex-col bg-[#2a2a2a] relative border-b border-[#444]" id="timelineContainer">
                     
                     <?php if(isset($isSequenceMode) && $isSequenceMode): ?>
-                        <!-- Sequence Lineup Mini-Track (Taller for thumbnails) -->
-                        <div class="h-[60px] bg-[#111] flex overflow-hidden border-t border-[#333]" id="sequenceLineupTrack">
+                        <!-- Sequence Lineup Mini-Track (Optimized for 192+ shots with horizontal scroll) -->
+                        <div class="h-[60px] bg-[#111] flex overflow-x-auto overflow-y-hidden custom-scrollbar border-t border-[#333] select-none" id="sequenceLineupTrack">
                             <?php foreach($playlist as $idx => $clip): ?>
-                                <div class="border-r border-[#333] relative flex items-stretch cursor-pointer transition-colors seq-clip-block group" data-idx="<?= $idx ?>" id="seq-clip-<?= $idx ?>">
+                                <div class="border-r border-[#333] relative flex items-stretch cursor-pointer transition-colors seq-clip-block group shrink-0 min-w-[140px] max-w-[240px]" data-idx="<?= $idx ?>" id="seq-clip-<?= $idx ?>">
                                     <!-- Hover overlay -->
                                     <div class="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors pointer-events-none z-10"></div>
                                     
-                                    <!-- Thumbnail on the left -->
+                                    <!-- Thumbnail on the left (Lazy Loaded) -->
                                     <?php if(!empty($clip['thumbnail_path'])): ?>
-                                        <img src="<?= esc($clip['thumbnail_path']) ?>" class="h-full w-[100px] object-cover shrink-0 border-r border-[#333]">
+                                        <img src="<?= esc($clip['thumbnail_path']) ?>" loading="lazy" class="h-full w-[80px] object-cover shrink-0 border-r border-[#333]">
                                     <?php else: ?>
-                                        <div class="h-full w-[100px] shrink-0 bg-[#222] border-r border-[#333] flex items-center justify-center">
-                                            <span class="material-symbols-outlined text-[#444] text-[24px]">image</span>
+                                        <div class="h-full w-[80px] shrink-0 bg-[#222] border-r border-[#333] flex items-center justify-center">
+                                            <span class="material-symbols-outlined text-[#444] text-[20px]">image</span>
                                         </div>
                                     <?php endif; ?>
                                     
                                     <!-- Text Info -->
-                                    <div class="relative z-10 flex flex-col justify-center px-3 overflow-hidden flex-1 min-w-[80px]">
-                                        <span class="text-[12px] font-bold text-white pointer-events-none leading-tight truncate"><?= esc($clip['shot_number']) ?></span>
-                                        <span class="text-[10px] font-medium text-gray-300 pointer-events-none leading-tight mt-0.5 truncate"><?= esc($clip['task_name'] ?? '') ?> &bull; <span class="text-purple-400"><?= esc($clip['version_string'] ?? '') ?></span></span>
+                                    <div class="relative z-10 flex flex-col justify-center px-2.5 overflow-hidden flex-1 min-w-[70px]">
+                                        <span class="text-[11px] font-bold text-white pointer-events-none leading-tight truncate"><?= esc($clip['shot_number']) ?></span>
+                                        <span class="text-[9px] font-medium text-gray-300 pointer-events-none leading-tight mt-0.5 truncate"><?= esc($clip['task_name'] ?? '') ?> &bull; <span class="text-purple-400"><?= esc($clip['version_string'] ?? '') ?></span></span>
                                     </div>
                                 </div>
                             <?php endforeach; ?>
@@ -951,50 +951,72 @@ if (!function_exists('renderCommentBox')) {
                 renderMarkers();
             }
 
-            // Global Timeline State
+            // Global Timeline State & High-Performance Sequence Loader (Optimized for 192+ shots)
             let totalSequenceDuration = 0;
             let sequenceLoaded = false;
-            
+            let preloadVideoPool = null;
+
+            function preloadNextClip(currentIndex) {
+                if (!isSequenceMode || !playlist || currentIndex + 1 >= playlist.length) return;
+                const nextClip = playlist[currentIndex + 1];
+                if (nextClip && nextClip.proxy_url) {
+                    if (!preloadVideoPool) {
+                        preloadVideoPool = document.createElement('video');
+                        preloadVideoPool.preload = 'auto';
+                        preloadVideoPool.muted = true;
+                    }
+                    preloadVideoPool.src = nextClip.proxy_url;
+                }
+            }
+
             if (isSequenceMode) {
-                let loadedCount = 0;
-                playlist.forEach((clip, i) => {
-                    if (clip.proxy_url) {
-                        const v = document.createElement('video');
-                        v.src = clip.proxy_url;
-                        v.addEventListener('loadedmetadata', () => {
-                            clip.duration = v.duration;
-                            checkAllLoaded();
-                        });
-                        v.addEventListener('error', () => {
-                            clip.duration = 0;
-                            checkAllLoaded();
-                        });
-                    } else {
-                        clip.duration = 0;
-                        checkAllLoaded();
-                    }
-                });
+                // 1. Instant Duration Calculation from PHP Precomputed Durations (Zero Network Stall)
+                const allHaveDurations = playlist.every(c => typeof c.duration === 'number' && c.duration > 0);
                 
-                function checkAllLoaded() {
-                    loadedCount++;
-                    if (loadedCount === playlist.length) {
-                        totalSequenceDuration = playlist.reduce((sum, c) => sum + (c.duration || 0), 0);
-                        sequenceLoaded = true;
-                        
-                        // Set proportional widths for sequence track blocks
-                        if (totalSequenceDuration > 0) {
-                            playlist.forEach((clip, i) => {
-                                const block = document.getElementById('seq-clip-' + i);
-                                if (block) {
-                                    const pct = ((clip.duration || 0) / totalSequenceDuration) * 100;
-                                    block.classList.remove('flex-1');
-                                    block.style.width = pct + '%';
-                                }
-                            });
+                if (allHaveDurations) {
+                    totalSequenceDuration = playlist.reduce((sum, c) => sum + (c.duration || 0), 0);
+                    sequenceLoaded = true;
+                    renderMarkers();
+                } else {
+                    // Fallback to async metadata loading only if durations are missing
+                    let loadedCount = 0;
+                    playlist.forEach((clip, i) => {
+                        if (clip.proxy_url && (!clip.duration || clip.duration <= 0)) {
+                            const v = document.createElement('video');
+                            v.preload = 'metadata';
+                            v.src = clip.proxy_url;
+                            v.addEventListener('loadedmetadata', () => {
+                                clip.duration = v.duration;
+                                checkAllLoaded();
+                            }, { once: true });
+                            v.addEventListener('error', () => {
+                                clip.duration = clip.duration || 0;
+                                checkAllLoaded();
+                            }, { once: true });
+                        } else {
+                            checkAllLoaded();
                         }
-                        
-                        renderMarkers(); // render markers now that global duration is known
+                    });
+                    
+                    function checkAllLoaded() {
+                        loadedCount++;
+                        if (loadedCount >= playlist.length) {
+                            totalSequenceDuration = playlist.reduce((sum, c) => sum + (c.duration || 0), 0);
+                            sequenceLoaded = true;
+                            renderMarkers();
+                        }
                     }
+                }
+
+                // 2. Mousewheel Horizontal Scrolling for 192+ Shot Timeline
+                const lineupTrack = document.getElementById('sequenceLineupTrack');
+                if (lineupTrack) {
+                    lineupTrack.addEventListener('wheel', (e) => {
+                        if (e.deltaY !== 0) {
+                            e.preventDefault();
+                            lineupTrack.scrollLeft += e.deltaY * 1.5;
+                        }
+                    }, { passive: false });
                 }
             }
 
@@ -1019,11 +1041,12 @@ if (!function_exists('renderCommentBox')) {
                 currentPlaylistIndex = index;
                 activeReviewId = playlist[index].review_id;
                 
-                // Update UI active state
-                document.querySelectorAll('.seq-clip-block').forEach(el => el.classList.remove('bg-ytBlue/20', 'border-ytBlue'));
+                // Update UI active state & auto-scroll into view for 192+ shots
+                document.querySelectorAll('.seq-clip-block').forEach(el => el.classList.remove('bg-ytBlue/20', 'border-ytBlue', 'ring-1', 'ring-ytBlue'));
                 const activeBlock = document.getElementById('seq-clip-' + index);
-                if(activeBlock) {
-                    activeBlock.classList.add('bg-ytBlue/20', 'border-ytBlue');
+                if (activeBlock) {
+                    activeBlock.classList.add('bg-ytBlue/20', 'border-ytBlue', 'ring-1', 'ring-ytBlue');
+                    activeBlock.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
                 }
                 
                 // Load new source
@@ -1032,9 +1055,15 @@ if (!function_exists('renderCommentBox')) {
                 media.play().catch(e => console.log('Autoplay prevented:', e));
                 playPauseIcon.textContent = 'pause';
                 
-                // Clear annotations and reload
-                canvas.clear();
-                annotatedFrames = null; // force rebuild of annotation index for new clip
+                // Intelligent next clip pre-buffer
+                preloadNextClip(index);
+
+                // Clear canvas and force memory release
+                if (canvas) {
+                    canvas.clear();
+                    canvas.renderAll();
+                }
+                annotatedFrames = null;
                 renderMarkers();
             }
 
