@@ -214,9 +214,41 @@ if ($pdo) {
             echo "</div>";
         }
 
+        // Cloudflare R2 Sync Action
+        if (isset($_GET['action']) && $_GET['action'] === 'sync_r2' && $r2Configured && $r2Client) {
+            @ini_set('max_execution_time', 600);
+            $files = is_dir($videoDir) ? scandir($videoDir) : [];
+            $videoFiles = array_filter($files, fn($f) => !in_array($f, ['.', '..']));
+            $r2Synced = 0;
+            $r2Failed = 0;
+
+            foreach ($videoFiles as $vf) {
+                $abs = $videoDir . '/' . $vf;
+                $key = 'uploads/shots/videos/' . $vf;
+                try {
+                    if (!$r2Client->doesObjectExist($r2Bucket, $key)) {
+                        $r2Client->putObject([
+                            'Bucket'     => $r2Bucket,
+                            'Key'        => $key,
+                            'SourceFile' => $abs,
+                        ]);
+                    }
+                    $r2Synced++;
+                } catch (\Throwable $e) {
+                    $r2Failed++;
+                }
+            }
+            echo "<div style='background:#064e3b; border:1px solid #059669; color:#a7f3d0; padding:15px; border-radius:8px; margin-bottom:15px;'>";
+            echo "<b>☁️ Cloudflare R2 Sync Complete! {$r2Synced} videos are now active in R2 bucket '{$r2Bucket}'!</b>";
+            echo "</div>";
+        }
+
         // Action Toolbar
-        echo "<div style='margin-bottom:15px;'>";
-        echo "<a href='?action=autolink' style='background:#2563eb; color:#fff; padding:10px 20px; border-radius:8px; text-decoration:none; font-weight:bold; font-size:14px; display:inline-block;'>🔗 Auto-Create &amp; Link All 94 Shots in Database</a>";
+        echo "<div style='margin-bottom:15px; display:flex; gap:10px; align-items:center;'>";
+        echo "<a href='?action=autolink' style='background:#2563eb; color:#fff; padding:10px 18px; border-radius:8px; text-decoration:none; font-weight:bold; font-size:13px; display:inline-block;'>🔗 Auto-Create &amp; Link Database Shots</a>";
+        if ($r2Configured) {
+            echo "<a href='?action=sync_r2' style='background:#9333ea; color:#fff; padding:10px 18px; border-radius:8px; text-decoration:none; font-weight:bold; font-size:13px; display:inline-block;'>☁️ Sync All 94 Videos to Cloudflare R2 CDN</a>";
+        }
         echo "</div>";
 
         // Query Project 2 (Mahalaya) shots first, then others
