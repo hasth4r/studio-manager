@@ -35,9 +35,9 @@
         <div class="bg-ytCard border border-ytBorder rounded-xl overflow-hidden">
             <div class="aspect-video bg-[#1a1a1a] relative overflow-hidden flex items-center justify-center">
                 <?php if(!empty($shot->preview_video_path)): ?>
-                    <video src="/<?= esc($shot->preview_video_path) ?>" controls class="w-full h-full object-contain" poster="<?= $shot->thumbnail_path ? '/' . esc($shot->thumbnail_path) : '' ?>"></video>
+                    <video src="<?= media_cdn_url(esc($shot->preview_video_path)) ?>" controls class="w-full h-full object-contain" poster="<?= $shot->thumbnail_path ? media_cdn_url(esc($shot->thumbnail_path)) : '' ?>"></video>
                 <?php elseif($shot->thumbnail_path): ?>
-                    <img src="/<?= esc($shot->thumbnail_path) ?>" class="w-full h-full object-cover">
+                    <img src="<?= media_cdn_url(esc($shot->thumbnail_path)) ?>" class="w-full h-full object-cover">
                 <?php else: ?>
                     <div class="w-full h-full flex items-center justify-center text-ytMuted">
                         <span class="material-symbols-outlined text-[48px]">image</span>

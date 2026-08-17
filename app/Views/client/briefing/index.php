@@ -103,10 +103,10 @@
                             <!-- Visual Preview (Video & Thumbnail) -->
                             <td class="py-3 px-3 align-top pt-3">
                                 <div class="w-48 aspect-video bg-[#0d0d0d] rounded-lg border border-ytBorder/80 overflow-hidden relative group/thumb shadow-sm"
-                                     onmouseenter="playHoverVideo(this, '<?= !empty($shot->preview_video_path) ? base_url(esc($shot->preview_video_path)) : '' ?>')"
+                                     onmouseenter="playHoverVideo(this, '<?= !empty($shot->preview_video_path) ? media_cdn_url(esc($shot->preview_video_path)) : '' ?>')"
                                      onmouseleave="stopHoverVideo(this)">
                                     <?php if (!empty($shot->thumbnail_path)): ?>
-                                        <img src="<?= base_url(esc($shot->thumbnail_path)) ?>" loading="lazy" class="w-full h-full object-cover">
+                                        <img src="<?= media_cdn_url(esc($shot->thumbnail_path)) ?>" loading="lazy" class="w-full h-full object-cover">
                                     <?php else: ?>
                                         <div class="w-full h-full flex items-center justify-center text-ytMuted/40">
                                             <span class="material-symbols-outlined text-[28px]">image</span>
@@ -115,7 +115,7 @@
 
                                     <?php if (!empty($shot->preview_video_path)): ?>
                                         <button type="button" 
-                                                onclick="openVideoModal('<?= base_url(esc($shot->preview_video_path)) ?>', '<?= esc($shot->shot_number) ?>')" 
+                                                onclick="openVideoModal('<?= media_cdn_url(esc($shot->preview_video_path)) ?>', '<?= esc($shot->shot_number) ?>')" 
                                                 class="absolute top-1.5 left-1.5 bg-black/85 hover:bg-blue-600 backdrop-blur-xs border border-blue-500/50 text-blue-200 hover:text-white text-[10px] font-mono font-bold px-2 py-0.5 rounded flex items-center gap-1 z-20 cursor-pointer shadow-md transition-all">
                                             <span class="material-symbols-outlined text-[13px]">play_circle</span> Preview
                                         </button>
@@ -128,10 +128,9 @@
                                 <div class="relative">
                                     <textarea 
                                         oninput="handleBriefInput(<?= $shot->id ?>)"
-                                        onblur="saveBriefing(<?= $shot->id ?>)"
-                                        id="brief_textarea_<?= $shot->id ?>"
-                                        rows="4"
-                                        placeholder="Type creative brief, VFX description, mood, lighting notes, or specific directions for this shot..."
+                                        onchange="saveBrief(<?= $shot->id ?>)"
+                                        rows="3"
+                                        placeholder="Add creative notes, art direction, framing guidance, VFX requirements..." 
                                         class="w-full bg-[#111114] border border-ytBorder hover:border-ytBlue/50 focus:border-ytBlue text-ytText rounded-xl p-3 text-[13px] focus:outline-none placeholder:text-ytMuted/40 resize-y transition-all leading-relaxed custom-scrollbar font-sans"><?= esc($shot->description ?? '') ?></textarea>
                                     
                                     <!-- Auto-Save Status Badge -->
@@ -150,12 +149,12 @@
                                             <?php foreach ($shot->references as $ref): ?>
                                                 <div class="relative group/ref w-16 h-16 rounded-lg border border-ytBorder bg-[#0a0a0a] overflow-hidden shrink-0 shadow-sm" id="ref_card_<?= md5($ref['path']) ?>">
                                                     <?php if (!empty($ref['is_image'])): ?>
-                                                        <img src="<?= base_url(esc($ref['path'])) ?>" 
-                                                             onclick="openLightbox('<?= base_url(esc($ref['path'])) ?>', '<?= esc($ref['name']) ?>')" 
+                                                        <img src="<?= media_cdn_url(esc($ref['path'])) ?>" 
+                                                             onclick="openLightbox('<?= media_cdn_url(esc($ref['path'])) ?>', '<?= esc($ref['name']) ?>')" 
                                                              class="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform" 
                                                              title="<?= esc($ref['name']) ?>">
                                                     <?php else: ?>
-                                                        <a href="<?= base_url(esc($ref['path'])) ?>" target="_blank" class="w-full h-full flex flex-col items-center justify-center p-1 text-center text-ytMuted hover:text-ytText" title="<?= esc($ref['name']) ?>">
+                                                        <a href="<?= media_cdn_url(esc($ref['path'])) ?>" target="_blank" class="w-full h-full flex flex-col items-center justify-center p-1 text-center text-ytMuted hover:text-ytText" title="<?= esc($ref['name']) ?>">
                                                             <span class="material-symbols-outlined text-[20px] text-ytBlue">description</span>
                                                             <span class="text-[8px] font-mono truncate w-full"><?= esc($ref['ext']) ?></span>
                                                         </a>

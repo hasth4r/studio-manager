@@ -31,7 +31,7 @@
         <div class="bg-ytCard border border-ytBorder rounded-xl overflow-hidden">
             <div class="aspect-square bg-[#1a1a1a] relative">
                 <?php if($asset->thumbnail_path): ?>
-                    <img src="/<?= esc($asset->thumbnail_path) ?>" class="w-full h-full object-cover">
+                    <img src="<?= media_cdn_url(esc($asset->thumbnail_path)) ?>" class="w-full h-full object-cover">
                 <?php else: ?>
                     <div class="w-full h-full flex items-center justify-center text-ytMuted">
                         <span class="material-symbols-outlined text-[48px]">view_in_ar</span>
