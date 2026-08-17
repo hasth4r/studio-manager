@@ -251,7 +251,7 @@ if (!function_exists('renderCommentBox')) {
 
             <!-- Media Container -->
             <div class="media-container flex-1 min-w-0 min-h-0 flex items-center justify-center relative overflow-hidden">
-                <?php $mediaUrl = media_cdn_url(esc($review->proxy_path)); ?>
+                <?php $mediaUrl = base_url('media/serve/' . esc($review->proxy_path)); ?>
                 
                 <?php if($review->file_type === 'video' || (isset($isSequenceMode) && $isSequenceMode)): ?>
                     <video id="mediaElement" class="w-full h-full object-contain" disablePictureInPicture controlsList="nodownload" oncontextmenu="return false;">
@@ -701,12 +701,12 @@ if (!function_exists('renderCommentBox')) {
         // --- DYNAMIC SOURCE INJECTION (Security) ---
         // We inject the src dynamically so it doesn't appear in the HTML source code,
         // preventing casual users from finding the link by right clicking -> View Page Source.
-        const secureUrl = '<?= media_cdn_url(esc($review->proxy_path)) ?>';
+        const secureUrl = '<?= base_url('media/serve/' . esc($review->proxy_path)) ?>';
         if (media.tagName === 'VIDEO') {
-            if (secureUrl) {
-                media.src = secureUrl;
-                media.load();
-            }
+            const sourceEl = document.createElement('source');
+            sourceEl.src = secureUrl;
+            sourceEl.type = 'video/mp4';
+            media.appendChild(sourceEl);
         } else {
             media.src = secureUrl;
             media.onload = resizeCanvas;

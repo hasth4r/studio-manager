@@ -19,13 +19,6 @@ class Media extends BaseController
         $cleanPath = ltrim($path, '/');
         $noUploadsPrefix = preg_replace('#^uploads/#', '', $cleanPath);
 
-        // 0. Cloudflare Worker / Custom CDN Domain Redirect
-        $cdnDomain = env('r2.custom_domain', '');
-        if (!empty($cdnDomain)) {
-            $cdnDomain = rtrim($cdnDomain, '/');
-            return redirect()->to($cdnDomain . '/' . $cleanPath);
-        }
-
         // 1. Cloudflare R2 Storage
         $r2 = new \App\Libraries\CloudflareStorage();
         if ($r2->isConfigured()) {
