@@ -130,32 +130,57 @@ if (!$pdo && file_exists($envPath)) {
 
 if ($pdo) {
     try {
+        // 2.1 List Projects
+        $projects = $pdo->query("SELECT id, name, project_code FROM projects ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
+        echo "<p>Active Projects in Database: ";
+        foreach ($projects as $p) {
+            echo "<b>[ID: {$p['id']}] {$p['name']} ({$p['project_code']})</b> &nbsp; ";
+        }
+        echo "</p>";
+
         // Auto-Link & Auto-Create Action: If user clicks link
         if (isset($_GET['action']) && $_GET['action'] === 'autolink') {
             $files = is_dir($videoDir) ? scandir($videoDir) : [];
             $videoFiles = array_filter($files, fn($f) => !in_array($f, ['.', '..']));
             $createdCount = 0;
             $linkedCount = 0;
+            $now = date('Y-m-d H:i:s');
 
-            // Get sequence for Project 2 (or create 'WAR' sequence)
-            $seqStmt = $pdo->prepare("SELECT id FROM sequences WHERE project_id = 2 LIMIT 1");
-            $seqStmt->execute();
+            // Find target project ID (default to project 2 if exists, or first project)
+            $targetProjId = 2;
+            $projIds = array_column($projects, 'id');
+            if (!in_array($targetProjId, $projIds) && !empty($projIds)) {
+                $targetProjId = (int)$projIds[0];
+            }
+
+            // Get sequence for Project (or create 'WAR' sequence)
+            $seqStmt = $pdo->prepare("SELECT id FROM sequences WHERE project_id = ? LIMIT 1");
+            $seqStmt->execute([$targetProjId]);
             $defaultSeq = $seqStmt->fetch(PDO::FETCH_ASSOC);
             $seqId = $defaultSeq ? $defaultSeq['id'] : null;
             if (!$seqId) {
                 try {
-                    $insSeq = $pdo->prepare("INSERT INTO sequences (project_id, name, description, created_at, updated_at) VALUES (2, 'WAR', 'Production Sequence', NOW(), NOW())");
-                    $insSeq->execute();
+                    $insSeq = $pdo->prepare("INSERT INTO sequences (project_id, name, description, created_at, updated_at) VALUES (?, 'WAR', 'Production Sequence', ?, ?)");
+                    $insSeq->execute([$targetProjId, $now, $now]);
                     $seqId = $pdo->lastInsertId();
                 } catch (\Throwable $e) {}
             }
 
             foreach ($videoFiles as $vf) {
-                // Expected format: vid_{projectId}_{shotNum}_{uid}.mp4
-                if (preg_match('/^vid_(\d+)_(.+?)_[a-f0-9]+(\.[a-zA-Z0-9]+)$/i', $vf, $m)) {
+                $projId = $targetProjId;
+                $rawShotNum = null;
+
+                if (preg_match('/^vid_(\d+)_(.+?)_[a-zA-Z0-9]+\.(mp4|mov|webm|m4v)$/i', $vf, $m)) {
                     $projId = (int)$m[1];
-                    $rawShotNum = $m[2]; // e.g. sh0010
-                    $shotNum = strtoupper($rawShotNum); // e.g. SH0010
+                    $rawShotNum = $m[2];
+                } elseif (preg_match('/^vid_(.+?)_[a-zA-Z0-9]+\.(mp4|mov|webm|m4v)$/i', $vf, $m)) {
+                    $rawShotNum = $m[1];
+                } elseif (preg_match('/^(.+?)\.(mp4|mov|webm|m4v)$/i', $vf, $m)) {
+                    $rawShotNum = $m[1];
+                }
+
+                if (!empty($rawShotNum)) {
+                    $shotNum = strtoupper($rawShotNum);
                     $relPath = 'uploads/shots/videos/' . $vf;
 
                     // Check if shot already exists in DB
@@ -164,27 +189,28 @@ if ($pdo) {
                     $existing = $checkStmt->fetch(PDO::FETCH_ASSOC);
 
                     if ($existing) {
-                        $updateStmt = $pdo->prepare("UPDATE shots SET preview_video_path = ? WHERE id = ?");
-                        $updateStmt->execute([$relPath, $existing['id']]);
+                        $updateStmt = $pdo->prepare("UPDATE shots SET preview_video_path = ?, updated_at = ? WHERE id = ?");
+                        $updateStmt->execute([$relPath, $now, $existing['id']]);
                         $linkedCount++;
                     } else {
                         // Auto-create shot in database!
                         try {
-                            $insertStmt = $pdo->prepare("INSERT INTO shots (project_id, sequence_id, shot_number, preview_video_path, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())");
-                            $insertStmt->execute([$projId, $seqId, $shotNum, $relPath]);
+                            $insertStmt = $pdo->prepare("INSERT INTO shots (project_id, sequence_id, shot_number, preview_video_path, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)");
+                            $insertStmt->execute([$projId, $seqId, $shotNum, $relPath, $now, $now]);
                             $createdCount++;
                         } catch (\Throwable $e) {
-                            // Fallback if sequence_id fails
-                            $insertStmt = $pdo->prepare("INSERT INTO shots (project_id, shot_number, preview_video_path, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())");
-                            $insertStmt->execute([$projId, $shotNum, $relPath]);
-                            $createdCount++;
+                            try {
+                                $insertStmt = $pdo->prepare("INSERT INTO shots (project_id, shot_number, preview_video_path, created_at, updated_at) VALUES (?, ?, ?, ?, ?)");
+                                $insertStmt->execute([$projId, $shotNum, $relPath, $now, $now]);
+                                $createdCount++;
+                            } catch (\Throwable $e2) {}
                         }
                     }
                 }
             }
             echo "<div style='background:#064e3b; border:1px solid #059669; color:#a7f3d0; padding:15px; border-radius:8px; margin-bottom:15px;'>";
-            echo "<h4 style='margin:0 0 5px 0;'>🎉 Done!</h4>";
-            echo "<p style='margin:0;'>Created <b>{$createdCount}</b> new shots and linked <b>{$linkedCount}</b> existing shots in Project 2!</p>";
+            echo "<h4 style='margin:0 0 5px 0;'>🎉 Auto-Creation Complete!</h4>";
+            echo "<p style='margin:0;'>Created <b>{$createdCount}</b> new shots and linked <b>{$linkedCount}</b> shots in Project {$targetProjId}!</p>";
             echo "</div>";
         }
 
