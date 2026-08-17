@@ -177,8 +177,7 @@
                         <td class="py-1.5 px-2 text-center align-middle">
                             <div class="w-14 h-9 bg-[#111] rounded border border-ytBorder/60 overflow-hidden relative group/thumb cursor-pointer shrink-0 inline-block align-middle"
                                  onmouseenter="showFloatingPreview(event, '<?= !empty($shot->preview_video_path) ? base_url(esc($shot->preview_video_path)) : '' ?>', '<?= !empty($shot->thumbnail_path) ? base_url(esc($shot->thumbnail_path)) : '' ?>', '<?= esc($shot->shot_number) ?>')"
-                                 onmousemove="moveFloatingPreview(event)"
-                                 onmouseleave=""
+                                 onmouseleave="hideFloatingPreview()"
                                  onclick="openVideoModal('<?= !empty($shot->preview_video_path) ? base_url(esc($shot->preview_video_path)) : '' ?>', '<?= esc($shot->shot_number) ?>')"
                                  title="Click to open full player">
                                 <?php if($shot->thumbnail_path): ?>
@@ -817,21 +816,15 @@
         const tag = document.getElementById('globalHoverTag');
         if (!box) return;
 
-        // Position directly to the RIGHT of the hovered thumbnail, same vertical level
+        // User-calibrated position: left fixed at 250px (after Shot & Seq column), top tracks hovered row
         const target = e.currentTarget;
         const rect = target.getBoundingClientRect();
-        const boxWidth = 270;
         const boxHeight = 152;
 
-        let left = rect.right + 10;
-        let top = rect.top + (rect.height / 2) - (boxHeight / 2);
+        let left = 250;
+        let top = rect.top;
 
-        // If going off right edge of screen, flip to LEFT of thumbnail
-        if (left + boxWidth > window.innerWidth - 10) {
-            left = rect.left - boxWidth - 10;
-        }
-
-        // Clamp vertically within viewport
+        // Clamp vertically so popup doesn't go off bottom of screen
         if (top + boxHeight > window.innerHeight - 10) {
             top = window.innerHeight - boxHeight - 10;
         }
