@@ -146,7 +146,7 @@ class Briefing extends BaseController
         $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'pdf', 'mp4', 'mov'];
         $ext = strtolower($file->getClientExtension());
         if (!in_array($ext, $allowedExtensions)) {
-            return $this->response->setJSON(['success' => false, 'error' => 'Unsupported file type. Please upload images (JPG, PNG, WebP) or PDF.'])->setStatusCode(400);
+            return $this->response->setJSON(['success' => false, 'error' => 'Unsupported file type. Allowed: JPG, PNG, WebP, GIF, PDF, MP4, MOV.'])->setStatusCode(400);
         }
 
         $targetDir = FCPATH . 'uploads' . DIRECTORY_SEPARATOR . 'references';
@@ -155,23 +155,50 @@ class Briefing extends BaseController
         }
 
         $originalName = $file->getClientName();
-        $safeName = 'ref_' . $shot->project_id . '_' . $shot->id . '_' . uniqid() . '.' . $ext;
-        $file->move($targetDir, $safeName);
+        $isImage      = in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif']);
+
+        // For images: compress and convert to WebP; for other files: keep original
+        if ($isImage) {
+            $safeName = 'ref_' . $shot->project_id . '_' . $shot->id . '_' . uniqid() . '.webp';
+            $destPath = $targetDir . DIRECTORY_SEPARATOR . $safeName;
+
+            // Move original first, then compress in place
+            $tmpName = 'tmp_' . uniqid() . '.' . $ext;
+            $file->move($targetDir, $tmpName);
+            $tmpPath = $targetDir . DIRECTORY_SEPARATOR . $tmpName;
+
+            // Compress with GD → WebP (max 1920px wide, 85% quality)
+            $compressed = $this->compressImageToWebP($tmpPath, $destPath, 1920, 85);
+            @unlink($tmpPath);
+
+            if (!$compressed) {
+                // GD failed — fall back to original
+                $safeName = 'ref_' . $shot->project_id . '_' . $shot->id . '_' . uniqid() . '.' . $ext;
+                rename($tmpPath, $targetDir . DIRECTORY_SEPARATOR . $safeName);
+                $destPath = $targetDir . DIRECTORY_SEPARATOR . $safeName;
+            }
+
+            $ext      = 'webp';
+            $isImage  = true;
+        } else {
+            $safeName = 'ref_' . $shot->project_id . '_' . $shot->id . '_' . uniqid() . '.' . $ext;
+            $file->move($targetDir, $safeName);
+            $destPath = $targetDir . DIRECTORY_SEPARATOR . $safeName;
+        }
 
         $relPath = 'uploads/references/' . $safeName;
-        $fullPath = $targetDir . DIRECTORY_SEPARATOR . $safeName;
 
-        // Sync to Cloudflare R2 if configured
+        // Sync to Cloudflare R2
         try {
             $r2 = new \App\Libraries\CloudflareStorage();
             if ($r2->isConfigured()) {
-                $r2->uploadFile($fullPath, $relPath);
+                $r2->uploadFile($destPath, $relPath);
             }
         } catch (\Throwable $e) {
             log_message('error', 'R2 Reference upload warning: ' . $e->getMessage());
         }
 
-        // Read existing references and append
+        // Persist to DB
         $existing = !empty($shot->reference_images) ? json_decode($shot->reference_images, true) : [];
         if (!is_array($existing)) $existing = [];
 
@@ -180,7 +207,7 @@ class Briefing extends BaseController
             'url'         => base_url($relPath),
             'name'        => $originalName,
             'ext'         => $ext,
-            'is_image'    => in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif']),
+            'is_image'    => $isImage,
             'uploaded_by' => session()->get('userName') ?? 'Client',
             'uploaded_at' => date('Y-m-d H:i:s'),
         ];
@@ -195,6 +222,50 @@ class Briefing extends BaseController
             'reference'  => $refItem,
             'references' => $existing
         ]);
+    }
+
+    /**
+     * Compress any image to WebP using GD.
+     * Returns true on success, false on failure.
+     */
+    private function compressImageToWebP(string $srcPath, string $destPath, int $maxWidth = 1920, int $quality = 85): bool
+    {
+        if (!function_exists('imagecreatefromjpeg')) return false;
+
+        $info = @getimagesize($srcPath);
+        if (!$info) return false;
+
+        [$origW, $origH, $type] = $info;
+
+        $src = match ($type) {
+            IMAGETYPE_JPEG => @imagecreatefromjpeg($srcPath),
+            IMAGETYPE_PNG  => @imagecreatefrompng($srcPath),
+            IMAGETYPE_WEBP => @imagecreatefromwebp($srcPath),
+            IMAGETYPE_GIF  => @imagecreatefromgif($srcPath),
+            default        => false,
+        };
+
+        if (!$src) return false;
+
+        // Scale down if wider than maxWidth
+        if ($origW > $maxWidth) {
+            $scale   = $maxWidth / $origW;
+            $newW    = (int)($origW * $scale);
+            $newH    = (int)($origH * $scale);
+            $resized = imagecreatetruecolor($newW, $newH);
+
+            // Preserve transparency for PNG/WebP
+            imagealphablending($resized, false);
+            imagesavealpha($resized, true);
+            imagecopyresampled($resized, $src, 0, 0, 0, 0, $newW, $newH, $origW, $origH);
+            imagedestroy($src);
+            $src = $resized;
+        }
+
+        $result = imagewebp($src, $destPath, $quality);
+        imagedestroy($src);
+
+        return $result && file_exists($destPath);
     }
 
     /**
