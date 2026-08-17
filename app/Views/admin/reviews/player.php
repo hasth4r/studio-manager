@@ -198,10 +198,10 @@ if (!function_exists('renderCommentBox')) {
     </header>
 
     <!-- Main Workspace -->
-    <div class="flex flex-col md:flex-row flex-1 overflow-y-auto md:overflow-hidden">
+    <div class="flex flex-col md:flex-row flex-1 min-w-0 min-h-0 overflow-hidden w-full h-[calc(100vh-60px)]">
         
         <!-- Player Area -->
-        <div class="flex-1 flex flex-col bg-black relative group">
+        <div class="flex-1 flex flex-col bg-black relative group min-w-0 min-h-0 overflow-hidden">
             
             <!-- Global Hide Feedback Toggle -->
             <button id="toggleFeedbackBtn" onclick="window.toggleAllFeedback()" class="absolute top-4 right-4 bg-black/60 hover:bg-black/80 border border-white/20 text-white px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 z-30 transition-all opacity-0 group-hover:opacity-100">
@@ -250,7 +250,7 @@ if (!function_exists('renderCommentBox')) {
             </div>
 
             <!-- Media Container -->
-            <div class="media-container flex-1 flex items-center justify-center relative">
+            <div class="media-container flex-1 min-w-0 min-h-0 flex items-center justify-center relative overflow-hidden">
                 <?php $mediaUrl = media_cdn_url(esc($review->proxy_path)); ?>
                 
                 <?php if($review->file_type === 'video' || (isset($isSequenceMode) && $isSequenceMode)): ?>
@@ -268,16 +268,16 @@ if (!function_exists('renderCommentBox')) {
             
             <!-- DJV 1.1.0 Replica Controls -->
             <?php if($review->file_type === 'video' || (isset($isSequenceMode) && $isSequenceMode)): ?>
-            <div class="bg-[#383838] flex flex-col shrink-0 z-10 relative border-t border-[#111]">
+            <div class="bg-[#383838] flex flex-col shrink-0 z-10 relative border-t border-[#111] min-w-0 w-full">
                 
                 <!-- Top Row: Timeline and Sequence Track (Full width) -->
-                <div class="flex-1 flex flex-col bg-[#2a2a2a] relative border-b border-[#444]" id="timelineContainer">
+                <div class="flex-1 flex flex-col bg-[#2a2a2a] relative border-b border-[#444] min-w-0 w-full overflow-hidden" id="timelineContainer">
                     
                     <?php if(isset($isSequenceMode) && $isSequenceMode): ?>
                         <!-- Sequence Lineup Mini-Track (Optimized for 192+ shots with horizontal scroll) -->
-                        <div class="h-[60px] bg-[#111] flex overflow-x-auto overflow-y-hidden custom-scrollbar border-t border-[#333] select-none" id="sequenceLineupTrack">
+                        <div class="h-[60px] bg-[#111] flex overflow-x-auto overflow-y-hidden custom-scrollbar border-t border-[#333] select-none min-w-0 w-full" id="sequenceLineupTrack">
                             <?php foreach($playlist as $idx => $clip): ?>
-                                <div class="border-r border-[#333] relative flex items-stretch cursor-pointer transition-colors seq-clip-block group shrink-0 min-w-[140px] max-w-[240px]" data-idx="<?= $idx ?>" id="seq-clip-<?= $idx ?>">
+                                <div class="border-r border-[#333] relative flex items-stretch cursor-pointer transition-colors seq-clip-block group shrink-0 w-[140px] max-w-[200px]" data-idx="<?= $idx ?>" id="seq-clip-<?= $idx ?>">
                                     <!-- Hover overlay -->
                                     <div class="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors pointer-events-none z-10"></div>
                                     
