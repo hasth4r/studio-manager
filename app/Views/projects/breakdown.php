@@ -43,6 +43,10 @@
         </div>
 
         <div class="flex items-center gap-2">
+            <a href="/admin/projects/<?= $project->id ?>/analysis" class="bg-[#181818] border border-purple-500/40 hover:border-purple-400 text-purple-200 px-3 py-1.5 rounded-lg font-medium text-[12px] hover:bg-purple-950/40 transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(168,85,247,0.15)]" title="Open Complete Production, Financial & Risk Analysis">
+                <span class="material-symbols-outlined text-[16px] text-purple-400">analytics</span>
+                <span>Analysis</span>
+            </a>
             <a href="/admin/projects/<?= $project->id ?>/briefing" class="bg-[#181818] border border-indigo-500/40 hover:border-indigo-400 text-indigo-200 px-3 py-1.5 rounded-lg font-medium text-[12px] hover:bg-indigo-950/40 transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(99,102,241,0.15)]" title="Open Client Shot Briefing & Reference Matrix">
                 <span class="material-symbols-outlined text-[16px] text-indigo-400">edit_note</span>
                 <span>Shot Briefing</span>

@@ -111,29 +111,52 @@
 <div id="tab-sequences" class="block pt-4">
     <div class="flex justify-between items-center mb-4">
         <h3 class="text-[16px] font-medium text-ytText">Production Sequences</h3>
-        <div class="flex items-center space-x-2">
-            <a href="/admin/projects/<?= $project->id ?>/briefing" class="bg-[#181818] border border-indigo-500/40 hover:border-indigo-400 text-indigo-200 px-3.5 py-2 rounded-full font-medium text-[13px] hover:bg-indigo-950/40 transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(99,102,241,0.15)]" title="Open Client Shot Briefing & Reference Matrix">
-                <span class="material-symbols-outlined text-[16px] text-indigo-400">edit_note</span>
-                <span>Shot Briefing &amp; References</span>
+        <div class="flex items-center space-x-2.5">
+            <a href="/admin/projects/<?= $project->id ?>/analysis" class="bg-[#181818] border border-purple-500/40 hover:border-purple-400 text-purple-200 px-3.5 py-1.5 rounded-full font-medium text-[13px] hover:bg-purple-950/40 transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(168,85,247,0.15)]" title="Open Complete Production, Financial & Risk Analysis">
+                <span class="material-symbols-outlined text-[16px] text-purple-400">analytics</span>
+                <span>Project Analysis</span>
             </a>
-            <button onclick="autoGenerateAllThumbnails()" class="bg-[#181818] border border-purple-500/40 hover:border-purple-400 text-purple-200 px-3.5 py-2 rounded-full font-medium text-[13px] hover:bg-purple-950/40 transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(168,85,247,0.15)]" title="Auto-extract mid-frame WebP thumbnails from all video previews">
-                <span class="material-symbols-outlined text-[16px] text-purple-400">photo_camera</span>
-                <span>Auto-Gen WebP Thumbnails</span>
-            </button>
-            <a href="/admin/projects/<?= $project->id ?>/breakdown" class="bg-[#181818] border border-ytBlue/50 hover:border-ytBlue text-ytText px-4 py-2 rounded-full font-medium text-[13px] hover:bg-ytHover transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(23,123,207,0.15)]">
+            <a href="/admin/projects/<?= $project->id ?>/breakdown" class="bg-[#181818] border border-ytBlue/50 hover:border-ytBlue text-ytText px-4 py-1.5 rounded-full font-medium text-[13px] hover:bg-ytHover transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(23,123,207,0.15)]">
                 <span class="material-symbols-outlined text-[16px] text-ytBlue">table_chart</span>
-                Shot Breakdown &amp; Task Matrix
+                <span>Shot Breakdown Matrix</span>
             </a>
-            <button onclick="openModal('importShotsModal')" class="bg-ytCard border border-ytBorder text-ytText px-4 py-2 rounded-full font-medium text-[13px] hover:bg-ytHover transition-colors flex items-center gap-1.5">
-                <span class="material-symbols-outlined text-[16px] text-ytBlue">upload_file</span>
-                Import Shots (AE / CSV)
-            </button>
-            <button onclick="openModal('sequenceModal')" class="bg-ytCard border border-ytBorder text-ytText px-4 py-2 rounded-full font-medium text-[13px] hover:bg-ytHover transition-colors">
-                + Add Sequence
-            </button>
-            <button onclick="openModal('shotModal')" class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] text-white shadow-[0_0_15px_rgba(23,123,207,0.3)] border border-[#177bcf]/40 px-4 py-2 rounded-full font-medium text-[13px] hover:shadow-[0_0_25px_rgba(23,123,207,0.6)] hover:from-[#0d346e] hover:to-[#238bf2] transition-colors">
-                + Add Shot
-            </button>
+            
+            <!-- Unified + Quick Actions Dropdown -->
+            <div class="relative inline-block text-left" id="quickActionsDropdownContainer">
+                <button type="button" onclick="toggleQuickActionsMenu()" class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] text-white shadow-[0_0_15px_rgba(23,123,207,0.3)] border border-[#177bcf]/40 px-4 py-1.5 rounded-full font-medium text-[13px] hover:shadow-[0_0_25px_rgba(23,123,207,0.6)] hover:from-[#0d346e] hover:to-[#238bf2] transition-all flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[18px]">add</span>
+                    <span>Actions</span>
+                    <span class="material-symbols-outlined text-[16px]">expand_more</span>
+                </button>
+                
+                <!-- Dropdown Menu -->
+                <div id="quickActionsDropdownMenu" class="hidden absolute right-0 mt-2 w-56 bg-[#1a1a1a] border border-ytBorder rounded-xl shadow-2xl z-50 py-1.5 divide-y divide-ytBorder/40">
+                    <div class="py-1">
+                        <button type="button" onclick="openModal('shotModal'); toggleQuickActionsMenu();" class="w-full text-left px-4 py-2 text-[13px] text-ytText hover:bg-ytHover flex items-center gap-2 transition-colors">
+                            <span class="material-symbols-outlined text-[16px] text-ytBlue">add_circle</span>
+                            <span>Add Single Shot</span>
+                        </button>
+                        <button type="button" onclick="openModal('sequenceModal'); toggleQuickActionsMenu();" class="w-full text-left px-4 py-2 text-[13px] text-ytText hover:bg-ytHover flex items-center gap-2 transition-colors">
+                            <span class="material-symbols-outlined text-[16px] text-blue-400">create_new_folder</span>
+                            <span>Add Sequence</span>
+                        </button>
+                    </div>
+                    <div class="py-1">
+                        <button type="button" onclick="openModal('importShotsModal'); toggleQuickActionsMenu();" class="w-full text-left px-4 py-2 text-[13px] text-ytText hover:bg-ytHover flex items-center gap-2 transition-colors">
+                            <span class="material-symbols-outlined text-[16px] text-green-400">upload_file</span>
+                            <span>Import Shots (AE / CSV)</span>
+                        </button>
+                        <button type="button" onclick="autoGenerateAllThumbnails(); toggleQuickActionsMenu();" class="w-full text-left px-4 py-2 text-[13px] text-ytText hover:bg-ytHover flex items-center gap-2 transition-colors">
+                            <span class="material-symbols-outlined text-[16px] text-purple-400">photo_camera</span>
+                            <span>Auto-Gen WebP Thumbnails</span>
+                        </button>
+                        <a href="/admin/projects/<?= $project->id ?>/briefing" class="w-full text-left px-4 py-2 text-[13px] text-ytText hover:bg-ytHover flex items-center gap-2 transition-colors">
+                            <span class="material-symbols-outlined text-[16px] text-indigo-400">edit_note</span>
+                            <span>Shot Briefing &amp; References</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1372,6 +1395,23 @@
         }
         modal.classList.add('hidden');
     }
+
+    // Quick Actions Dropdown Toggle
+    function toggleQuickActionsMenu() {
+        const menu = document.getElementById('quickActionsDropdownMenu');
+        if (menu) {
+            menu.classList.toggle('hidden');
+        }
+    }
+
+    // Close Quick Actions dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        const container = document.getElementById('quickActionsDropdownContainer');
+        const menu = document.getElementById('quickActionsDropdownMenu');
+        if (container && menu && !container.contains(e.target)) {
+            menu.classList.add('hidden');
+        }
+    });
 </script>
 
 <!-- Quick Video Player Modal with Loading Animation -->

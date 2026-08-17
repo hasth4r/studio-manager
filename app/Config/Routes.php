@@ -76,6 +76,7 @@ $routes->group('admin', ['filter' => 'auth', 'namespace' => 'App\Controllers\Adm
     $routes->post('projects/deleteTaskAjax', 'Projects::deleteTaskAjax');
     $routes->post('projects/saveAutoThumbnailAjax', 'Projects::saveAutoThumbnailAjax');
     $routes->post('projects/updateAgreedBudget', 'Projects::updateAgreedBudget');
+    $routes->get('projects/(:num)/analysis', 'Projects::analysis/$1');
     $routes->get('projects/(:num)/briefing', '\App\Controllers\Client\Briefing::index/$1');
 
     // VFX Entities

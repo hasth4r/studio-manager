@@ -1982,6 +1982,307 @@ class Projects extends BaseController
             'shot_total_hours' => round($shotTotalHours, 1),
         ]);
     }
+
+    /**
+     * Dedicated Project Production, Financial & Risk Analysis Intelligence Page.
+     */
+    public function analysis($id)
+    {
+        if (!session()->get('isLoggedIn')) {
+            return redirect()->to('/login');
+        }
+
+        $projectModel = new \App\Models\ProjectModel();
+        $project = $projectModel->find($id);
+        if (!$project) {
+            return redirect()->to('/admin/projects')->with('error', 'Project not found.');
+        }
+
+        $db = \Config\Database::connect();
+
+        // Client & Project Type
+        $client = $db->table('clients')->where('id', $project->client_id)->get()->getRow();
+        $projectType = $db->table('project_types')->where('id', $project->project_type_id)->get()->getRow();
+        $project->client_name = $client->company_name ?? 'Unknown Client';
+        $project->project_type_name = $projectType->name ?? 'Standard Project';
+
+        // Settings & Rate Lookups
+        $settingsModel = new \App\Models\SettingsModel();
+        $studioCurrency = $settingsModel->getSetting('studio_currency', '₹');
+        $opsHourlyRate = (float)$settingsModel->getSetting('studio_ops_hourly_rate', 100.00);
+        $commissionPct = (float)$settingsModel->getSetting('studio_commission_pct', 30.0);
+        $defaultArtistRate = (float)$settingsModel->getSetting('default_artist_rate', 500.00);
+
+        $userModel = new \App\Models\UserModel();
+        $allUsers = $userModel->findAll();
+        $userMap = [];
+        $userRateMap = [];
+        foreach ($allUsers as $u) {
+            $userMap[$u->id] = $u;
+            $userRateMap[$u->id] = (float)($u->hourly_rate ?? $defaultArtistRate);
+        }
+
+        // Sequences & Shots
+        $sequences = $db->table('sequences')->where('project_id', $id)->get()->getResult();
+        $shots = $db->table('shots')->where('project_id', $id)->get()->getResult();
+
+        // Tasks
+        $taskBuilder = $db->table('tasks');
+        $taskBuilder->select('tasks.*, task_types.name as task_type_name, users.name as assigned_user_name, users.role as user_role, users.experience_level');
+        $taskBuilder->join('task_types', 'task_types.id = tasks.task_type_id', 'left');
+        $taskBuilder->join('users', 'users.id = tasks.assigned_to', 'left');
+        $taskBuilder->where('tasks.project_id', $id);
+        $tasks = $taskBuilder->get()->getResult();
+
+        // 1. TIMELINE & CALENDAR ANALYSIS
+        $now = new \DateTime();
+        $startDt = !empty($project->start_date) ? new \DateTime($project->start_date) : new \DateTime($project->created_at);
+        $deadlineDt = !empty($project->deadline) ? new \DateTime($project->deadline) : (clone $startDt)->modify('+30 days');
+
+        $totalDurationDays = max(1, (int)$startDt->diff($deadlineDt)->format('%r%a'));
+        $daysElapsed = max(0, (int)$startDt->diff($now)->format('%r%a'));
+        $daysRemaining = (int)$now->diff($deadlineDt)->format('%r%a');
+        $isOverdue = $daysRemaining < 0;
+
+        // Calculate working days remaining (excluding Sat/Sun)
+        $workingDaysRemaining = 0;
+        if ($daysRemaining > 0) {
+            $cursor = clone $now;
+            while ($cursor <= $deadlineDt) {
+                $w = (int)$cursor->format('N'); // 1 = Mon, 7 = Sun
+                if ($w < 6) {
+                    $workingDaysRemaining++;
+                }
+                $cursor->modify('+1 day');
+            }
+        }
+        $workingDaysRemaining = max(1, $workingDaysRemaining);
+
+        // 2. PRODUCTION WORKLOAD & VELOCITY
+        $totalEstHours = 0.0;
+        $completedHours = 0.0;
+        $inProgressHours = 0.0;
+        $pendingHours = 0.0;
+        $unassignedTaskCount = 0;
+        $unassignedHours = 0.0;
+
+        $rawArtistCost = 0.0;
+        $rawOpsCost = 0.0;
+        $idealClientBudget = 0.0;
+
+        $artistWorkloadMap = []; // Artist ID => [name, role, tasks_count, total_hours, total_cost]
+        $complexShotsCount = 0;
+
+        foreach ($tasks as $t) {
+            $h = (float)($t->estimated_hours ?? 0);
+            $r = !empty($t->assigned_to) && isset($userRateMap[$t->assigned_to]) ? $userRateMap[$t->assigned_to] : $defaultArtistRate;
+            
+            $artCost = $h * $r;
+            $opsCost = $h * $opsHourlyRate;
+            $clientPrice = ($artCost + $opsCost) * (1 + ($commissionPct / 100.0));
+
+            $totalEstHours += $h;
+            $rawArtistCost += $artCost;
+            $rawOpsCost += $opsCost;
+            $idealClientBudget += $clientPrice;
+
+            if (in_array($t->status, ['completed', 'approved'])) {
+                $completedHours += $h;
+            } elseif ($t->status === 'in_progress') {
+                $inProgressHours += $h;
+            } else {
+                $pendingHours += $h;
+            }
+
+            if (empty($t->assigned_to)) {
+                $unassignedTaskCount++;
+                $unassignedHours += $h;
+            } else {
+                $uId = $t->assigned_to;
+                if (!isset($artistWorkloadMap[$uId])) {
+                    $artistWorkloadMap[$uId] = [
+                        'id'          => $uId,
+                        'name'        => $t->assigned_user_name ?? 'Artist #' . $uId,
+                        'role'        => $t->user_role ?? 'artist',
+                        'tasks_count' => 0,
+                        'total_hours' => 0.0,
+                        'artist_cost' => 0.0,
+                    ];
+                }
+                $artistWorkloadMap[$uId]['tasks_count']++;
+                $artistWorkloadMap[$uId]['total_hours'] += $h;
+                $artistWorkloadMap[$uId]['artist_cost'] += $artCost;
+            }
+
+            if (in_array($t->complexity, ['High', 'Extreme', 'Complex'])) {
+                $complexShotsCount++;
+            }
+        }
+
+        $remainingHours = max(0.0, $totalEstHours - $completedHours);
+        $completionPct = $totalEstHours > 0 ? round(($completedHours / $totalEstHours) * 100, 1) : 0.0;
+
+        // Daily Velocity required
+        $requiredDailyHours = $workingDaysRemaining > 0 ? round($remainingHours / $workingDaysRemaining, 1) : $remainingHours;
+
+        // 3. ARTIST CAPACITY & STAFFING (STRICTLY PRODUCTION ARTISTS)
+        $productionArtistsOnly = array_filter($artistWorkloadMap, fn($a) => $a['role'] === 'artist' || empty($a['role']));
+        $activeArtistsCount = count($productionArtistsOnly);
+
+        // Also check all artists in studio if no one assigned yet
+        $studioArtists = array_filter($allUsers, fn($u) => $u->role === 'artist');
+        $totalStudioArtistsCount = count($studioArtists);
+
+        // Effective artists working on this project (fallback to studio artists count if unassigned)
+        $effectiveArtistsCount = max(1, $activeArtistsCount > 0 ? $activeArtistsCount : $totalStudioArtistsCount);
+        $dailyTeamCapacity = $effectiveArtistsCount * 8.0; // 8 hours per artist per day
+        $totalDeliverableHours = $dailyTeamCapacity * $workingDaysRemaining;
+        $hoursDeficitOrSurplus = $totalDeliverableHours - $remainingHours;
+
+        $recommendedArtistsNeeded = max(1, (int)ceil($requiredDailyHours / 8.0));
+        $additionalArtistsNeeded = max(0, $recommendedArtistsNeeded - $effectiveArtistsCount);
+
+        // 4. FINANCIAL HEALTH & PROFIT/LOSS ENGINE
+        $rawTotalCost = $rawArtistCost + $rawOpsCost;
+        $agreedBudget = (float)($project->agreed_budget ?? 0);
+        $effectiveRevenue = $agreedBudget > 0 ? $agreedBudget : $idealClientBudget;
+        $projectedNetProfit = $effectiveRevenue - $rawTotalCost;
+        $projectedMarginPct = $effectiveRevenue > 0 ? round(($projectedNetProfit / $effectiveRevenue) * 100, 1) : 0.0;
+        
+        $isLoss = $projectedNetProfit < 0;
+        $lossAmount = $isLoss ? abs($projectedNetProfit) : 0.0;
+        $scaleFactor = ($agreedBudget > 0 && $idealClientBudget > 0) ? ($agreedBudget / $idealClientBudget) : 1.0;
+
+        // Burn Rate (Daily Cost)
+        $dailyBurnRate = $workingDaysRemaining > 0 ? round($rawTotalCost / max(1, $totalDurationDays), 0) : 0;
+
+        // 5. RISK & ISSUE INTELLIGENCE MATRIX
+        $risks = [];
+
+        // Risk A: Budget Deficit / Loss
+        if ($isLoss) {
+            $risks[] = [
+                'level'       => 'CRITICAL',
+                'title'       => 'Financial Loss Deficit (' . $studioCurrency . number_format($lossAmount, 0) . ' Loss)',
+                'description' => 'The client agreed budget of ' . $studioCurrency . number_format($agreedBudget, 0) . ' does not cover raw production costs (' . $studioCurrency . number_format($rawTotalCost, 0) . '). Studio will lose money on direct payouts unless scope or artist rates are renegotiated.',
+                'action'      => 'Negotiate budget uplift to minimum ' . $studioCurrency . number_format($rawTotalCost, 0) . ' (break-even) or compress artist freelancer rates.',
+            ];
+        } elseif ($projectedMarginPct < 15.0 && $agreedBudget > 0) {
+            $risks[] = [
+                'level'       => 'HIGH',
+                'title'       => 'Severe Margin Compression (' . $projectedMarginPct . '% margin)',
+                'description' => 'Current profit margin (' . $projectedMarginPct . '%) is dangerously below the studio benchmark standard of ' . $commissionPct . '%. Minor delays or revisions will push the project into net loss.',
+                'action'      => 'Cap revision rounds in client contract and monitor artist delivery hours strictly.',
+            ];
+        }
+
+        // Risk B: Staffing Deficit & Delivery Delay
+        if ($hoursDeficitOrSurplus < 0) {
+            $risks[] = [
+                'level'       => 'HIGH',
+                'title'       => 'Staffing Deficit: Need +' . $additionalArtistsNeeded . ' Artists',
+                'description' => 'Required workload (' . round($remainingHours, 1) . ' hrs) exceeds total team capacity (' . round($totalDeliverableHours, 1) . ' hrs) across the remaining ' . $workingDaysRemaining . ' working days.',
+                'action'      => 'Assign at least ' . $recommendedArtistsNeeded . ' dedicated artists immediately or extend delivery deadline.',
+            ];
+        }
+
+        // Risk C: Unassigned Tasks
+        if ($unassignedTaskCount > 0) {
+            $risks[] = [
+                'level'       => $unassignedTaskCount > 10 ? 'HIGH' : 'MEDIUM',
+                'title'       => $unassignedTaskCount . ' Unassigned Tasks (' . round($unassignedHours, 1) . ' hrs unallocated)',
+                'description' => 'Shots have pending tasks with no artist assigned. Unallocated tasks cause invisible pipeline stalls and sudden deadline compression.',
+                'action'      => 'Open Shot Breakdown Matrix and bulk assign artists to all unassigned tasks.',
+            ];
+        }
+
+        // Risk D: Imminent Deadline / Overdue
+        if ($isOverdue) {
+            $risks[] = [
+                'level'       => 'CRITICAL',
+                'title'       => 'Project is OVERDUE by ' . abs($daysRemaining) . ' Days',
+                'description' => 'The agreed deadline (' . $deadlineDt->format('M d, Y') . ') has passed with ' . round($remainingHours, 1) . ' hrs of work remaining.',
+                'action'      => 'Re-align delivery schedule with client immediately and execute emergency rush assignments.',
+            ];
+        } elseif ($daysRemaining <= 5 && $completionPct < 70.0) {
+            $risks[] = [
+                'level'       => 'HIGH',
+                'title'       => 'Deadline Imminent (Only ' . $daysRemaining . ' days left, ' . $completionPct . '% complete)',
+                'description' => 'Project completion is below 70% with less than 5 days before scheduled delivery.',
+                'action'      => 'Prioritize hero shots and schedule artist overtime.',
+            ];
+        }
+
+        // Risk E: High Complexity Concentration
+        if ($complexShotsCount > 0 && count($tasks) > 0 && ($complexShotsCount / count($tasks)) > 0.3) {
+            $risks[] = [
+                'level'       => 'MEDIUM',
+                'title'       => 'High Complexity Density (' . $complexShotsCount . ' complex tasks)',
+                'description' => 'Over 30% of project tasks are tagged High/Extreme complexity, increasing potential revision cycles.',
+                'action'      => 'Ensure senior lead artists supervise initial comp setups.',
+            ];
+        }
+
+        $data = [
+            'pageTitle'                 => 'Production & Risk Analysis: ' . $project->name,
+            'project'                   => $project,
+            'sequences'                 => $sequences,
+            'shots'                     => $shots,
+            'tasks'                     => $tasks,
+            'studioCurrency'            => $studioCurrency,
+            'opsHourlyRate'             => $opsHourlyRate,
+            'commissionPct'             => $commissionPct,
+            
+            // Timeline
+            'startDt'                   => $startDt,
+            'deadlineDt'                => $deadlineDt,
+            'totalDurationDays'         => $totalDurationDays,
+            'daysElapsed'               => $daysElapsed,
+            'daysRemaining'             => $daysRemaining,
+            'workingDaysRemaining'      => $workingDaysRemaining,
+            'isOverdue'                 => $isOverdue,
+            
+            // Workload & Velocity
+            'totalEstHours'             => round($totalEstHours, 1),
+            'completedHours'            => round($completedHours, 1),
+            'inProgressHours'           => round($inProgressHours, 1),
+            'pendingHours'              => round($pendingHours, 1),
+            'remainingHours'            => round($remainingHours, 1),
+            'completionPct'             => $completionPct,
+            'requiredDailyHours'        => $requiredDailyHours,
+            
+            // Staffing
+            'activeArtistsCount'        => $activeArtistsCount,
+            'effectiveArtistsCount'     => $effectiveArtistsCount,
+            'dailyTeamCapacity'         => $dailyTeamCapacity,
+            'totalDeliverableHours'     => round($totalDeliverableHours, 1),
+            'hoursDeficitOrSurplus'     => round($hoursDeficitOrSurplus, 1),
+            'recommendedArtistsNeeded'  => $recommendedArtistsNeeded,
+            'additionalArtistsNeeded'   => $additionalArtistsNeeded,
+            'artistWorkloadMap'         => $artistWorkloadMap,
+            'unassignedTaskCount'       => $unassignedTaskCount,
+            'unassignedHours'           => round($unassignedHours, 1),
+            
+            // Financials & P&L
+            'rawArtistCost'             => round($rawArtistCost, 0),
+            'rawOpsCost'                => round($rawOpsCost, 0),
+            'rawTotalCost'              => round($rawTotalCost, 0),
+            'idealClientBudget'         => round($idealClientBudget, 0),
+            'agreedBudget'              => round($agreedBudget, 0),
+            'effectiveRevenue'          => round($effectiveRevenue, 0),
+            'projectedNetProfit'        => round($projectedNetProfit, 0),
+            'projectedMarginPct'        => $projectedMarginPct,
+            'isLoss'                    => $isLoss,
+            'lossAmount'                => round($lossAmount, 0),
+            'scaleFactor'               => $scaleFactor,
+            'dailyBurnRate'             => $dailyBurnRate,
+            
+            // Risks
+            'risks'                     => $risks,
+        ];
+
+        return view('projects/analysis', $data);
+    }
 }
 
 
