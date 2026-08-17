@@ -817,25 +817,25 @@
         const tag = document.getElementById('globalHoverTag');
         if (!box) return;
 
-        // Anchor ABOVE the hovered thumbnail row — never covers data columns to the right
+        // Position directly to the RIGHT of the hovered thumbnail, same vertical level
         const target = e.currentTarget;
         const rect = target.getBoundingClientRect();
         const boxWidth = 270;
         const boxHeight = 152;
 
-        // Always float above the thumbnail row, aligned to its left edge
-        let left = Math.max(10, rect.left);
-        let top = rect.top - boxHeight - 10;
+        let left = rect.right + 10;
+        let top = rect.top + (rect.height / 2) - (boxHeight / 2);
 
-        // If not enough space above (near top of viewport), flip to below the row
-        if (top < 10) {
-            top = rect.bottom + 10;
-        }
-
-        // Clamp horizontally so it never goes off the right edge of screen
+        // If going off right edge of screen, flip to LEFT of thumbnail
         if (left + boxWidth > window.innerWidth - 10) {
-            left = Math.max(10, window.innerWidth - boxWidth - 10);
+            left = rect.left - boxWidth - 10;
         }
+
+        // Clamp vertically within viewport
+        if (top + boxHeight > window.innerHeight - 10) {
+            top = window.innerHeight - boxHeight - 10;
+        }
+        if (top < 10) top = 10;
 
         box.style.top = top + 'px';
         box.style.left = left + 'px';
