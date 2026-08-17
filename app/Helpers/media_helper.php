@@ -21,9 +21,15 @@ if (!function_exists('media_cdn_url')) {
 
         $cleanPath = ltrim($path, '/');
 
-        // Check if Cloudflare R2 custom domain / worker is configured in .env
+        // Check if local file exists in public/ or uploads/
+        if (is_file(FCPATH . $cleanPath) || is_file(FCPATH . 'uploads/' . $cleanPath)) {
+            return base_url($cleanPath);
+        }
+
+        // Check if a dedicated, enabled CDN domain is set
         $cdnDomain = env('r2.custom_domain', '');
-        if (!empty($cdnDomain)) {
+        $useCdn = env('r2.enabled', false);
+        if ($useCdn && !empty($cdnDomain)) {
             $cdnDomain = rtrim($cdnDomain, '/');
             return $cdnDomain . '/' . $cleanPath;
         }
