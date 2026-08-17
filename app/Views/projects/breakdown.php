@@ -173,13 +173,13 @@
                             <input type="checkbox" value="<?= $shot->id ?>" onchange="updateSelectionState()" class="shot-checkbox rounded border-ytBorder bg-ytBg text-ytBlue focus:ring-0 cursor-pointer">
                         </td>
 
-                        <!-- 2. Thumbnail & Inline Video Preview -->
+                        <!-- 2. Thumbnail & Floating Video Preview Trigger -->
                         <td class="py-1.5 px-2 text-center align-middle">
                             <div class="w-14 h-9 bg-[#111] rounded border border-ytBorder/60 overflow-hidden relative group/thumb cursor-pointer shrink-0 inline-block align-middle"
-                                 onmouseenter="playInlineThumbVideo(this, '<?= !empty($shot->preview_video_path) ? base_url(esc($shot->preview_video_path)) : '' ?>')"
-                                 onmouseleave="stopInlineThumbVideo(this)"
+                                 onmouseenter="showFloatingPreview(event, '<?= !empty($shot->preview_video_path) ? base_url(esc($shot->preview_video_path)) : '' ?>', '<?= !empty($shot->thumbnail_path) ? base_url(esc($shot->thumbnail_path)) : '' ?>', '<?= esc($shot->shot_number) ?>')"
+                                 onmouseleave="hideFloatingPreview()"
                                  onclick="openVideoModal('<?= !empty($shot->preview_video_path) ? base_url(esc($shot->preview_video_path)) : '' ?>', '<?= esc($shot->shot_number) ?>')"
-                                 title="Click to play video preview">
+                                 title="Click to open full player">
                                 <?php if($shot->thumbnail_path): ?>
                                     <img src="<?= base_url(esc($shot->thumbnail_path)) ?>" loading="lazy" class="shot-thumb-img-<?= $shot->id ?> w-full h-full object-cover">
                                 <?php else: ?>
@@ -804,45 +804,90 @@
             video.src = videoUrl;
         });
     }
-    // Zero-Overlay Inline Thumbnail Hover Video Engine with Loading Buffer
-    function playInlineThumbVideo(container, videoSrc) {
-        if (!videoSrc || container.querySelector('video')) return;
+    // Smart Floating Hover Video Preview Engine with Buffer Loader & Viewport Clamping
+    let hoverTimeout = null;
 
-        // Add subtle loading spinner inside the thumbnail
-        const loader = document.createElement('div');
-        loader.className = 'inline-thumb-loader absolute inset-0 flex items-center justify-center bg-black/60 z-20 pointer-events-none transition-opacity duration-200';
-        loader.innerHTML = `
-            <div class="w-4 h-4 rounded-full border-2 border-blue-500/20 border-t-blue-400 animate-spin"></div>
-        `;
-        container.appendChild(loader);
+    function showFloatingPreview(e, videoSrc, thumbSrc, shotNumber) {
+        clearTimeout(hoverTimeout);
+        const box = document.getElementById('globalHoverPreview');
+        const vid = document.getElementById('globalHoverVideo');
+        const img = document.getElementById('globalHoverImg');
+        const loader = document.getElementById('globalHoverLoader');
+        const tag = document.getElementById('globalHoverTag');
+        if (!box) return;
 
-        const vid = document.createElement('video');
-        vid.src = videoSrc;
-        vid.muted = true;
-        vid.loop = true;
-        vid.playsInline = true;
-        vid.className = 'w-full h-full object-cover absolute inset-0 z-10 opacity-0 transition-opacity duration-200 pointer-events-none';
+        const rect = e.currentTarget.getBoundingClientRect();
+        const boxWidth = 288;
+        const boxHeight = 162;
 
-        vid.onplaying = () => {
-            vid.classList.remove('opacity-0');
-            loader.classList.add('opacity-0');
-            setTimeout(() => loader.remove(), 200);
-        };
+        // Position: Prefer floating to the right of thumbnail with clean margin
+        let left = rect.right + 16;
+        if (left + boxWidth > window.innerWidth - 16) {
+            left = Math.max(16, rect.left - boxWidth - 16);
+        }
 
-        container.appendChild(vid);
-        vid.play().catch(() => {});
+        // Align vertically centered to the thumbnail, but clamp cleanly within viewport
+        let top = rect.top + (rect.height / 2) - (boxHeight / 2);
+        if (top + boxHeight > window.innerHeight - 16) {
+            top = window.innerHeight - boxHeight - 16;
+        }
+        if (top < 16) top = 16;
+
+        box.style.top = top + 'px';
+        box.style.left = left + 'px';
+        if (tag) tag.innerText = shotNumber ? shotNumber.toUpperCase() : 'PREVIEW';
+
+        if (videoSrc) {
+            if (loader) {
+                loader.classList.remove('opacity-0', 'pointer-events-none');
+                loader.classList.add('opacity-100');
+            }
+            img.classList.add('hidden');
+            vid.classList.remove('hidden');
+            box.classList.remove('hidden');
+
+            vid.onplaying = () => {
+                if (loader) {
+                    loader.classList.remove('opacity-100');
+                    loader.classList.add('opacity-0', 'pointer-events-none');
+                }
+            };
+            vid.onwaiting = () => {
+                if (loader) {
+                    loader.classList.remove('opacity-0', 'pointer-events-none');
+                    loader.classList.add('opacity-100');
+                }
+            };
+
+            vid.src = videoSrc;
+            vid.play().catch(() => {});
+        } else if (thumbSrc) {
+            if (loader) loader.classList.add('opacity-0', 'pointer-events-none');
+            vid.classList.add('hidden');
+            img.src = thumbSrc;
+            img.classList.remove('hidden');
+            box.classList.remove('hidden');
+        }
     }
 
-    function stopInlineThumbVideo(container) {
-        const loader = container.querySelector('.inline-thumb-loader');
-        if (loader) loader.remove();
-        const vid = container.querySelector('video');
-        if (vid) {
-            vid.pause();
-            vid.currentTime = 0;
-            vid.src = '';
-            vid.remove();
-        }
+    function hideFloatingPreview() {
+        hoverTimeout = setTimeout(() => {
+            const box = document.getElementById('globalHoverPreview');
+            const vid = document.getElementById('globalHoverVideo');
+            const loader = document.getElementById('globalHoverLoader');
+            if (box) box.classList.add('hidden');
+            if (vid) {
+                vid.pause();
+                vid.currentTime = 0;
+                vid.src = '';
+                vid.onplaying = null;
+                vid.onwaiting = null;
+            }
+            if (loader) {
+                loader.classList.remove('opacity-100');
+                loader.classList.add('opacity-0', 'pointer-events-none');
+            }
+        }, 100);
     }
 
     // Quick Video Player Modal Engine
@@ -896,6 +941,22 @@
         modal.classList.add('hidden');
     }
 </script>
+
+<!-- Single Global Floating Hover Preview with Premium Glassmorphism & Glowing Loader -->
+<div id="globalHoverPreview" class="fixed hidden z-50 pointer-events-none shadow-[0_12px_40px_rgba(0,0,0,0.9)] rounded-xl overflow-hidden border border-blue-500/60 bg-[#080808] w-72 aspect-video backdrop-blur-md transition-opacity duration-150">
+    <!-- Sleek Glowing Loading Spinner -->
+    <div id="globalHoverLoader" class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/75 backdrop-blur-xs transition-opacity duration-300">
+        <div class="relative w-8 h-8 flex items-center justify-center">
+            <div class="absolute inset-0 rounded-full border-2 border-blue-500/20"></div>
+            <div class="absolute inset-0 rounded-full border-2 border-t-blue-400 border-r-transparent border-b-transparent border-l-transparent animate-spin"></div>
+            <span class="material-symbols-outlined text-[13px] text-blue-400 animate-pulse">play_arrow</span>
+        </div>
+        <span class="text-[9px] text-blue-300/80 font-mono mt-1.5 uppercase tracking-widest font-semibold">Buffering...</span>
+    </div>
+    <video id="globalHoverVideo" class="w-full h-full object-cover hidden" muted loop playsinline></video>
+    <img id="globalHoverImg" class="w-full h-full object-cover hidden" src="">
+    <div id="globalHoverTag" class="absolute bottom-1.5 left-2 bg-black/85 backdrop-blur-md text-blue-300 font-bold text-[10px] font-mono px-2 py-0.5 rounded border border-blue-500/30 z-30 shadow-lg"></div>
+</div>
 
 <!-- Quick Video Player Modal with Loading Animation -->
 <div id="quickVideoModal" class="fixed inset-0 z-50 hidden bg-black/85 backdrop-blur-md flex items-center justify-center p-4" onclick="if(event.target===this) closeVideoModal()">
