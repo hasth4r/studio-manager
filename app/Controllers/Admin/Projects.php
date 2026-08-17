@@ -931,6 +931,317 @@ class Projects extends BaseController
     }
 
     /**
+     * Chunked ZIP / Video Upload Handler
+     * Slices large uploads into 5MB chunks to prevent server execution timeouts.
+     */
+    public function chunkUpload($projectId)
+    {
+        if (!session()->get('isLoggedIn')) {
+            return $this->response->setJSON(['success' => false, 'error' => 'Authentication required'])->setStatusCode(401);
+        }
+
+        @ini_set('max_execution_time', '300');
+        @ini_set('memory_limit', '512M');
+
+        $uploadId = preg_replace('/[^a-zA-Z0-9_-]/', '', $this->request->getPost('upload_id') ?? '');
+        $chunkIndex = (int)($this->request->getPost('chunk_index') ?? 0);
+        $totalChunks = (int)($this->request->getPost('total_chunks') ?? 1);
+        $originalName = $this->request->getPost('file_name') ?? 'upload.zip';
+        $limit = (int)($this->request->getPost('limit') ?? 0);
+        $autoCreateFolders = (bool)($this->request->getPost('auto_create_folders') ?? false);
+
+        if (empty($uploadId)) {
+            return $this->response->setJSON(['success' => false, 'error' => 'Missing upload session ID'])->setStatusCode(400);
+        }
+
+        $chunkFile = $this->request->getFile('file_chunk');
+        if (!$chunkFile || !$chunkFile->isValid()) {
+            return $this->response->setJSON(['success' => false, 'error' => 'Invalid chunk file'])->setStatusCode(400);
+        }
+
+        $tempDir = WRITEPATH . 'uploads' . DIRECTORY_SEPARATOR . 'chunks' . DIRECTORY_SEPARATOR . $uploadId;
+        if (!is_dir($tempDir)) {
+            @mkdir($tempDir, 0777, true);
+        }
+
+        $chunkPath = $tempDir . DIRECTORY_SEPARATOR . 'chunk_' . str_pad($chunkIndex, 5, '0', STR_PAD_LEFT);
+        $chunkFile->move($tempDir, basename($chunkPath));
+
+        // If more chunks remain, acknowledge receipt
+        if ($chunkIndex < $totalChunks - 1) {
+            return $this->response->setJSON([
+                'success' => true,
+                'chunk_index' => $chunkIndex,
+                'status' => 'chunk_received'
+            ]);
+        }
+
+        // All chunks received! Assemble complete file
+        $finalFilePath = $tempDir . DIRECTORY_SEPARATOR . 'combined_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $originalName);
+        $outFp = fopen($finalFilePath, 'wb');
+
+        for ($i = 0; $i < $totalChunks; $i++) {
+            $partPath = $tempDir . DIRECTORY_SEPARATOR . 'chunk_' . str_pad($i, 5, '0', STR_PAD_LEFT);
+            if (!file_exists($partPath)) {
+                fclose($outFp);
+                return $this->response->setJSON(['success' => false, 'error' => "Missing chunk {$i} during file assembly."])->setStatusCode(400);
+            }
+            $inFp = fopen($partPath, 'rb');
+            while (!feof($inFp)) {
+                fwrite($outFp, fread($inFp, 1048576));
+            }
+            fclose($inFp);
+            @unlink($partPath);
+        }
+        fclose($outFp);
+
+        // Process the combined file
+        $projectModel = new \App\Models\ProjectModel();
+        $project = $projectModel->find($projectId);
+        if (!$project) {
+            @unlink($finalFilePath);
+            @rmdir($tempDir);
+            return $this->response->setJSON(['success' => false, 'error' => 'Project not found'])->setStatusCode(404);
+        }
+
+        $targetThumbDir = FCPATH . 'uploads' . DIRECTORY_SEPARATOR . 'shots';
+        $targetVideoDir = FCPATH . 'uploads' . DIRECTORY_SEPARATOR . 'shots' . DIRECTORY_SEPARATOR . 'videos';
+        if (!is_dir($targetThumbDir)) @mkdir($targetThumbDir, 0777, true);
+        if (!is_dir($targetVideoDir)) @mkdir($targetVideoDir, 0777, true);
+
+        $zip = new \ZipArchive();
+        $tempExtractPath = WRITEPATH . 'uploads' . DIRECTORY_SEPARATOR . 'temp_zip_' . uniqid();
+        if ($zip->open($finalFilePath) === true) {
+            $zip->extractTo($tempExtractPath);
+            $zip->close();
+
+            $dirIterator = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($tempExtractPath, \RecursiveDirectoryIterator::SKIP_DOTS),
+                \RecursiveIteratorIterator::SELF_FIRST
+            );
+
+            $csvFiles = [];
+            $localThumbDir = null;
+            $localVideoDir = null;
+
+            foreach ($dirIterator as $item) {
+                if ($item->isFile() && in_array(strtolower($item->getExtension()), ['csv', 'txt'])) {
+                    $csvFiles[] = $item->getPathname();
+                }
+                if ($item->isDir()) {
+                    $dirNameLower = strtolower($item->getFilename());
+                    if ($dirNameLower === 'thumbnails' || $dirNameLower === 'thumbs') {
+                        $localThumbDir = $item->getPathname();
+                    } elseif (in_array($dirNameLower, ['videos', 'previews', 'video', 'preview'])) {
+                        $localVideoDir = $item->getPathname();
+                    }
+                }
+            }
+
+            if (!empty($csvFiles)) {
+                $targetCsv = $csvFiles[0];
+                foreach ($csvFiles as $f) {
+                    if (stripos($f, 'shotlist') !== false || stripos($f, 'metadata') !== false) {
+                        $targetCsv = $f;
+                        break;
+                    }
+                }
+                $rows = $this->parseCsvFile($targetCsv);
+                if (empty($localThumbDir)) $localThumbDir = dirname($targetCsv);
+                if (empty($localVideoDir)) $localVideoDir = dirname($targetCsv);
+
+                if ($limit > 0 && count($rows) > $limit) {
+                    $rows = array_slice($rows, 0, $limit);
+                }
+
+                $sequenceModel = new \App\Models\SequenceModel();
+                $shotModel = new \App\Models\ShotModel();
+                $existingSequences = $sequenceModel->where('project_id', $projectId)->findAll();
+                $seqMap = [];
+                foreach ($existingSequences as $seq) {
+                    $seqMap[strtolower(trim($seq->name))] = $seq->id;
+                }
+
+                $importedCount = 0; $updatedCount = 0; $thumbCount = 0; $videoCount = 0; $createdSeqs = 0;
+
+                foreach ($rows as $row) {
+                    $cleanRow = [];
+                    foreach ($row as $k => $v) {
+                        $cleanRow[strtolower(trim($k))] = is_string($v) ? trim($v) : $v;
+                    }
+                    $shotNumber = $cleanRow['shot'] ?? $cleanRow['shot_number'] ?? $cleanRow['shot_code'] ?? $cleanRow['name'] ?? null;
+                    if (empty($shotNumber)) continue;
+
+                    $seqName = $cleanRow['sequence'] ?? $cleanRow['sequence_name'] ?? $cleanRow['seq'] ?? null;
+                    $sequenceId = null;
+                    if (!empty($seqName)) {
+                        $seqKey = strtolower(trim($seqName));
+                        if (isset($seqMap[$seqKey])) {
+                            $sequenceId = $seqMap[$seqKey];
+                        } else {
+                            $sequenceId = $sequenceModel->insert(['project_id' => $projectId, 'name' => $seqName, 'description' => 'Bulk imported']);
+                            $seqMap[$seqKey] = $sequenceId;
+                            $createdSeqs++;
+                        }
+                    }
+
+                    $frameCount = $cleanRow['duration_frames'] ?? $cleanRow['frame_count'] ?? $cleanRow['frames'] ?? null;
+                    $fps = $cleanRow['fps'] ?? $cleanRow['frame_rate'] ?? ($project->fps ?? 24);
+                    $description = $cleanRow['description'] ?? null;
+                    $compName = $cleanRow['comp_name'] ?? null;
+                    $frameIn = $cleanRow['frame_in'] ?? null;
+                    $frameOut = $cleanRow['frame_out'] ?? null;
+                    $durationSec = $cleanRow['duration_seconds'] ?? null;
+                    $timecodeIn = $cleanRow['timecode_in'] ?? null;
+                    $timecodeOut = $cleanRow['timecode_out'] ?? null;
+                    $width = $cleanRow['width'] ?? null;
+                    $height = $cleanRow['height'] ?? null;
+
+                    // Match thumbnails
+                    $savedThumbPath = null;
+                    if (!empty($localThumbDir)) {
+                        $candidates = [
+                            $localThumbDir . DIRECTORY_SEPARATOR . $shotNumber . '.png',
+                            $localThumbDir . DIRECTORY_SEPARATOR . $shotNumber . '.jpg',
+                            $localThumbDir . DIRECTORY_SEPARATOR . $shotNumber . '.jpeg',
+                        ];
+                        foreach ($candidates as $cand) {
+                            if (file_exists($cand)) {
+                                $ext = pathinfo($cand, PATHINFO_EXTENSION);
+                                $newName = 'shot_' . $projectId . '_' . preg_replace('/[^a-zA-Z0-9_-]/', '_', $shotNumber) . '_' . uniqid() . '.' . $ext;
+                                if (@copy($cand, $targetThumbDir . DIRECTORY_SEPARATOR . $newName)) {
+                                    $savedThumbPath = 'uploads/shots/' . $newName;
+                                    $thumbCount++;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    // Match videos
+                    $savedVideoPath = null;
+                    if (!empty($localVideoDir)) {
+                        $candVids = [
+                            $localVideoDir . DIRECTORY_SEPARATOR . $shotNumber . '.mp4',
+                            $localVideoDir . DIRECTORY_SEPARATOR . $shotNumber . '.mov',
+                            $localVideoDir . DIRECTORY_SEPARATOR . $shotNumber . '.webm',
+                        ];
+                        if (!empty($compName)) {
+                            $candVids[] = $localVideoDir . DIRECTORY_SEPARATOR . $compName . '.mp4';
+                            $candVids[] = $localVideoDir . DIRECTORY_SEPARATOR . $compName . '.mov';
+                        }
+                        foreach ($candVids as $cv) {
+                            if (file_exists($cv)) {
+                                $ext = pathinfo($cv, PATHINFO_EXTENSION);
+                                $newVidName = 'vid_' . $projectId . '_' . preg_replace('/[^a-zA-Z0-9_-]/', '_', $shotNumber) . '_' . uniqid() . '.' . $ext;
+                                if (@copy($cv, $targetVideoDir . DIRECTORY_SEPARATOR . $newVidName)) {
+                                    $savedVideoPath = 'uploads/shots/videos/' . $newVidName;
+                                    $videoCount++;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    $query = $shotModel->where('project_id', $projectId)->where('shot_number', $shotNumber);
+                    if ($sequenceId) $query->where('sequence_id', $sequenceId);
+                    $existingShot = $query->first();
+
+                    $shotData = [
+                        'project_id'       => $projectId,
+                        'sequence_id'      => $sequenceId,
+                        'shot_number'      => $shotNumber,
+                        'comp_name'        => !empty($compName) ? $compName : null,
+                        'fps'              => !empty($fps) ? (int)$fps : null,
+                        'frame_count'      => !empty($frameCount) ? (int)$frameCount : null,
+                        'frame_in'         => !empty($frameIn) ? (int)$frameIn : null,
+                        'frame_out'        => !empty($frameOut) ? (int)$frameOut : null,
+                        'duration_seconds' => !empty($durationSec) ? (float)$durationSec : null,
+                        'timecode_in'      => !empty($timecodeIn) ? $timecodeIn : null,
+                        'timecode_out'     => !empty($timecodeOut) ? $timecodeOut : null,
+                        'width'            => !empty($width) ? (int)$width : null,
+                        'height'           => !empty($height) ? (int)$height : null,
+                    ];
+                    if (!empty($description)) $shotData['description'] = $description;
+                    if (!empty($savedThumbPath)) $shotData['thumbnail_path'] = $savedThumbPath;
+                    if (!empty($savedVideoPath)) $shotData['preview_video_path'] = $savedVideoPath;
+
+                    if ($existingShot) {
+                        $shotModel->update($existingShot->id, $shotData);
+                        $updatedCount++;
+                    } else {
+                        $shotModel->insert($shotData);
+                        $importedCount++;
+                    }
+                }
+
+                $msg = "Import completed: {$importedCount} new shots added, {$updatedCount} updated, {$thumbCount} thumbnails linked, and {$videoCount} preview videos linked.";
+            } else {
+                // Direct Media-Only ZIP Update Mode (No CSV)
+                $extractedMedia = [];
+                foreach ($dirIterator as $item) {
+                    if ($item->isFile()) {
+                        $ext = strtolower($item->getExtension());
+                        if (in_array($ext, ['mp4', 'mov', 'webm', 'm4v', 'png', 'jpg', 'jpeg'])) {
+                            $extractedMedia[] = $item->getPathname();
+                        }
+                    }
+                }
+
+                $shotModel = new \App\Models\ShotModel();
+                $existingShots = $shotModel->where('project_id', $projectId)->findAll();
+                $matchedVideos = 0;
+                $matchedThumbs = 0;
+
+                foreach ($extractedMedia as $mediaPath) {
+                    $mFilename = pathinfo($mediaPath, PATHINFO_FILENAME);
+                    $mExt = strtolower(pathinfo($mediaPath, PATHINFO_EXTENSION));
+                    $isVideo = in_array($mExt, ['mp4', 'mov', 'webm', 'm4v']);
+
+                    foreach ($existingShots as $eshot) {
+                        $shotNumClean = strtolower(trim($eshot->shot_number));
+                        $compNameClean = strtolower(trim($eshot->comp_name ?? ''));
+                        $mLower = strtolower($mFilename);
+
+                        $isMatch = ($mLower === $shotNumClean)
+                            || (!empty($compNameClean) && $mLower === $compNameClean)
+                            || (strpos($mLower, $shotNumClean) !== false && strlen($shotNumClean) >= 3);
+
+                        if ($isMatch) {
+                            if ($isVideo) {
+                                $newVidName = 'vid_' . $projectId . '_' . preg_replace('/[^a-zA-Z0-9_-]/', '_', $eshot->shot_number) . '_' . uniqid() . '.' . $mExt;
+                                @copy($mediaPath, $targetVideoDir . DIRECTORY_SEPARATOR . $newVidName);
+                                $shotModel->update($eshot->id, ['preview_video_path' => 'uploads/shots/videos/' . $newVidName]);
+                                $matchedVideos++;
+                            } else {
+                                $newThumbName = 'shot_' . $projectId . '_' . preg_replace('/[^a-zA-Z0-9_-]/', '_', $eshot->shot_number) . '_' . uniqid() . '.' . $mExt;
+                                @copy($mediaPath, $targetThumbDir . DIRECTORY_SEPARATOR . $newThumbName);
+                                $shotModel->update($eshot->id, ['thumbnail_path' => 'uploads/shots/' . $newThumbName]);
+                                $matchedThumbs++;
+                            }
+                            break;
+                        }
+                    }
+                }
+                $msg = "Media update complete: Linked {$matchedVideos} preview videos and {$matchedThumbs} thumbnails to your existing shots!";
+            }
+
+            @unlink($finalFilePath);
+            @rmdir($tempDir);
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => $msg,
+                'redirect' => '/admin/projects/' . $projectId
+            ]);
+        } else {
+            @unlink($finalFilePath);
+            @rmdir($tempDir);
+            return $this->response->setJSON(['success' => false, 'error' => 'Failed to extract uploaded ZIP file'])->setStatusCode(400);
+        }
+    }
+
+    /**
      * Helper to parse CSV file into associative array.
      */
     private function parseCsvFile($filePath)

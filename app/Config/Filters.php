@@ -79,6 +79,8 @@ class Filters extends BaseFilters
                 'api/*',
                 'admin/projects/importShots/*',
                 'admin/projects/importShots',
+                'admin/projects/chunkUpload/*',
+                'admin/projects/chunkUpload',
                 'admin/shots/updateSettings/*',
                 'admin/projects/bulkAssignTasks',
                 'admin/projects/inlineUpdateTask',

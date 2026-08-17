@@ -787,10 +787,10 @@
             switchTab(savedTab, false);
         }
 
-        // Live Upload Progress Engine for Import Modal
+        // Live Upload Progress Engine for Import Modal (Supports 4MB Chunking for Huge Files)
         const importForm = document.getElementById('importShotsForm');
         if (importForm) {
-            importForm.addEventListener('submit', function(e) {
+            importForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
 
                 const progressBox = document.getElementById('importProgressBox');
@@ -805,7 +805,7 @@
                 const errorAlert = document.getElementById('importErrorAlert');
                 const errorMsg = document.getElementById('importErrorMsg');
 
-                // Reset state
+                // Reset UI state
                 errorAlert.classList.add('hidden');
                 progressBox.classList.remove('hidden');
                 progressBarFill.style.width = '0%';
@@ -815,11 +815,135 @@
                 progressSpinner.textContent = 'progress_activity';
                 progressSpinner.className = 'material-symbols-outlined text-ytBlue animate-spin text-[18px]';
 
-                // Disable submit button during upload
                 importSubmitBtn.disabled = true;
                 importSubmitBtn.classList.add('opacity-60', 'cursor-not-allowed');
                 importSubmitBtnText.textContent = 'Importing...';
 
+                function showImportError(msg) {
+                    importSubmitBtn.disabled = false;
+                    importSubmitBtn.classList.remove('opacity-60', 'cursor-not-allowed');
+                    importSubmitBtnText.textContent = 'Retry Import';
+                    progressSpinner.textContent = 'error';
+                    progressSpinner.className = 'material-symbols-outlined text-red-400 text-[18px]';
+                    progressStatusText.textContent = 'Import failed';
+                    errorMsg.textContent = msg;
+                    errorAlert.classList.remove('hidden');
+                }
+
+                const fileInput = document.getElementById('import_csv_file');
+                const file = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+
+                // If file is > 8MB, use Chunked Upload to guarantee 0 timeouts
+                const CHUNK_THRESHOLD = 8 * 1024 * 1024; // 8MB
+                if (file && file.size > CHUNK_THRESHOLD) {
+                    const CHUNK_SIZE = 4 * 1024 * 1024; // 4MB chunks
+                    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+                    const uploadId = 'up_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                    const startTime = Date.now();
+                    const limitVal = importForm.querySelector('select[name="limit"]').value;
+                    const autoFolders = importForm.querySelector('input[name="auto_create_folders"]').checked ? 1 : 0;
+
+                    let totalBytesUploaded = 0;
+
+                    for (let i = 0; i < totalChunks; i++) {
+                        const start = i * CHUNK_SIZE;
+                        const end = Math.min(file.size, start + CHUNK_SIZE);
+                        const chunkBlob = file.slice(start, end);
+
+                        let chunkSuccess = false;
+                        let retries = 0;
+
+                        while (!chunkSuccess && retries < 3) {
+                            try {
+                                const chunkFormData = new FormData();
+                                chunkFormData.append('file_chunk', chunkBlob, file.name);
+                                chunkFormData.append('upload_id', uploadId);
+                                chunkFormData.append('chunk_index', i);
+                                chunkFormData.append('total_chunks', totalChunks);
+                                chunkFormData.append('file_name', file.name);
+                                chunkFormData.append('limit', limitVal);
+                                chunkFormData.append('auto_create_folders', autoFolders);
+
+                                const res = await new Promise((resolve, reject) => {
+                                    const xhr = new XMLHttpRequest();
+                                    xhr.open('POST', '/admin/projects/chunkUpload/<?= $project->id ?>', true);
+                                    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+
+                                    xhr.upload.onprogress = function(e) {
+                                        if (e.lengthComputable) {
+                                            const currentUploaded = totalBytesUploaded + e.loaded;
+                                            const percent = Math.min(99, Math.round((currentUploaded / file.size) * 100));
+                                            const loadedMB = (currentUploaded / (1024 * 1024)).toFixed(1);
+                                            const totalMB = (file.size / (1024 * 1024)).toFixed(1);
+
+                                            const elapsedSec = (Date.now() - startTime) / 1000;
+                                            const speed = elapsedSec > 0 ? ((currentUploaded / (1024 * 1024)) / elapsedSec).toFixed(1) : '0.0';
+
+                                            progressBarFill.style.width = percent + '%';
+                                            progressPercentBadge.textContent = percent + '%';
+                                            progressBytesText.textContent = `${loadedMB} MB / ${totalMB} MB (Part ${i + 1}/${totalChunks})`;
+                                            progressSpeedText.textContent = `${speed} MB/s`;
+                                            progressStatusText.textContent = `Uploading part ${i + 1} of ${totalChunks}...`;
+                                        }
+                                    };
+
+                                    xhr.onload = function() {
+                                        if (xhr.status >= 200 && xhr.status < 300) {
+                                            try {
+                                                resolve(JSON.parse(xhr.responseText));
+                                            } catch (e) {
+                                                resolve({ success: true });
+                                            }
+                                        } else {
+                                            let err = `Chunk upload error (HTTP ${xhr.status})`;
+                                            try {
+                                                const j = JSON.parse(xhr.responseText);
+                                                if (j.error) err = j.error;
+                                            } catch(e) {}
+                                            reject(new Error(err));
+                                        }
+                                    };
+
+                                    xhr.onerror = function() {
+                                        reject(new Error('Connection interrupted on chunk ' + (i + 1)));
+                                    };
+
+                                    xhr.send(chunkFormData);
+                                });
+
+                                if (i === totalChunks - 1) {
+                                    // Final chunk processed!
+                                    progressBarFill.style.width = '100%';
+                                    progressBarFill.className = 'bg-green-500 h-full rounded-full transition-all';
+                                    progressPercentBadge.textContent = '100%';
+                                    progressPercentBadge.className = 'text-[12px] font-mono font-bold text-green-400';
+                                    progressStatusText.textContent = res.message || 'Import completed!';
+                                    progressSpinner.textContent = 'check_circle';
+                                    progressSpinner.className = 'material-symbols-outlined text-green-400 text-[18px]';
+
+                                    setTimeout(() => {
+                                        window.location.href = res.redirect || window.location.href;
+                                    }, 1200);
+                                    return;
+                                }
+
+                                totalBytesUploaded += (end - start);
+                                chunkSuccess = true;
+                            } catch (err) {
+                                retries++;
+                                if (retries >= 3) {
+                                    showImportError(err.message || 'Upload failed after retries.');
+                                    return;
+                                }
+                                progressStatusText.textContent = `Retrying part ${i + 1} (Attempt ${retries + 1})...`;
+                                await new Promise(r => setTimeout(r, 1000));
+                            }
+                        }
+                    }
+                    return;
+                }
+
+                // Standard Single-Request Upload for Folder mode / Small files
                 const formData = new FormData(importForm);
                 const xhr = new XMLHttpRequest();
                 xhr.open('POST', importForm.action, true);
@@ -871,7 +995,6 @@
                                 showImportError(res.error || 'Import failed.');
                             }
                         } catch (err) {
-                            // Fallback for HTML redirects
                             window.location.reload();
                         }
                     } else {
@@ -879,13 +1002,7 @@
                         try {
                             const res = JSON.parse(xhr.responseText);
                             if (res.error) errDetail = res.error;
-                        } catch (e) {
-                            if (xhr.status === 413) {
-                                errDetail = 'File size exceeds server upload limit (HTTP 413: Payload Too Large). Try uploading a smaller ZIP batch.';
-                            } else if (xhr.status === 504 || xhr.status === 500) {
-                                errDetail = `Server timed out or encountered an error (HTTP ${xhr.status}). Try splitting into smaller batches.`;
-                            }
-                        }
+                        } catch (e) {}
                         showImportError(errDetail);
                     }
                 };
@@ -893,17 +1010,6 @@
                 xhr.onerror = function() {
                     showImportError('Network error: Connection was lost or timed out during upload.');
                 };
-
-                function showImportError(msg) {
-                    importSubmitBtn.disabled = false;
-                    importSubmitBtn.classList.remove('opacity-60', 'cursor-not-allowed');
-                    importSubmitBtnText.textContent = 'Retry Import';
-                    progressSpinner.textContent = 'error';
-                    progressSpinner.className = 'material-symbols-outlined text-red-400 text-[18px]';
-                    progressStatusText.textContent = 'Import failed';
-                    errorMsg.textContent = msg;
-                    errorAlert.classList.remove('hidden');
-                }
 
                 xhr.send(formData);
             });
