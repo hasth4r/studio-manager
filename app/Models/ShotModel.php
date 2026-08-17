@@ -28,7 +28,9 @@ class ShotModel extends Model
         'timecode_in',
         'timecode_out',
         'width',
-        'height'
+        'height',
+        'reference_images',
+        'client_notes'
     ];
 
     protected $useTimestamps = true;

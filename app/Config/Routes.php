@@ -71,6 +71,7 @@ $routes->group('admin', ['filter' => 'auth', 'namespace' => 'App\Controllers\Adm
     $routes->post('projects/inlineAddTask', 'Projects::inlineAddTask');
     $routes->post('projects/deleteTaskAjax', 'Projects::deleteTaskAjax');
     $routes->post('projects/saveAutoThumbnailAjax', 'Projects::saveAutoThumbnailAjax');
+    $routes->get('projects/(:num)/briefing', '\App\Controllers\Client\Briefing::index/$1');
 
     // VFX Entities
     $routes->get('shots/(:num)', 'Shots::show/$1');
@@ -161,6 +162,12 @@ $routes->group('client', ['filter' => 'auth', 'namespace' => 'App\Controllers\Cl
     $routes->post('reviews/updateComment/(:num)', 'Reviews::updateComment/$1');
     $routes->post('reviews/deleteComment/(:num)', 'Reviews::deleteComment/$1');
     $routes->post('reviews/uploadReference', 'Reviews::uploadReference');
+
+    // Client Shot Briefing & Reference Matrix
+    $routes->get('projects/(:num)/briefing', 'Briefing::index/$1');
+    $routes->post('projects/saveBriefAjax', 'Briefing::saveBriefAjax');
+    $routes->post('projects/uploadReferenceAjax', 'Briefing::uploadReferenceAjax');
+    $routes->post('projects/deleteReferenceAjax', 'Briefing::deleteReferenceAjax');
 });
 
 // Shared API Endpoints

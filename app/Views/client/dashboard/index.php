@@ -75,7 +75,15 @@
                             <?php endif; ?>
                         </div>
                         
-                        <div class="flex justify-between items-center text-[12px] pt-4 border-t border-ytBorder/50 mt-2">
+                        <!-- Shot Briefing Action Button -->
+                        <div class="mt-2 mb-1">
+                            <a href="/client/projects/<?= $project->id ?>/briefing" class="w-full bg-[#14182a] hover:bg-ytBlue text-ytBlue hover:text-white border border-ytBlue/40 font-mono font-semibold text-[12px] py-2 px-3 rounded-lg flex items-center justify-center gap-2 transition-all shadow-[0_0_12px_rgba(23,123,207,0.1)]">
+                                <span class="material-symbols-outlined text-[16px]">edit_note</span> 
+                                <span>Shot Briefing &amp; Reference Matrix &rarr;</span>
+                            </a>
+                        </div>
+
+                        <div class="flex justify-between items-center text-[12px] pt-3 border-t border-ytBorder/50 mt-2">
                             <span class="text-ytMuted flex items-center gap-1.5">
                                 <span class="material-symbols-outlined text-[14px]">calendar_today</span> 
                                 Started <?= date('M d, Y', strtotime($project->created_at)) ?>
