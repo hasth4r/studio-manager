@@ -21,13 +21,16 @@ if (!function_exists('media_cdn_url')) {
 
         $cleanPath = ltrim($path, '/');
 
+        // Normalize path: R2 bucket stores all studio media inside 'uploads/'
+        $uploadPath = str_starts_with($cleanPath, 'uploads/') ? $cleanPath : 'uploads/' . $cleanPath;
+
         // Check if Cloudflare R2 custom domain / worker is configured in .env
         $cdnDomain = env('r2.custom_domain', '');
         if (!empty($cdnDomain)) {
             $cdnDomain = rtrim($cdnDomain, '/');
-            return $cdnDomain . '/' . $cleanPath;
+            return $cdnDomain . '/' . $uploadPath;
         }
 
-        return base_url($cleanPath);
+        return base_url($uploadPath);
     }
 }
