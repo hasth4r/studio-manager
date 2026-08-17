@@ -213,7 +213,6 @@ class Share extends BaseController
                 ],
             ]);
             $forge->addKey('id', true);
-            $forge->addKey('token');
             $forge->addKey(['resource_type', 'resource_id']);
             $forge->createTable('public_share_tokens', true);
         }

@@ -62,7 +62,6 @@ class CreatePublicShareTokensTable extends Migration
         ]);
 
         $this->forge->addKey('id', true);
-        $this->forge->addKey('token');
         $this->forge->addKey(['resource_type', 'resource_id']);
         $this->forge->createTable('public_share_tokens', true);
     }
