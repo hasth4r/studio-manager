@@ -274,32 +274,24 @@ if (!function_exists('renderCommentBox')) {
                 <div class="flex-1 flex flex-col bg-[#2a2a2a] relative border-b border-[#444] min-w-0 w-full overflow-hidden" id="timelineContainer">
                     
                     <?php if(isset($isSequenceMode) && $isSequenceMode): ?>
-                        <?php 
-                            $totalSeqDur = array_sum(array_column($playlist, 'duration')) ?: 1.0;
-                            $hasManyShots = count($playlist) > 8;
-                        ?>
-                        <!-- Sequence Lineup Mini-Track (Proportional Duration & Cuts) -->
-                        <div class="h-[60px] bg-[#111] flex overflow-x-auto overflow-y-hidden custom-scrollbar border-t border-[#333] select-none min-w-0 w-full" id="sequenceLineupTrack">
+                        <!-- Sequence Lineup Mini-Track (Clean Compact Cards, Centered when few shots) -->
+                        <div class="h-[60px] bg-[#111] flex overflow-x-auto overflow-y-hidden custom-scrollbar border-t border-[#333] select-none min-w-0 w-full <?= count($playlist) <= 6 ? 'justify-center' : '' ?>" id="sequenceLineupTrack">
                             <?php foreach($playlist as $idx => $clip): ?>
-                                <?php 
-                                    $clipDur = (float)($clip['duration'] ?? 1.0);
-                                    $pct = round(($clipDur / $totalSeqDur) * 100, 4);
-                                ?>
-                                <div class="border-r border-[#333] relative flex items-stretch cursor-pointer transition-colors seq-clip-block group shrink-0 overflow-hidden <?= $hasManyShots ? 'min-w-[120px]' : '' ?>" style="<?= $hasManyShots ? "flex: 0 0 max(120px, {$pct}%);" : "flex: 0 0 {$pct}%; width: {$pct}%;" ?>" data-idx="<?= $idx ?>" id="seq-clip-<?= $idx ?>">
+                                <div class="border-r border-[#333] relative flex items-stretch cursor-pointer transition-colors seq-clip-block group shrink-0 w-[150px] md:w-[175px]" data-idx="<?= $idx ?>" id="seq-clip-<?= $idx ?>">
                                     <!-- Hover overlay -->
                                     <div class="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors pointer-events-none z-10"></div>
                                     
                                     <!-- Thumbnail on the left (Lazy Loaded) -->
                                     <?php if(!empty($clip['thumbnail_path'])): ?>
-                                        <img src="<?= esc($clip['thumbnail_path']) ?>" loading="lazy" class="h-full w-[60px] md:w-[80px] object-cover shrink-0 border-r border-[#333]">
+                                        <img src="<?= esc($clip['thumbnail_path']) ?>" loading="lazy" class="h-full w-[70px] md:w-[80px] object-cover shrink-0 border-r border-[#333]">
                                     <?php else: ?>
-                                        <div class="h-full w-[60px] md:w-[80px] shrink-0 bg-[#222] border-r border-[#333] flex items-center justify-center">
+                                        <div class="h-full w-[70px] md:w-[80px] shrink-0 bg-[#222] border-r border-[#333] flex items-center justify-center">
                                             <span class="material-symbols-outlined text-[#444] text-[20px]">image</span>
                                         </div>
                                     <?php endif; ?>
                                     
                                     <!-- Text Info -->
-                                    <div class="relative z-10 flex flex-col justify-center px-2 overflow-hidden flex-1 min-w-[50px]">
+                                    <div class="relative z-10 flex flex-col justify-center px-2.5 overflow-hidden flex-1 min-w-[70px]">
                                         <span class="text-[11px] font-bold text-white pointer-events-none leading-tight truncate"><?= esc($clip['shot_number']) ?></span>
                                         <span class="text-[9px] font-medium text-gray-300 pointer-events-none leading-tight mt-0.5 truncate"><?= esc($clip['task_name'] ?? '') ?> &bull; <span class="text-purple-400"><?= esc($clip['version_string'] ?? '') ?></span></span>
                                     </div>
@@ -976,26 +968,6 @@ if (!function_exists('renderCommentBox')) {
                 }
             }
 
-            function applySequenceTrackProportions() {
-                if (!isSequenceMode || !totalSequenceDuration || totalSequenceDuration <= 0) return;
-                const hasManyShots = playlist.length > 8;
-                
-                playlist.forEach((clip, i) => {
-                    const block = document.getElementById('seq-clip-' + i);
-                    if (block) {
-                        const pct = ((clip.duration || 1) / totalSequenceDuration) * 100;
-                        if (!hasManyShots) {
-                            block.style.flex = `0 0 ${pct}%`;
-                            block.style.width = `${pct}%`;
-                            block.style.minWidth = '0px';
-                        } else {
-                            block.style.flex = `0 0 max(120px, ${pct}%)`;
-                            block.style.minWidth = '120px';
-                        }
-                    }
-                });
-            }
-
             if (isSequenceMode) {
                 // 1. Instant Duration Calculation from PHP Precomputed Durations (Zero Network Stall)
                 const allHaveDurations = playlist.every(c => typeof c.duration === 'number' && c.duration > 0);
@@ -1003,7 +975,6 @@ if (!function_exists('renderCommentBox')) {
                 if (allHaveDurations) {
                     totalSequenceDuration = playlist.reduce((sum, c) => sum + (c.duration || 0), 0);
                     sequenceLoaded = true;
-                    applySequenceTrackProportions();
                     renderMarkers();
                 } else {
                     // Fallback to async metadata loading only if durations are missing
@@ -1031,7 +1002,6 @@ if (!function_exists('renderCommentBox')) {
                         if (loadedCount >= playlist.length) {
                             totalSequenceDuration = playlist.reduce((sum, c) => sum + (c.duration || 0), 0);
                             sequenceLoaded = true;
-                            applySequenceTrackProportions();
                             renderMarkers();
                         }
                     }
