@@ -98,29 +98,30 @@ $sqlitePath = dirname(__DIR__) . '/writable/database.db';
 
 $pdo = null;
 
-// Helper to check if a PDO connection actually contains the projects table
-function hasProjectsTable($conn) {
+$envPath = dirname(__DIR__) . '/.env';
+$sqlitePath = dirname(__DIR__) . '/writable/database.db';
+
+$pdo = null;
+$prefix = '';
+
+// Helper to check table prefix (e.g. enso8_)
+function findTablePrefix($conn) {
     if (!$conn) return false;
     try {
-        $r = $conn->query("SELECT 1 FROM projects LIMIT 1");
-        return $r !== false;
-    } catch (\Throwable $e) {
-        return false;
-    }
-}
-
-// 1. Try SQLite first (if database.db exists and has tables)
-if (file_exists($sqlitePath)) {
-    try {
-        $testSqlite = new PDO('sqlite:' . $sqlitePath);
-        if (hasProjectsTable($testSqlite)) {
-            $pdo = $testSqlite;
+        if ($conn->query("SELECT 1 FROM enso8_projects LIMIT 1") !== false) {
+            return 'enso8_';
         }
     } catch (\Throwable $e) {}
+    try {
+        if ($conn->query("SELECT 1 FROM projects LIMIT 1") !== false) {
+            return '';
+        }
+    } catch (\Throwable $e) {}
+    return false;
 }
 
-// 2. Try MySQL from .env if SQLite didn't have projects table
-if (!$pdo && file_exists($envPath)) {
+// 1. Try MySQL from .env first
+if (file_exists($envPath)) {
     $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     $dbHost = 'localhost'; $dbName = 'enso8_manager'; $dbUser = 'root'; $dbPass = ''; $dbPort = 3306;
     foreach ($lines as $line) {
@@ -139,25 +140,30 @@ if (!$pdo && file_exists($envPath)) {
     }
     try {
         $testMysql = new PDO("mysql:host={$dbHost};port={$dbPort};dbname={$dbName};charset=utf8mb4", $dbUser, $dbPass);
-        if (hasProjectsTable($testMysql)) {
+        $pfx = findTablePrefix($testMysql);
+        if ($pfx !== false) {
             $pdo = $testMysql;
-        } elseif (!$pdo) {
-            $pdo = $testMysql; // Fallback to show MySQL error if neither had table
+            $prefix = $pfx;
         }
     } catch (\Throwable $e) {}
 }
 
-// 3. Last fallback to SQLite if available
+// 2. Try SQLite if MySQL wasn't connected
 if (!$pdo && file_exists($sqlitePath)) {
     try {
-        $pdo = new PDO('sqlite:' . $sqlitePath);
+        $testSqlite = new PDO('sqlite:' . $sqlitePath);
+        $pfx = findTablePrefix($testSqlite);
+        if ($pfx !== false) {
+            $pdo = $testSqlite;
+            $prefix = $pfx;
+        }
     } catch (\Throwable $e) {}
 }
 
 if ($pdo) {
     try {
         // 2.1 List Projects
-        $projects = $pdo->query("SELECT id, name, project_code FROM projects ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
+        $projects = $pdo->query("SELECT id, name, project_code FROM {$prefix}projects ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
         echo "<p>Active Projects in Database: ";
         foreach ($projects as $p) {
             echo "<b>[ID: {$p['id']}] {$p['name']} ({$p['project_code']})</b> &nbsp; ";
@@ -179,14 +185,14 @@ if ($pdo) {
                 $targetProjId = (int)$projIds[0];
             }
 
-            // Get sequence for Project (or create 'WAR' sequence)
-            $seqStmt = $pdo->prepare("SELECT id FROM sequences WHERE project_id = ? LIMIT 1");
+            // Get sequence for Project (or create 'War' sequence)
+            $seqStmt = $pdo->prepare("SELECT id FROM {$prefix}sequences WHERE project_id = ? LIMIT 1");
             $seqStmt->execute([$targetProjId]);
             $defaultSeq = $seqStmt->fetch(PDO::FETCH_ASSOC);
             $seqId = $defaultSeq ? $defaultSeq['id'] : null;
             if (!$seqId) {
                 try {
-                    $insSeq = $pdo->prepare("INSERT INTO sequences (project_id, name, description, created_at, updated_at) VALUES (?, 'WAR', 'Production Sequence', ?, ?)");
+                    $insSeq = $pdo->prepare("INSERT INTO {$prefix}sequences (project_id, name, description, created_at, updated_at) VALUES (?, 'War', 'Production Sequence', ?, ?)");
                     $insSeq->execute([$targetProjId, $now, $now]);
                     $seqId = $pdo->lastInsertId();
                 } catch (\Throwable $e) {}
@@ -210,23 +216,23 @@ if ($pdo) {
                     $relPath = 'uploads/shots/videos/' . $vf;
 
                     // Check if shot already exists in DB
-                    $checkStmt = $pdo->prepare("SELECT id FROM shots WHERE project_id = ? AND (LOWER(shot_number) = ? OR LOWER(comp_name) = ?)");
+                    $checkStmt = $pdo->prepare("SELECT id FROM {$prefix}shots WHERE project_id = ? AND (LOWER(shot_number) = ? OR LOWER(comp_name) = ?)");
                     $checkStmt->execute([$projId, strtolower($rawShotNum), strtolower($rawShotNum)]);
                     $existing = $checkStmt->fetch(PDO::FETCH_ASSOC);
 
                     if ($existing) {
-                        $updateStmt = $pdo->prepare("UPDATE shots SET preview_video_path = ?, updated_at = ? WHERE id = ?");
+                        $updateStmt = $pdo->prepare("UPDATE {$prefix}shots SET preview_video_path = ?, updated_at = ? WHERE id = ?");
                         $updateStmt->execute([$relPath, $now, $existing['id']]);
                         $linkedCount++;
                     } else {
                         // Auto-create shot in database!
                         try {
-                            $insertStmt = $pdo->prepare("INSERT INTO shots (project_id, sequence_id, shot_number, preview_video_path, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)");
+                            $insertStmt = $pdo->prepare("INSERT INTO {$prefix}shots (project_id, sequence_id, shot_number, preview_video_path, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)");
                             $insertStmt->execute([$projId, $seqId, $shotNum, $relPath, $now, $now]);
                             $createdCount++;
                         } catch (\Throwable $e) {
                             try {
-                                $insertStmt = $pdo->prepare("INSERT INTO shots (project_id, shot_number, preview_video_path, created_at, updated_at) VALUES (?, ?, ?, ?, ?)");
+                                $insertStmt = $pdo->prepare("INSERT INTO {$prefix}shots (project_id, shot_number, preview_video_path, created_at, updated_at) VALUES (?, ?, ?, ?, ?)");
                                 $insertStmt->execute([$projId, $shotNum, $relPath, $now, $now]);
                                 $createdCount++;
                             } catch (\Throwable $e2) {}
@@ -269,28 +275,6 @@ if ($pdo) {
             echo "</div>";
         }
 
-        // Ensure Project 2 exists with correct code and sequence in database
-        $now = date('Y-m-d H:i:s');
-        try {
-            $p2 = $pdo->query("SELECT id, project_code FROM projects WHERE id = 2")->fetch(PDO::FETCH_ASSOC);
-            if (!$p2) {
-                $insP = $pdo->prepare("INSERT INTO projects (id, name, project_code, status, fps, created_at, updated_at) VALUES (2, 'Mahalaya', 'MHLYA-1', 'active', 25, ?, ?)");
-                $insP->execute([$now, $now]);
-            } elseif (empty($p2['project_code']) || $p2['project_code'] === 'PROJECT_2') {
-                $upP = $pdo->prepare("UPDATE projects SET name = 'Mahalaya', project_code = 'MHLYA-1' WHERE id = 2");
-                $upP->execute();
-            }
-
-            $seq2 = $pdo->query("SELECT id, name FROM sequences WHERE project_id = 2 LIMIT 1")->fetch(PDO::FETCH_ASSOC);
-            if (!$seq2) {
-                $insS = $pdo->prepare("INSERT INTO sequences (project_id, name, description, created_at, updated_at) VALUES (2, 'War', 'Main Sequence', ?, ?)");
-                $insS->execute([$now, $now]);
-            } elseif ($seq2['name'] !== 'War') {
-                $upS = $pdo->prepare("UPDATE sequences SET name = 'War' WHERE project_id = 2");
-                $upS->execute();
-            }
-        } catch (\Throwable $e) {}
-
         // AJAX Batch Hierarchy Reorganizer (Fast 10-shot chunks, Zero Timeouts, Zero Duplicate Bytes)
         if (isset($_GET['action']) && $_GET['action'] === 'batch_reorganize_step') {
             header('Content-Type: application/json');
@@ -298,21 +282,23 @@ if ($pdo) {
             if ($limit < 1) $limit = 10;
             if ($limit > 25) $limit = 25;
 
+            $now = date('Y-m-d H:i:s');
+
             // Get all shots with project name, project code, and sequence name
             $allQuery = "SELECT s.id, s.project_id, s.shot_number, s.preview_video_path, s.thumbnail_path, p.name as project_name, p.project_code, seq.name as seq_name 
-                         FROM shots s 
-                         LEFT JOIN projects p ON p.id = s.project_id 
-                         LEFT JOIN sequences seq ON seq.id = s.sequence_id
+                         FROM {$prefix}shots s 
+                         LEFT JOIN {$prefix}projects p ON p.id = s.project_id 
+                         LEFT JOIN {$prefix}sequences seq ON seq.id = s.sequence_id
                          ORDER BY s.id ASC";
             $allRows = $pdo->query($allQuery)->fetchAll(PDO::FETCH_ASSOC);
 
             // Filter rows that are NOT yet in standard uploads/{pCode}/{sName}/{sCode}/ folder
             $shotsToMove = [];
             foreach ($allRows as $r) {
-                $pCode = ($r['project_id'] == 2) ? 'MHLYA-1' : (!empty($r['project_code']) ? $r['project_code'] : (!empty($r['project_name']) ? $r['project_name'] : 'Project_' . $r['project_id']));
+                $pCode = !empty($r['project_code']) ? $r['project_code'] : (!empty($r['project_name']) ? $r['project_name'] : ($r['project_id'] == 2 ? 'MHLYA-1' : 'Project_' . $r['project_id']));
                 $pCode = preg_replace('/[^a-zA-Z0-9_-]/', '_', trim($pCode));
 
-                $sName = ($r['project_id'] == 2) ? 'War' : (!empty($r['seq_name']) ? $r['seq_name'] : 'WAR');
+                $sName = !empty($r['seq_name']) ? $r['seq_name'] : ($r['project_id'] == 2 ? 'War' : 'WAR');
                 $sName = preg_replace('/[^a-zA-Z0-9_-]/', '_', trim($sName));
 
                 $sCode = preg_replace('/[^a-zA-Z0-9_-]/', '_', trim($r['shot_number']));
@@ -386,7 +372,7 @@ if ($pdo) {
                         } catch (\Throwable $e) {}
                     }
 
-                    $upStmt = $pdo->prepare("UPDATE shots SET preview_video_path = ?, updated_at = ? WHERE id = ?");
+                    $upStmt = $pdo->prepare("UPDATE {$prefix}shots SET preview_video_path = ?, updated_at = ? WHERE id = ?");
                     $upStmt->execute([$newRelVid, $now, $shot['id']]);
                     $movedVideos++;
                     $logs[] = "Moved {$shot['shot_number']} -> {$newRelVid}";
@@ -434,7 +420,7 @@ if ($pdo) {
                         } catch (\Throwable $e) {}
                     }
 
-                    $upStmt = $pdo->prepare("UPDATE shots SET thumbnail_path = ?, updated_at = ? WHERE id = ?");
+                    $upStmt = $pdo->prepare("UPDATE {$prefix}shots SET thumbnail_path = ?, updated_at = ? WHERE id = ?");
                     $upStmt->execute([$newRelThumb, $now, $shot['id']]);
                     $movedThumbs++;
                 }
@@ -481,7 +467,7 @@ if ($pdo) {
         echo "</div>";
 
         // Query Project 2 (Mahalaya) shots first, then others
-        $stmt = $pdo->query("SELECT id, project_id, shot_number, comp_name, preview_video_path, thumbnail_path FROM shots ORDER BY project_id DESC, id ASC LIMIT 250");
+        $stmt = $pdo->query("SELECT id, project_id, shot_number, comp_name, preview_video_path, thumbnail_path FROM {$prefix}shots ORDER BY project_id DESC, id ASC LIMIT 250");
         $shots = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         echo "<table>";
