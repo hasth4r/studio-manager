@@ -437,6 +437,13 @@ class Projects extends BaseController
             return redirect()->to('/login');
         }
 
+        // Prevent timeouts and memory exhaustion for large batches (e.g. 200+ shots)
+        @ini_set('max_execution_time', '600');
+        @ini_set('memory_limit', '512M');
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(600);
+        }
+
         $projectModel = new \App\Models\ProjectModel();
         $project = $projectModel->find($projectId);
 
@@ -452,6 +459,7 @@ class Projects extends BaseController
 
         $rows = [];
         $localThumbDir = null;
+        $tempExtractPath = null;
 
         // Ensure upload destination exists
         $targetThumbDir = FCPATH . 'uploads' . DIRECTORY_SEPARATOR . 'shots';
@@ -512,16 +520,33 @@ class Projects extends BaseController
                     $zip->extractTo($tempExtractPath);
                     $zip->close();
 
-                    $csvFiles = glob($tempExtractPath . DIRECTORY_SEPARATOR . '*.csv');
-                    if (empty($csvFiles)) {
-                        $csvFiles = glob($tempExtractPath . DIRECTORY_SEPARATOR . '**' . DIRECTORY_SEPARATOR . '*.csv');
+                    // Recursively find CSV files inside the extracted ZIP
+                    $csvFiles = [];
+                    $dirIterator = new \RecursiveIteratorIterator(
+                        new \RecursiveDirectoryIterator($tempExtractPath, \RecursiveDirectoryIterator::SKIP_DOTS),
+                        \RecursiveIteratorIterator::SELF_FIRST
+                    );
+
+                    foreach ($dirIterator as $item) {
+                        if ($item->isFile() && in_array(strtolower($item->getExtension()), ['csv', 'txt'])) {
+                            $csvFiles[] = $item->getPathname();
+                        }
+                        if ($item->isDir() && strtolower($item->getFilename()) === 'thumbnails') {
+                            $localThumbDir = $item->getPathname();
+                        }
                     }
 
                     if (!empty($csvFiles)) {
-                        $rows = $this->parseCsvFile($csvFiles[0]);
-                        $localThumbDir = dirname($csvFiles[0]);
-                        if (is_dir($localThumbDir . DIRECTORY_SEPARATOR . 'thumbnails')) {
-                            $localThumbDir = $localThumbDir . DIRECTORY_SEPARATOR . 'thumbnails';
+                        $targetCsv = $csvFiles[0];
+                        foreach ($csvFiles as $f) {
+                            if (stripos($f, 'shotlist') !== false || stripos($f, 'metadata') !== false) {
+                                $targetCsv = $f;
+                                break;
+                            }
+                        }
+                        $rows = $this->parseCsvFile($targetCsv);
+                        if (empty($localThumbDir)) {
+                            $localThumbDir = dirname($targetCsv);
                         }
                     } else {
                         return redirect()->back()->with('error', 'No CSV file found inside the uploaded ZIP archive.');
