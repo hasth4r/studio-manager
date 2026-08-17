@@ -74,7 +74,18 @@ class Filters extends BaseFilters
     public array $globals = [
         'before' => [
             // 'honeypot',
-            'csrf' => ['except' => ['user/tasks/submitReview', 'api/*']],
+            'csrf' => ['except' => [
+                'user/tasks/submitReview',
+                'api/*',
+                'admin/projects/importShots/*',
+                'admin/projects/importShots',
+                'admin/shots/updateSettings/*',
+                'admin/projects/bulkAssignTasks',
+                'admin/projects/inlineUpdateTask',
+                'admin/projects/inlineUpdateShot',
+                'admin/projects/inlineAddTask',
+                'admin/projects/deleteTaskAjax',
+            ]],
             // 'invalidchars',
         ],
         'after' => [
