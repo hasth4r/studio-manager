@@ -178,7 +178,7 @@
                             <div class="w-14 h-9 bg-[#111] rounded border border-ytBorder/60 overflow-hidden relative group/thumb cursor-pointer shrink-0 inline-block align-middle"
                                  onmouseenter="showFloatingPreview(event, '<?= !empty($shot->preview_video_path) ? base_url(esc($shot->preview_video_path)) : '' ?>', '<?= !empty($shot->thumbnail_path) ? base_url(esc($shot->thumbnail_path)) : '' ?>', '<?= esc($shot->shot_number) ?>')"
                                  onmousemove="moveFloatingPreview(event)"
-                                 onmouseleave="hideFloatingPreview()"
+                                 onmouseleave=""
                                  onclick="openVideoModal('<?= !empty($shot->preview_video_path) ? base_url(esc($shot->preview_video_path)) : '' ?>', '<?= esc($shot->shot_number) ?>')"
                                  title="Click to open full player">
                                 <?php if($shot->thumbnail_path): ?>
