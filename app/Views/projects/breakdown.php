@@ -176,12 +176,14 @@
                         <!-- 2. Thumbnail & Video Preview -->
                         <td class="py-2 px-2 text-center align-top">
                             <div class="w-14 h-9 bg-[#111] rounded border border-ytBorder/60 overflow-hidden relative group/thumb cursor-pointer"
+                                 onmouseenter="showFloatingPreview(event, '<?= !empty($shot->preview_video_path) ? base_url(esc($shot->preview_video_path)) : '' ?>', '<?= !empty($shot->thumbnail_path) ? base_url(esc($shot->thumbnail_path)) : '' ?>')"
+                                 onmouseleave="hideFloatingPreview()"
                                  <?php if(!empty($shot->preview_video_path)): ?>
                                      onclick="openVideoModal('<?= base_url(esc($shot->preview_video_path)) ?>', '<?= esc($shot->shot_number) ?>')"
                                      title="Click to play video preview"
                                  <?php endif; ?>>
                                 <?php if($shot->thumbnail_path): ?>
-                                    <img src="<?= base_url(esc($shot->thumbnail_path)) ?>" class="shot-thumb-img-<?= $shot->id ?> w-full h-full object-cover">
+                                    <img src="<?= base_url(esc($shot->thumbnail_path)) ?>" loading="lazy" class="shot-thumb-img-<?= $shot->id ?> w-full h-full object-cover">
                                 <?php else: ?>
                                     <div class="w-full h-full flex items-center justify-center text-ytMuted">
                                         <span class="material-symbols-outlined text-[16px]">image</span>
@@ -192,15 +194,6 @@
                                     <span class="absolute bottom-0.5 right-0.5 bg-blue-600 hover:bg-blue-500 text-white text-[8px] font-bold px-1 rounded flex items-center shadow-md">
                                         ▶ Play
                                     </span>
-                                    <!-- Video Zoom Tooltip -->
-                                    <div class="fixed hidden group-hover/thumb:block z-50 pointer-events-none shadow-2xl rounded-lg overflow-hidden border border-blue-500/50 bg-black -mt-24 ml-16 w-64 aspect-video">
-                                        <video src="<?= base_url(esc($shot->preview_video_path)) ?>" autoplay muted loop playsinline class="w-full h-full object-cover"></video>
-                                    </div>
-                                <?php elseif($shot->thumbnail_path): ?>
-                                    <!-- Image Zoom Tooltip -->
-                                    <div class="fixed hidden group-hover/thumb:block z-50 pointer-events-none shadow-2xl rounded-lg overflow-hidden border border-ytBorder bg-black -mt-20 ml-16 w-56 aspect-video">
-                                        <img src="<?= base_url(esc($shot->thumbnail_path)) ?>" class="w-full h-full object-cover">
-                                    </div>
                                 <?php endif; ?>
                             </div>
                         </td>
@@ -785,7 +778,50 @@
             video.src = videoUrl;
         });
     }
+    // Single Lightweight Floating Hover Preview
+    function showFloatingPreview(e, videoSrc, thumbSrc) {
+        const box = document.getElementById('globalHoverPreview');
+        const vid = document.getElementById('globalHoverVideo');
+        const img = document.getElementById('globalHoverImg');
+        if (!box) return;
+
+        const rect = e.currentTarget.getBoundingClientRect();
+        const top = Math.min(window.innerHeight - 180, Math.max(10, rect.top - 40));
+        const left = Math.min(window.innerWidth - 280, rect.right + 12);
+        box.style.top = top + 'px';
+        box.style.left = left + 'px';
+
+        if (videoSrc) {
+            vid.src = videoSrc;
+            vid.classList.remove('hidden');
+            img.classList.add('hidden');
+            box.classList.remove('hidden');
+            vid.play().catch(() => {});
+        } else if (thumbSrc) {
+            img.src = thumbSrc;
+            img.classList.remove('hidden');
+            vid.classList.add('hidden');
+            box.classList.remove('hidden');
+        }
+    }
+
+    function hideFloatingPreview() {
+        const box = document.getElementById('globalHoverPreview');
+        const vid = document.getElementById('globalHoverVideo');
+        if (box) box.classList.add('hidden');
+        if (vid) {
+            vid.pause();
+            vid.currentTime = 0;
+            vid.src = '';
+        }
+    }
 </script>
+
+<!-- Single Global Floating Hover Preview (Consumes 0 RAM when idle) -->
+<div id="globalHoverPreview" class="fixed hidden z-50 pointer-events-none shadow-2xl rounded-xl overflow-hidden border border-blue-500/60 bg-black w-64 aspect-video">
+    <video id="globalHoverVideo" class="w-full h-full object-cover hidden" muted loop playsinline></video>
+    <img id="globalHoverImg" class="w-full h-full object-cover hidden" src="">
+</div>
 
 <!-- Quick Video Player Modal -->
 <div id="quickVideoModal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-md flex items-center justify-center p-4" onclick="if(event.target===this) closeVideoModal()">

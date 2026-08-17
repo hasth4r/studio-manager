@@ -243,11 +243,147 @@ if ($pdo) {
             echo "</div>";
         }
 
+        // Pipeline Hierarchy Reorganizer (Copy + Delete Old = 0 Bytes Wasted)
+        if (isset($_GET['action']) && $_GET['action'] === 'reorganize_pipeline_structure') {
+            @ini_set('max_execution_time', 600);
+            $now = date('Y-m-d H:i:s');
+            
+            $sql = "SELECT s.id, s.project_id, s.shot_number, s.preview_video_path, s.thumbnail_path, p.project_code, seq.name as seq_name 
+                    FROM shots s 
+                    LEFT JOIN projects p ON p.id = s.project_id 
+                    LEFT JOIN sequences seq ON seq.id = s.sequence_id";
+            $allShots = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+
+            $movedVideos = 0;
+            $movedThumbs = 0;
+            $r2Cleaned = 0;
+
+            foreach ($allShots as $shot) {
+                $pCode = !empty($shot['project_code']) ? preg_replace('/[^a-zA-Z0-9_-]/', '_', $shot['project_code']) : 'PROJECT_' . $shot['project_id'];
+                $sName = !empty($shot['seq_name']) ? preg_replace('/[^a-zA-Z0-9_-]/', '_', $shot['seq_name']) : 'WAR';
+                $sCode = preg_replace('/[^a-zA-Z0-9_-]/', '_', $shot['shot_number']);
+
+                // 1. Reorganize Video Previews into /edit/
+                $oldVid = $shot['preview_video_path'];
+                if (!empty($oldVid) && (strpos($oldVid, 'uploads/shots/videos/') !== false || strpos($oldVid, '/edit/') === false)) {
+                    $ext = pathinfo($oldVid, PATHINFO_EXTENSION) ?: 'mp4';
+                    $newRelVid = "uploads/{$pCode}/{$sName}/{$sCode}/edit/vid_{$sCode}.{$ext}";
+                    $oldLocalVid = __DIR__ . '/' . ltrim($oldVid, '/');
+                    $newLocalVid = __DIR__ . '/' . ltrim($newRelVid, '/');
+
+                    // Move on local disk
+                    if (file_exists($oldLocalVid)) {
+                        $newLocalDir = dirname($newLocalVid);
+                        if (!is_dir($newLocalDir)) @mkdir($newLocalDir, 0777, true);
+                        if ($oldLocalVid !== $newLocalVid) {
+                            @rename($oldLocalVid, $newLocalVid);
+                        }
+                    }
+
+                    // Move on Cloudflare R2 (Copy to new key + Delete old key)
+                    if ($r2Configured && $r2Client) {
+                        $oldR2Key = ltrim($oldVid, '/');
+                        $newR2Key = ltrim($newRelVid, '/');
+                        try {
+                            if ($oldR2Key !== $newR2Key && $r2Client->doesObjectExist($r2Bucket, $oldR2Key)) {
+                                $r2Client->copyObject([
+                                    'Bucket'     => $r2Bucket,
+                                    'CopySource' => "{$r2Bucket}/{$oldR2Key}",
+                                    'Key'        => $newR2Key,
+                                ]);
+                                $r2Client->deleteObject([
+                                    'Bucket' => $r2Bucket,
+                                    'Key'    => $oldR2Key,
+                                ]);
+                                $r2Cleaned++;
+                            } elseif (file_exists($newLocalVid) && !$r2Client->doesObjectExist($r2Bucket, $newR2Key)) {
+                                $r2Client->putObject([
+                                    'Bucket'     => $r2Bucket,
+                                    'Key'        => $newR2Key,
+                                    'SourceFile' => $newLocalVid,
+                                ]);
+                            }
+                        } catch (\Throwable $e) {
+                            error_log("R2 Move Error: " . $e->getMessage());
+                        }
+                    }
+
+                    // Update database
+                    $upStmt = $pdo->prepare("UPDATE shots SET preview_video_path = ?, updated_at = ? WHERE id = ?");
+                    $upStmt->execute([$newRelVid, $now, $shot['id']]);
+                    $movedVideos++;
+                }
+
+                // 2. Reorganize Thumbnails into /thumbnails/
+                $oldThumb = $shot['thumbnail_path'];
+                if (!empty($oldThumb) && strpos($oldThumb, '/thumbnails/') === false) {
+                    $ext = pathinfo($oldThumb, PATHINFO_EXTENSION) ?: 'webp';
+                    $newRelThumb = "uploads/{$pCode}/{$sName}/{$sCode}/thumbnails/shot_{$sCode}.{$ext}";
+                    $oldLocalThumb = __DIR__ . '/' . ltrim($oldThumb, '/');
+                    $newLocalThumb = __DIR__ . '/' . ltrim($newRelThumb, '/');
+
+                    // Move on local disk
+                    if (file_exists($oldLocalThumb)) {
+                        $newThumbDir = dirname($newLocalThumb);
+                        if (!is_dir($newThumbDir)) @mkdir($newThumbDir, 0777, true);
+                        if ($oldLocalThumb !== $newLocalThumb) {
+                            @rename($oldLocalThumb, $newLocalThumb);
+                        }
+                    }
+
+                    // Move on Cloudflare R2 (Copy + Delete Old)
+                    if ($r2Configured && $r2Client) {
+                        $oldR2Key = ltrim($oldThumb, '/');
+                        $newR2Key = ltrim($newRelThumb, '/');
+                        try {
+                            if ($oldR2Key !== $newR2Key && $r2Client->doesObjectExist($r2Bucket, $oldR2Key)) {
+                                $r2Client->copyObject([
+                                    'Bucket'     => $r2Bucket,
+                                    'CopySource' => "{$r2Bucket}/{$oldR2Key}",
+                                    'Key'        => $newR2Key,
+                                ]);
+                                $r2Client->deleteObject([
+                                    'Bucket' => $r2Bucket,
+                                    'Key'    => $oldR2Key,
+                                ]);
+                                $r2Cleaned++;
+                            } elseif (file_exists($newLocalThumb) && !$r2Client->doesObjectExist($r2Bucket, $newR2Key)) {
+                                $r2Client->putObject([
+                                    'Bucket'     => $r2Bucket,
+                                    'Key'        => $newR2Key,
+                                    'SourceFile' => $newLocalThumb,
+                                ]);
+                            }
+                        } catch (\Throwable $e) {}
+                    }
+
+                    // Update database
+                    $upStmt = $pdo->prepare("UPDATE shots SET thumbnail_path = ?, updated_at = ? WHERE id = ?");
+                    $upStmt->execute([$newRelThumb, $now, $shot['id']]);
+                    $movedThumbs++;
+                }
+            }
+
+            // Clean up empty legacy directory
+            $legacyDir = __DIR__ . '/uploads/shots/videos';
+            if (is_dir($legacyDir)) {
+                @rmdir($legacyDir);
+            }
+
+            echo "<div style='background:#064e3b; border:1px solid #059669; color:#a7f3d0; padding:15px; border-radius:8px; margin-bottom:15px;'>";
+            echo "<b>📁 Pipeline Reorganization Complete! (Zero Storage Wasted)</b><br>";
+            echo "• Moved <b>{$movedVideos}</b> video previews into <code>uploads/{Project}/{Seq}/{Shot}/edit/</code><br>";
+            echo "• Moved <b>{$movedThumbs}</b> thumbnails into <code>uploads/{Project}/{Seq}/{Shot}/thumbnails/</code><br>";
+            echo "• Cleaned &amp; Deleted <b>{$r2Cleaned}</b> old duplicate files from R2!";
+            echo "</div>";
+        }
+
         // Action Toolbar
-        echo "<div style='margin-bottom:15px; display:flex; gap:10px; align-items:center;'>";
+        echo "<div style='margin-bottom:15px; display:flex; flex-wrap:wrap; gap:10px; align-items:center;'>";
+        echo "<a href='?action=reorganize_pipeline_structure' style='background:#059669; color:#fff; padding:10px 18px; border-radius:8px; text-decoration:none; font-weight:bold; font-size:13px; display:inline-block;'>📁 Clean Move into {Project}/{Seq}/{Shot}/edit/ Structure</a>";
         echo "<a href='?action=autolink' style='background:#2563eb; color:#fff; padding:10px 18px; border-radius:8px; text-decoration:none; font-weight:bold; font-size:13px; display:inline-block;'>🔗 Auto-Create &amp; Link Database Shots</a>";
         if ($r2Configured) {
-            echo "<a href='?action=sync_r2' style='background:#9333ea; color:#fff; padding:10px 18px; border-radius:8px; text-decoration:none; font-weight:bold; font-size:13px; display:inline-block;'>☁️ Sync All 94 Videos to Cloudflare R2 CDN</a>";
+            echo "<a href='?action=sync_r2' style='background:#9333ea; color:#fff; padding:10px 18px; border-radius:8px; text-decoration:none; font-weight:bold; font-size:13px; display:inline-block;'>☁️ Sync Remaining to Cloudflare R2</a>";
         }
         echo "</div>";
 

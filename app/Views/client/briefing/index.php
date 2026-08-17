@@ -102,9 +102,11 @@
 
                             <!-- Visual Preview (Video & Thumbnail) -->
                             <td class="py-3 px-3 align-top pt-3">
-                                <div class="w-48 aspect-video bg-[#0d0d0d] rounded-lg border border-ytBorder/80 overflow-hidden relative group/thumb shadow-sm">
+                                <div class="w-48 aspect-video bg-[#0d0d0d] rounded-lg border border-ytBorder/80 overflow-hidden relative group/thumb shadow-sm"
+                                     onmouseenter="playHoverVideo(this, '<?= !empty($shot->preview_video_path) ? base_url(esc($shot->preview_video_path)) : '' ?>')"
+                                     onmouseleave="stopHoverVideo(this)">
                                     <?php if (!empty($shot->thumbnail_path)): ?>
-                                        <img src="<?= base_url(esc($shot->thumbnail_path)) ?>" class="w-full h-full object-cover">
+                                        <img src="<?= base_url(esc($shot->thumbnail_path)) ?>" loading="lazy" class="w-full h-full object-cover">
                                     <?php else: ?>
                                         <div class="w-full h-full flex items-center justify-center text-ytMuted/40">
                                             <span class="material-symbols-outlined text-[28px]">image</span>
@@ -112,12 +114,6 @@
                                     <?php endif; ?>
 
                                     <?php if (!empty($shot->preview_video_path)): ?>
-                                        <video src="<?= base_url(esc($shot->preview_video_path)) ?>" 
-                                               class="w-full h-full object-cover absolute inset-0 opacity-0 group-hover/thumb:opacity-100 transition-opacity duration-200 pointer-events-none" 
-                                               muted loop playsinline 
-                                               onmouseover="this.play()" 
-                                               onmouseout="this.pause(); this.currentTime=0;"></video>
-                                        
                                         <button type="button" 
                                                 onclick="openVideoModal('<?= base_url(esc($shot->preview_video_path)) ?>', '<?= esc($shot->shot_number) ?>')" 
                                                 class="absolute top-1.5 left-1.5 bg-black/85 hover:bg-blue-600 backdrop-blur-xs border border-blue-500/50 text-blue-200 hover:text-white text-[10px] font-mono font-bold px-2 py-0.5 rounded flex items-center gap-1 z-20 cursor-pointer shadow-md transition-all">
@@ -445,6 +441,29 @@
             toast.classList.remove('opacity-100', 'translate-y-0');
             toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-2');
         }, 2200);
+    }
+
+    // 8. Dynamic Zero-Lag Hover Video Preview Engine
+    function playHoverVideo(container, videoSrc) {
+        if (!videoSrc || container.querySelector('video')) return;
+        const vid = document.createElement('video');
+        vid.src = videoSrc;
+        vid.muted = true;
+        vid.loop = true;
+        vid.playsInline = true;
+        vid.className = 'w-full h-full object-cover absolute inset-0 z-10 animate-fadeIn pointer-events-none';
+        container.appendChild(vid);
+        vid.play().catch(() => {});
+    }
+
+    function stopHoverVideo(container) {
+        const vid = container.querySelector('video');
+        if (vid) {
+            vid.pause();
+            vid.currentTime = 0;
+            vid.src = '';
+            vid.remove();
+        }
     }
 </script>
 

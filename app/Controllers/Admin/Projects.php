@@ -1279,18 +1279,24 @@ class Projects extends BaseController
                 return $this->response->setJSON(['success' => false, 'error' => 'Failed to decode base64 image data'])->setStatusCode(400);
             }
 
-            $targetThumbDir = FCPATH . 'uploads' . DIRECTORY_SEPARATOR . 'shots';
+            $project = $this->projectModel->find($shot->project_id);
+            $seqModel = new \App\Models\SequenceModel();
+            $seq = $shot->sequence_id ? $seqModel->find($shot->sequence_id) : null;
+            $pCode = !empty($project->project_code) ? preg_replace('/[^a-zA-Z0-9_-]/', '_', $project->project_code) : 'PROJECT_' . $shot->project_id;
+            $sName = $seq && !empty($seq->name) ? preg_replace('/[^a-zA-Z0-9_-]/', '_', $seq->name) : 'WAR';
+            $cleanShotNum = preg_replace('/[^a-zA-Z0-9_-]/', '_', $shot->shot_number);
+
+            $targetThumbDir = FCPATH . 'uploads' . DIRECTORY_SEPARATOR . $pCode . DIRECTORY_SEPARATOR . $sName . DIRECTORY_SEPARATOR . $cleanShotNum . DIRECTORY_SEPARATOR . 'thumbnails';
             if (!is_dir($targetThumbDir)) {
                 @mkdir($targetThumbDir, 0777, true);
             }
 
-            $cleanShotNum = preg_replace('/[^a-zA-Z0-9_-]/', '_', $shot->shot_number);
-            $filename = 'shot_' . $shot->project_id . '_' . $cleanShotNum . '_' . uniqid() . '.' . $type;
+            $filename = 'shot_' . $cleanShotNum . '.' . $type;
             $filePath = $targetThumbDir . DIRECTORY_SEPARATOR . $filename;
 
             file_put_contents($filePath, $decodedData);
 
-            $relPath = 'uploads/shots/' . $filename;
+            $relPath = "uploads/{$pCode}/{$sName}/{$cleanShotNum}/thumbnails/{$filename}";
             $shotModel->update($shotId, ['thumbnail_path' => $relPath]);
             $this->syncMediaToR2($filePath, $relPath);
 
