@@ -19,6 +19,7 @@ class ShotModel extends Model
         'comp_name',
         'description',
         'thumbnail_path',
+        'preview_video_path',
         'fps',
         'frame_count',
         'frame_in',

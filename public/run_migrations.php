@@ -19,14 +19,15 @@ if (file_exists($sqlitePath)) {
         }
 
         $needed = [
-            'comp_name'        => 'VARCHAR(150) NULL',
-            'frame_in'         => 'INTEGER NULL',
-            'frame_out'        => 'INTEGER NULL',
-            'duration_seconds' => 'NUMERIC NULL',
-            'timecode_in'      => 'VARCHAR(30) NULL',
-            'timecode_out'     => 'VARCHAR(30) NULL',
-            'width'            => 'INTEGER NULL',
-            'height'           => 'INTEGER NULL',
+            'preview_video_path' => 'VARCHAR(255) NULL',
+            'comp_name'          => 'VARCHAR(150) NULL',
+            'frame_in'           => 'INTEGER NULL',
+            'frame_out'          => 'INTEGER NULL',
+            'duration_seconds'   => 'NUMERIC NULL',
+            'timecode_in'        => 'VARCHAR(30) NULL',
+            'timecode_out'       => 'VARCHAR(30) NULL',
+            'width'              => 'INTEGER NULL',
+            'height'             => 'INTEGER NULL',
         ];
 
         foreach ($needed as $col => $type) {
@@ -95,14 +96,15 @@ try {
         }
 
         $myColsNeeded = [
-            'comp_name'        => "VARCHAR(150) NULL AFTER `shot_number`",
-            'frame_in'         => "INT NULL AFTER `frame_count`",
-            'frame_out'        => "INT NULL AFTER `frame_in`",
-            'duration_seconds' => "DECIMAL(8,2) NULL AFTER `frame_out`",
-            'timecode_in'      => "VARCHAR(30) NULL AFTER `duration_seconds`",
-            'timecode_out'     => "VARCHAR(30) NULL AFTER `timecode_in`",
-            'width'            => "INT NULL AFTER `timecode_out`",
-            'height'           => "INT NULL AFTER `width`",
+            'preview_video_path' => "VARCHAR(255) NULL AFTER `thumbnail_path`",
+            'comp_name'          => "VARCHAR(150) NULL AFTER `shot_number`",
+            'frame_in'           => "INT NULL AFTER `frame_count`",
+            'frame_out'          => "INT NULL AFTER `frame_in`",
+            'duration_seconds'   => "DECIMAL(8,2) NULL AFTER `frame_out`",
+            'timecode_in'        => "VARCHAR(30) NULL AFTER `duration_seconds`",
+            'timecode_out'       => "VARCHAR(30) NULL AFTER `timecode_in`",
+            'width'              => "INT NULL AFTER `timecode_out`",
+            'height'             => "INT NULL AFTER `width`",
         ];
 
         $added = [];

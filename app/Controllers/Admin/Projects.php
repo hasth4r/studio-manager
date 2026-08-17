@@ -456,15 +456,22 @@ class Projects extends BaseController
         $folderPath = trim($this->request->getPost('folder_path') ?? '');
         $uploadedCsv = $this->request->getFile('csv_file');
         $uploadedThumbs = $this->request->getFiles()['thumbnails'] ?? [];
+        $uploadedVideos = $this->request->getFiles()['video_previews'] ?? [];
 
         $rows = [];
         $localThumbDir = null;
+        $localVideoDir = null;
         $tempExtractPath = null;
 
-        // Ensure upload destination exists
+        // Ensure upload destinations exist
         $targetThumbDir = FCPATH . 'uploads' . DIRECTORY_SEPARATOR . 'shots';
         if (!is_dir($targetThumbDir)) {
             @mkdir($targetThumbDir, 0777, true);
+        }
+
+        $targetVideoDir = FCPATH . 'uploads' . DIRECTORY_SEPARATOR . 'shots' . DIRECTORY_SEPARATOR . 'videos';
+        if (!is_dir($targetVideoDir)) {
+            @mkdir($targetVideoDir, 0777, true);
         }
 
         // 1. Process from Local Folder Path (AE Export)
@@ -477,12 +484,16 @@ class Projects extends BaseController
             // Find CSV or JSON file in the export folder
             $csvFiles = glob($folderPath . DIRECTORY_SEPARATOR . '*.csv');
             $jsonFiles = glob($folderPath . DIRECTORY_SEPARATOR . '*.json');
+            
+            // Look for thumbnails and videos directories
             $thumbDirCandidate = $folderPath . DIRECTORY_SEPARATOR . 'thumbnails';
-            if (is_dir($thumbDirCandidate)) {
-                $localThumbDir = $thumbDirCandidate;
-            } else {
-                $localThumbDir = $folderPath;
+            $localThumbDir = is_dir($thumbDirCandidate) ? $thumbDirCandidate : $folderPath;
+
+            $videoDirCandidate = $folderPath . DIRECTORY_SEPARATOR . 'videos';
+            if (!is_dir($videoDirCandidate)) {
+                $videoDirCandidate = $folderPath . DIRECTORY_SEPARATOR . 'previews';
             }
+            $localVideoDir = is_dir($videoDirCandidate) ? $videoDirCandidate : $folderPath;
 
             if (!empty($csvFiles)) {
                 // Prefer files with 'shotlist' or 'metadata' in name
@@ -520,7 +531,7 @@ class Projects extends BaseController
                     $zip->extractTo($tempExtractPath);
                     $zip->close();
 
-                    // Recursively find CSV files inside the extracted ZIP
+                    // Recursively find CSV, thumbnails, and video directories inside ZIP
                     $csvFiles = [];
                     $dirIterator = new \RecursiveIteratorIterator(
                         new \RecursiveDirectoryIterator($tempExtractPath, \RecursiveDirectoryIterator::SKIP_DOTS),
@@ -531,8 +542,13 @@ class Projects extends BaseController
                         if ($item->isFile() && in_array(strtolower($item->getExtension()), ['csv', 'txt'])) {
                             $csvFiles[] = $item->getPathname();
                         }
-                        if ($item->isDir() && strtolower($item->getFilename()) === 'thumbnails') {
-                            $localThumbDir = $item->getPathname();
+                        if ($item->isDir()) {
+                            $dirNameLower = strtolower($item->getFilename());
+                            if ($dirNameLower === 'thumbnails' || $dirNameLower === 'thumbs') {
+                                $localThumbDir = $item->getPathname();
+                            } elseif (in_array($dirNameLower, ['videos', 'previews', 'video', 'preview'])) {
+                                $localVideoDir = $item->getPathname();
+                            }
                         }
                     }
 
@@ -547,6 +563,9 @@ class Projects extends BaseController
                         $rows = $this->parseCsvFile($targetCsv);
                         if (empty($localThumbDir)) {
                             $localThumbDir = dirname($targetCsv);
+                        }
+                        if (empty($localVideoDir)) {
+                            $localVideoDir = dirname($targetCsv);
                         }
                     } else {
                         return redirect()->back()->with('error', 'No CSV file found inside the uploaded ZIP archive.');
@@ -570,6 +589,31 @@ class Projects extends BaseController
             $rows = array_slice($rows, 0, $limit);
         }
 
+        // Build index of uploaded thumbnail and video files
+        $uploadedFileMap = [];
+        if (!empty($uploadedThumbs)) {
+            foreach ($uploadedThumbs as $file) {
+                if ($file && $file->isValid() && !$file->hasMoved()) {
+                    $origName = strtolower($file->getClientName());
+                    $baseNoExt = strtolower(pathinfo($origName, PATHINFO_FILENAME));
+                    $uploadedFileMap[$origName] = $file;
+                    $uploadedFileMap[$baseNoExt] = $file;
+                }
+            }
+        }
+
+        $uploadedVideoMap = [];
+        if (!empty($uploadedVideos)) {
+            foreach ($uploadedVideos as $vfile) {
+                if ($vfile && $vfile->isValid() && !$vfile->hasMoved()) {
+                    $origName = strtolower($vfile->getClientName());
+                    $baseNoExt = strtolower(pathinfo($origName, PATHINFO_FILENAME));
+                    $uploadedVideoMap[$origName] = $vfile;
+                    $uploadedVideoMap[$baseNoExt] = $vfile;
+                }
+            }
+        }
+
         // Prepare Models & Caches
         $sequenceModel = new \App\Models\SequenceModel();
         $shotModel = new \App\Models\ShotModel();
@@ -580,21 +624,10 @@ class Projects extends BaseController
             $seqMap[strtolower(trim($seq->name))] = $seq->id;
         }
 
-        // Build uploaded files index if any
-        $uploadedFileMap = [];
-        if (!empty($uploadedThumbs)) {
-            foreach ($uploadedThumbs as $file) {
-                if ($file && $file->isValid() && !$file->hasMoved()) {
-                    $clientName = strtolower(trim($file->getClientName()));
-                    $uploadedFileMap[$clientName] = $file;
-                    $uploadedFileMap[pathinfo($clientName, PATHINFO_FILENAME)] = $file;
-                }
-            }
-        }
-
         $importedCount = 0;
         $updatedCount  = 0;
         $thumbCount    = 0;
+        $videoCount    = 0;
         $createdSeqs   = 0;
 
         foreach ($rows as $row) {
@@ -641,7 +674,7 @@ class Projects extends BaseController
             $width = $cleanRow['width'] ?? null;
             $height = $cleanRow['height'] ?? null;
 
-            // Resolve Thumbnail
+            // 1. Resolve Thumbnail
             $thumbFileRef = $cleanRow['thumbnail_file'] ?? $cleanRow['thumbnail'] ?? $cleanRow['thumb'] ?? null;
             $savedThumbPath = null;
 
@@ -702,6 +735,65 @@ class Projects extends BaseController
                 }
             }
 
+            // 2. Resolve Preview Video
+            $videoFileRef = $cleanRow['video_file'] ?? $cleanRow['video'] ?? $cleanRow['preview_video'] ?? $cleanRow['video_preview'] ?? null;
+            $savedVideoPath = null;
+
+            // A. Check local video directory / ZIP
+            if (!empty($localVideoDir)) {
+                $candidateVideos = [];
+                if (!empty($videoFileRef)) {
+                    $baseVid = basename($videoFileRef);
+                    $candidateVideos[] = $localVideoDir . DIRECTORY_SEPARATOR . $baseVid;
+                }
+                $candidateVideos[] = $localVideoDir . DIRECTORY_SEPARATOR . $shotNumber . '.mp4';
+                $candidateVideos[] = $localVideoDir . DIRECTORY_SEPARATOR . $shotNumber . '.mov';
+                $candidateVideos[] = $localVideoDir . DIRECTORY_SEPARATOR . $shotNumber . '.webm';
+                if (!empty($cleanRow['comp_name'])) {
+                    $candidateVideos[] = $localVideoDir . DIRECTORY_SEPARATOR . $cleanRow['comp_name'] . '.mp4';
+                    $candidateVideos[] = $localVideoDir . DIRECTORY_SEPARATOR . $cleanRow['comp_name'] . '.mov';
+                    $candidateVideos[] = $localVideoDir . DIRECTORY_SEPARATOR . $cleanRow['comp_name'] . '.webm';
+                }
+
+                foreach ($candidateVideos as $candVid) {
+                    if (file_exists($candVid) && is_file($candVid)) {
+                        $ext = pathinfo($candVid, PATHINFO_EXTENSION);
+                        $newVidName = 'vid_' . $projectId . '_' . preg_replace('/[^a-zA-Z0-9_-]/', '_', $shotNumber) . '_' . uniqid() . '.' . $ext;
+                        $destVidPath = $targetVideoDir . DIRECTORY_SEPARATOR . $newVidName;
+                        if (@copy($candVid, $destVidPath)) {
+                            $savedVideoPath = 'uploads/shots/videos/' . $newVidName;
+                            $videoCount++;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // B. Check uploaded videos index
+            if (empty($savedVideoPath) && !empty($uploadedVideoMap)) {
+                $checkVidKeys = [];
+                if (!empty($videoFileRef)) {
+                    $vbase = strtolower(basename($videoFileRef));
+                    $checkVidKeys[] = $vbase;
+                    $checkVidKeys[] = pathinfo($vbase, PATHINFO_FILENAME);
+                }
+                $checkVidKeys[] = strtolower($shotNumber);
+                if (!empty($cleanRow['comp_name'])) {
+                    $checkVidKeys[] = strtolower($cleanRow['comp_name']);
+                }
+
+                foreach ($checkVidKeys as $vchk) {
+                    if (isset($uploadedVideoMap[$vchk])) {
+                        $upVid = $uploadedVideoMap[$vchk];
+                        $newVidName = $upVid->getRandomName();
+                        $upVid->move($targetVideoDir, $newVidName);
+                        $savedVideoPath = 'uploads/shots/videos/' . $newVidName;
+                        $videoCount++;
+                        break;
+                    }
+                }
+            }
+
             // Check if Shot already exists in this project
             $query = $shotModel->where('project_id', $projectId)->where('shot_number', $shotNumber);
             if ($sequenceId) {
@@ -730,6 +822,9 @@ class Projects extends BaseController
             if (!empty($savedThumbPath)) {
                 $shotData['thumbnail_path'] = $savedThumbPath;
             }
+            if (!empty($savedVideoPath)) {
+                $shotData['preview_video_path'] = $savedVideoPath;
+            }
 
             if ($existingShot) {
                 $shotModel->update($existingShot->id, $shotData);
@@ -745,7 +840,7 @@ class Projects extends BaseController
             }
         }
 
-        $summary = "Import completed: {$importedCount} new shots added, {$updatedCount} updated, {$createdSeqs} new sequences created, and {$thumbCount} thumbnails linked.";
+        $summary = "Import completed: {$importedCount} new shots added, {$updatedCount} updated, {$createdSeqs} new sequences created, {$thumbCount} thumbnails linked, and {$videoCount} preview videos linked.";
         return redirect()->to('/admin/projects/' . $projectId)->with('message', $summary);
     }
 

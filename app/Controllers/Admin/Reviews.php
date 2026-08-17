@@ -301,6 +301,17 @@ class Reviews extends BaseController
                     'task_name' => $latestReview->task_name
                 ];
                 $reviewIds[] = $latestReview->review_id;
+            } elseif (!empty($shot->preview_video_path)) {
+                $playlist[] = [
+                    'shot_id' => $shot->id,
+                    'shot_number' => $shot->shot_number,
+                    'thumbnail_path' => $shot->thumbnail_path ? base_url($shot->thumbnail_path) : '',
+                    'review_id' => 0,
+                    'proxy_path' => $shot->preview_video_path,
+                    'proxy_url' => base_url($shot->preview_video_path),
+                    'version_string' => 'Editorial Preview',
+                    'task_name' => 'Editorial Lineup'
+                ];
             }
         }
 
@@ -372,7 +383,16 @@ class Reviews extends BaseController
                     'shot_id' => $shot->id,
                     'shot_number' => $shot->shot_number,
                     'review_id' => $latestReview->review_id,
-                    'proxy_path' => base_url($latestReview->proxy_path),
+                    'proxy_path' => base_url('media/serve/' . $latestReview->proxy_path),
+                    'is_preview' => false
+                ];
+            } elseif (!empty($shot->preview_video_path)) {
+                $playlist[] = [
+                    'shot_id' => $shot->id,
+                    'shot_number' => $shot->shot_number,
+                    'review_id' => 0,
+                    'proxy_path' => base_url($shot->preview_video_path),
+                    'is_preview' => true
                 ];
             } else {
                 $playlist[] = [

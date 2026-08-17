@@ -165,18 +165,29 @@
                             <input type="checkbox" value="<?= $shot->id ?>" onchange="updateSelectionState()" class="shot-checkbox rounded border-ytBorder bg-ytBg text-ytBlue focus:ring-0 cursor-pointer">
                         </td>
 
-                        <!-- 2. Thumbnail Preview -->
+                        <!-- 2. Thumbnail & Video Preview -->
                         <td class="py-2 px-2 text-center align-top">
                             <div class="w-14 h-9 bg-[#111] rounded border border-ytBorder/60 overflow-hidden relative group/thumb cursor-pointer">
                                 <?php if($shot->thumbnail_path): ?>
                                     <img src="/<?= esc($shot->thumbnail_path) ?>" class="w-full h-full object-cover">
-                                    <!-- Zoom preview tooltip -->
-                                    <div class="fixed hidden group-hover/thumb:block z-50 pointer-events-none shadow-2xl rounded-lg overflow-hidden border border-ytBorder bg-black -mt-20 ml-16 w-56 aspect-video">
-                                        <img src="/<?= esc($shot->thumbnail_path) ?>" class="w-full h-full object-cover">
-                                    </div>
                                 <?php else: ?>
                                     <div class="w-full h-full flex items-center justify-center text-ytMuted">
                                         <span class="material-symbols-outlined text-[16px]">image</span>
+                                    </div>
+                                <?php endif; ?>
+
+                                <?php if(!empty($shot->preview_video_path)): ?>
+                                    <span class="absolute bottom-0.5 right-0.5 bg-blue-600/90 text-white text-[8px] font-bold px-1 rounded flex items-center">
+                                        ▶
+                                    </span>
+                                    <!-- Video Zoom Tooltip -->
+                                    <div class="fixed hidden group-hover/thumb:block z-50 pointer-events-none shadow-2xl rounded-lg overflow-hidden border border-blue-500/50 bg-black -mt-24 ml-16 w-64 aspect-video">
+                                        <video src="/<?= esc($shot->preview_video_path) ?>" autoplay muted loop playsinline class="w-full h-full object-cover"></video>
+                                    </div>
+                                <?php elseif($shot->thumbnail_path): ?>
+                                    <!-- Image Zoom Tooltip -->
+                                    <div class="fixed hidden group-hover/thumb:block z-50 pointer-events-none shadow-2xl rounded-lg overflow-hidden border border-ytBorder bg-black -mt-20 ml-16 w-56 aspect-video">
+                                        <img src="/<?= esc($shot->thumbnail_path) ?>" class="w-full h-full object-cover">
                                     </div>
                                 <?php endif; ?>
                             </div>

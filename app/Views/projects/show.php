@@ -200,7 +200,7 @@
                 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                     <?php foreach($groupedShots[$seq->id] as $shot): ?>
                         <a href="/admin/shots/<?= $shot->id ?>" class="bg-ytCard border border-ytBorder rounded-lg overflow-hidden hover:border-ytBlue transition-colors group">
-                            <div class="aspect-video bg-[#1a1a1a] relative">
+                            <div class="aspect-video bg-[#1a1a1a] relative overflow-hidden">
                                 <?php if($shot->thumbnail_path): ?>
                                     <img src="/<?= esc($shot->thumbnail_path) ?>" class="w-full h-full object-cover">
                                 <?php else: ?>
@@ -208,8 +208,20 @@
                                         <span class="material-symbols-outlined text-[32px]">image</span>
                                     </div>
                                 <?php endif; ?>
+
+                                <?php if(!empty($shot->preview_video_path)): ?>
+                                    <video src="/<?= esc($shot->preview_video_path) ?>" 
+                                           class="w-full h-full object-cover absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" 
+                                           muted loop playsinline 
+                                           onmouseover="this.play()" 
+                                           onmouseout="this.pause(); this.currentTime=0;"></video>
+                                    <span class="absolute top-1.5 left-1.5 bg-black/80 backdrop-blur-xs border border-blue-500/40 text-blue-300 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5 z-10">
+                                        <span class="material-symbols-outlined text-[11px]">play_circle</span> Preview
+                                    </span>
+                                <?php endif; ?>
+
                                 <?php if(!empty($shot->frame_count)): ?>
-                                    <span class="absolute bottom-1.5 right-1.5 bg-black/80 backdrop-blur-xs text-white text-[10px] px-1.5 py-0.5 rounded font-mono border border-white/10">
+                                    <span class="absolute bottom-1.5 right-1.5 bg-black/80 backdrop-blur-xs text-white text-[10px] px-1.5 py-0.5 rounded font-mono border border-white/10 z-10">
                                         <?= !empty($shot->frame_in) && !empty($shot->frame_out) ? esc($shot->frame_in) . '–' . esc($shot->frame_out) : esc($shot->frame_count) . ' fr' ?>
                                     </span>
                                 <?php endif; ?>
@@ -231,6 +243,58 @@
             <?php endif; ?>
         </div>
     <?php endforeach; ?>
+
+    <?php if(!empty($orphanedShots)): ?>
+        <div class="mt-8 border-t border-ytBorder pt-6">
+            <h4 class="text-[15px] font-medium text-ytText mb-3 flex items-center gap-2">
+                <span class="material-symbols-outlined text-ytMuted">folder_off</span>
+                Independent Shots
+            </h4>
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                <?php foreach($orphanedShots as $shot): ?>
+                    <a href="/admin/shots/<?= $shot->id ?>" class="bg-ytCard border border-ytBorder rounded-lg overflow-hidden hover:border-ytBlue transition-colors group">
+                        <div class="aspect-video bg-[#1a1a1a] relative overflow-hidden">
+                            <?php if($shot->thumbnail_path): ?>
+                                <img src="/<?= esc($shot->thumbnail_path) ?>" class="w-full h-full object-cover">
+                            <?php else: ?>
+                                <div class="w-full h-full flex items-center justify-center text-ytMuted">
+                                    <span class="material-symbols-outlined text-[32px]">image</span>
+                                </div>
+                            <?php endif; ?>
+
+                            <?php if(!empty($shot->preview_video_path)): ?>
+                                <video src="/<?= esc($shot->preview_video_path) ?>" 
+                                       class="w-full h-full object-cover absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" 
+                                       muted loop playsinline 
+                                       onmouseover="this.play()" 
+                                       onmouseout="this.pause(); this.currentTime=0;"></video>
+                                <span class="absolute top-1.5 left-1.5 bg-black/80 backdrop-blur-xs border border-blue-500/40 text-blue-300 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5 z-10">
+                                    <span class="material-symbols-outlined text-[11px]">play_circle</span> Preview
+                                </span>
+                            <?php endif; ?>
+
+                            <?php if(!empty($shot->frame_count)): ?>
+                                <span class="absolute bottom-1.5 right-1.5 bg-black/80 backdrop-blur-xs text-white text-[10px] px-1.5 py-0.5 rounded font-mono border border-white/10 z-10">
+                                    <?= !empty($shot->frame_in) && !empty($shot->frame_out) ? esc($shot->frame_in) . '–' . esc($shot->frame_out) : esc($shot->frame_count) . ' fr' ?>
+                                </span>
+                            <?php endif; ?>
+                        </div>
+                        <div class="p-3 flex justify-between items-start relative z-10">
+                            <div>
+                                <p class="text-[14px] font-medium text-ytText group-hover:text-ytBlue transition-colors leading-tight"><?= esc($shot->shot_number) ?></p>
+                                <?php if(!empty($shot->frame_count) || !empty($shot->fps)): ?>
+                                    <p class="text-[11px] text-ytMuted font-mono mt-0.5"><?= esc($shot->frame_count ?? '-') ?> fr &bull; <?= esc($shot->fps ?? $project->fps ?? 24) ?> FPS</p>
+                                <?php endif; ?>
+                            </div>
+                            <button onclick="editShot(event, <?= $shot->id ?>, null, <?= htmlspecialchars(json_encode($shot->shot_number), ENT_QUOTES, 'UTF-8') ?>, <?= $shot->fps ?: 'null' ?>, <?= $shot->frame_count ?: 'null' ?>, <?= htmlspecialchars(json_encode($shot->description), ENT_QUOTES, 'UTF-8') ?>)" class="text-ytMuted hover:text-ytText transition-colors p-1 rounded-full hover:bg-ytHover opacity-0 group-hover:opacity-100">
+                                <span class="material-symbols-outlined text-[16px] block">edit</span>
+                            </button>
+                        </div>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    <?php endif; ?>
 </div>
 
 <!-- TAB: 3D Assets -->
@@ -641,6 +705,12 @@
                     <label class="block text-[13px] font-medium text-ytText mb-1.5">Thumbnails (Optional Multiple Images)</label>
                     <input type="file" name="thumbnails[]" multiple accept="image/*" class="w-full bg-ytBg border border-ytBorder text-ytText rounded-lg px-3.5 py-2 text-[13px] focus:outline-none focus:border-ytBlue file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-[12px] file:font-medium file:bg-ytHover file:text-ytText hover:file:bg-[#3f3f3f]">
                     <p class="text-[11px] text-ytMuted mt-1">Multi-select images matching shot names or filenames in CSV.</p>
+                </div>
+
+                <div>
+                    <label class="block text-[13px] font-medium text-ytText mb-1.5">Video Previews (Optional Multiple .mp4 / .mov)</label>
+                    <input type="file" name="video_previews[]" multiple accept="video/mp4,video/quicktime,video/webm" class="w-full bg-ytBg border border-ytBorder text-ytText rounded-lg px-3.5 py-2 text-[13px] focus:outline-none focus:border-ytBlue file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-[12px] file:font-medium file:bg-ytHover file:text-ytText hover:file:bg-[#3f3f3f]">
+                    <p class="text-[11px] text-ytMuted mt-1">Upload video clips matching shot names (e.g. <code class="text-ytBlue">sh0010.mp4</code> or <code class="text-ytBlue">mhlya-1_war_sh0010_edit_v00.mp4</code>).</p>
                 </div>
             </div>
 
