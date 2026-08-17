@@ -703,11 +703,9 @@ if (!function_exists('renderCommentBox')) {
         // preventing casual users from finding the link by right clicking -> View Page Source.
         const secureUrl = '<?= media_cdn_url(esc($review->proxy_path)) ?>';
         if (media.tagName === 'VIDEO') {
-            const sourceEl = document.createElement('source');
-            sourceEl.src = secureUrl;
-            sourceEl.type = 'video/mp4';
-            media.appendChild(sourceEl);
-            media.load();
+            if (secureUrl) {
+                media.src = secureUrl;
+            }
         } else {
             media.src = secureUrl;
             media.onload = resizeCanvas;
@@ -1050,11 +1048,22 @@ if (!function_exists('renderCommentBox')) {
                     activeBlock.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
                 }
                 
-                // Load new source
-                media.src = playlist[index].proxy_url;
-                media.load();
-                media.play().catch(e => console.log('Autoplay prevented:', e));
-                playPauseIcon.textContent = 'pause';
+                // Load new source directly on video element
+                if (playlist[index].proxy_url) {
+                    if (media.src !== playlist[index].proxy_url) {
+                        media.src = playlist[index].proxy_url;
+                        media.load();
+                    }
+                    const playPromise = media.play();
+                    if (playPromise !== undefined) {
+                        playPromise.then(() => {
+                            if (playPauseIcon) playPauseIcon.textContent = 'pause';
+                        }).catch(e => {
+                            // Autoplay was prevented by browser policy (e.g. no prior interaction)
+                            if (playPauseIcon) playPauseIcon.textContent = 'play_arrow';
+                        });
+                    }
+                }
                 
                 // Intelligent next clip pre-buffer
                 preloadNextClip(index);
