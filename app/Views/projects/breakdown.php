@@ -844,6 +844,57 @@
             vid.remove();
         }
     }
+
+    // Quick Video Player Modal Engine
+    function openVideoModal(videoUrl, shotTitle) {
+        if (!videoUrl) return;
+        const modal = document.getElementById('quickVideoModal');
+        const video = document.getElementById('quickVideoPlayer');
+        const title = document.getElementById('quickVideoTitle');
+        const loader = document.getElementById('quickVideoLoader');
+        if (!modal || !video) return;
+
+        title.textContent = `Preview: Shot ${shotTitle}`;
+        if (loader) {
+            loader.classList.remove('opacity-0', 'pointer-events-none');
+            loader.classList.add('opacity-100');
+        }
+
+        video.onplaying = () => {
+            if (loader) {
+                loader.classList.remove('opacity-100');
+                loader.classList.add('opacity-0', 'pointer-events-none');
+            }
+        };
+        video.onwaiting = () => {
+            if (loader) {
+                loader.classList.remove('opacity-0', 'pointer-events-none');
+                loader.classList.add('opacity-100');
+            }
+        };
+
+        video.src = videoUrl;
+        modal.classList.remove('hidden');
+        video.play().catch(() => {});
+    }
+
+    function closeVideoModal() {
+        const modal = document.getElementById('quickVideoModal');
+        const video = document.getElementById('quickVideoPlayer');
+        const loader = document.getElementById('quickVideoLoader');
+        if (!modal || !video) return;
+
+        video.pause();
+        video.currentTime = 0;
+        video.src = '';
+        video.onplaying = null;
+        video.onwaiting = null;
+        if (loader) {
+            loader.classList.remove('opacity-100');
+            loader.classList.add('opacity-0', 'pointer-events-none');
+        }
+        modal.classList.add('hidden');
+    }
 </script>
 
 <!-- Quick Video Player Modal with Loading Animation -->
