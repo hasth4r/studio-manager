@@ -664,11 +664,11 @@
             </button>
         </div>
 
-        <form action="/admin/projects/importShots/<?= $project->id ?>" method="POST" enctype="multipart/form-data" class="p-6">
+        <form id="importShotsForm" action="/admin/projects/importShots/<?= $project->id ?>" method="POST" enctype="multipart/form-data" class="p-6">
             <?= csrf_field() ?>
 
             <!-- Method Switcher Tabs -->
-            <div class="flex bg-ytBg border border-ytBorder rounded-lg p-1 mb-5">
+            <div id="importTabsRow" class="flex bg-ytBg border border-ytBorder rounded-lg p-1 mb-5">
                 <button type="button" id="importTabBtn-folder" onclick="setImportMode('folder')" class="flex-1 py-1.5 px-3 rounded-md text-[13px] font-medium transition-all bg-ytCard text-ytText shadow-sm border border-ytBorder">
                     <span class="flex items-center justify-center gap-1.5">
                         <span class="material-symbols-outlined text-[16px] text-ytBlue">folder_open</span> AE Export Folder
@@ -702,7 +702,7 @@
                             <span class="material-symbols-outlined text-[13px]">download</span> Sample CSV
                         </a>
                     </div>
-                    <input type="file" name="csv_file" accept=".csv,.txt,.zip" class="w-full bg-ytBg border border-ytBorder text-ytText rounded-lg px-3.5 py-2 text-[13px] focus:outline-none focus:border-ytBlue file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-[12px] file:font-medium file:bg-ytHover file:text-ytText hover:file:bg-[#3f3f3f]">
+                    <input type="file" id="import_csv_file" name="csv_file" accept=".csv,.txt,.zip" class="w-full bg-ytBg border border-ytBorder text-ytText rounded-lg px-3.5 py-2 text-[13px] focus:outline-none focus:border-ytBlue file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-[12px] file:font-medium file:bg-ytHover file:text-ytText hover:file:bg-[#3f3f3f]">
                 </div>
 
                 <div>
@@ -719,7 +719,7 @@
             </div>
 
             <!-- Common Configuration Section -->
-            <div class="pt-4 mt-4 border-t border-ytBorder/40 space-y-3">
+            <div id="importConfigSection" class="pt-4 mt-4 border-t border-ytBorder/40 space-y-3">
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-[12px] font-medium text-ytText mb-1">Import Range / Limit</label>
@@ -739,11 +739,41 @@
                 </div>
             </div>
 
-            <div class="flex justify-end items-center space-x-3 pt-5 mt-5 border-t border-ytBorder/50">
+            <!-- Live Upload Progress Card -->
+            <div id="importProgressBox" class="hidden mt-5 p-4 rounded-xl bg-[#141414] border border-ytBorder space-y-3">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <span id="progressSpinner" class="material-symbols-outlined text-ytBlue animate-spin text-[18px]">progress_activity</span>
+                        <span id="progressStatusText" class="text-[13px] font-medium text-ytText">Uploading file...</span>
+                    </div>
+                    <span id="progressPercentBadge" class="text-[12px] font-mono font-bold text-ytBlue">0%</span>
+                </div>
+                
+                <!-- Progress Bar -->
+                <div class="w-full bg-[#222] h-2.5 rounded-full overflow-hidden border border-white/5">
+                    <div id="progressBarFill" class="bg-gradient-to-r from-blue-600 via-indigo-500 to-sky-400 h-full rounded-full transition-all duration-150" style="width: 0%;"></div>
+                </div>
+
+                <div class="flex justify-between items-center text-[11px] text-ytMuted font-mono">
+                    <span id="progressBytesText">0.0 MB / 0.0 MB</span>
+                    <span id="progressSpeedText">-- MB/s</span>
+                </div>
+
+                <!-- Error Notice inside Progress Box -->
+                <div id="importErrorAlert" class="hidden p-3 rounded-lg bg-red-950/60 border border-red-800/80 text-red-200 text-[12px] space-y-1">
+                    <div class="flex items-center gap-1.5 font-bold text-red-400">
+                        <span class="material-symbols-outlined text-[16px]">error</span>
+                        <span>Upload Failed</span>
+                    </div>
+                    <p id="importErrorMsg">An error occurred during upload.</p>
+                </div>
+            </div>
+
+            <div id="importActionButtons" class="flex justify-end items-center space-x-3 pt-5 mt-5 border-t border-ytBorder/50">
                 <button type="button" onclick="closeModal('importShotsModal')" class="px-4 py-2 rounded-full text-[13px] text-ytText hover:bg-ytHover transition-colors">Cancel</button>
-                <button type="submit" class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] text-white shadow-[0_0_15px_rgba(23,123,207,0.3)] border border-[#177bcf]/40 px-5 py-2 rounded-full font-medium text-[13px] hover:shadow-[0_0_25px_rgba(23,123,207,0.6)] hover:from-[#0d346e] hover:to-[#238bf2] transition-all flex items-center gap-1.5">
+                <button type="submit" id="importSubmitBtn" class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] text-white shadow-[0_0_15px_rgba(23,123,207,0.3)] border border-[#177bcf]/40 px-5 py-2 rounded-full font-medium text-[13px] hover:shadow-[0_0_25px_rgba(23,123,207,0.6)] hover:from-[#0d346e] hover:to-[#238bf2] transition-all flex items-center gap-1.5">
                     <span class="material-symbols-outlined text-[16px]">bolt</span>
-                    Run Import
+                    <span id="importSubmitBtnText">Run Import</span>
                 </button>
             </div>
         </form>
@@ -755,6 +785,128 @@
         const savedTab = localStorage.getItem('activeProjectTab');
         if (savedTab) {
             switchTab(savedTab, false);
+        }
+
+        // Live Upload Progress Engine for Import Modal
+        const importForm = document.getElementById('importShotsForm');
+        if (importForm) {
+            importForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                const progressBox = document.getElementById('importProgressBox');
+                const progressBarFill = document.getElementById('progressBarFill');
+                const progressPercentBadge = document.getElementById('progressPercentBadge');
+                const progressBytesText = document.getElementById('progressBytesText');
+                const progressSpeedText = document.getElementById('progressSpeedText');
+                const progressStatusText = document.getElementById('progressStatusText');
+                const progressSpinner = document.getElementById('progressSpinner');
+                const importSubmitBtn = document.getElementById('importSubmitBtn');
+                const importSubmitBtnText = document.getElementById('importSubmitBtnText');
+                const errorAlert = document.getElementById('importErrorAlert');
+                const errorMsg = document.getElementById('importErrorMsg');
+
+                // Reset state
+                errorAlert.classList.add('hidden');
+                progressBox.classList.remove('hidden');
+                progressBarFill.style.width = '0%';
+                progressBarFill.className = 'bg-gradient-to-r from-blue-600 via-indigo-500 to-sky-400 h-full rounded-full transition-all duration-150';
+                progressPercentBadge.className = 'text-[12px] font-mono font-bold text-ytBlue';
+                progressPercentBadge.textContent = '0%';
+                progressSpinner.textContent = 'progress_activity';
+                progressSpinner.className = 'material-symbols-outlined text-ytBlue animate-spin text-[18px]';
+
+                // Disable submit button during upload
+                importSubmitBtn.disabled = true;
+                importSubmitBtn.classList.add('opacity-60', 'cursor-not-allowed');
+                importSubmitBtnText.textContent = 'Importing...';
+
+                const formData = new FormData(importForm);
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', importForm.action, true);
+                xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+
+                const startTime = Date.now();
+
+                xhr.upload.onprogress = function(event) {
+                    if (event.lengthComputable) {
+                        const percent = Math.round((event.loaded / event.total) * 100);
+                        const loadedMB = (event.loaded / (1024 * 1024)).toFixed(1);
+                        const totalMB = (event.total / (1024 * 1024)).toFixed(1);
+
+                        const elapsedSec = (Date.now() - startTime) / 1000;
+                        const speed = elapsedSec > 0 ? ((event.loaded / (1024 * 1024)) / elapsedSec).toFixed(1) : '0.0';
+
+                        progressBarFill.style.width = percent + '%';
+                        progressPercentBadge.textContent = percent + '%';
+                        progressBytesText.textContent = `${loadedMB} MB / ${totalMB} MB`;
+                        progressSpeedText.textContent = `${speed} MB/s`;
+
+                        if (percent < 100) {
+                            progressStatusText.textContent = 'Uploading file to server...';
+                        } else {
+                            progressStatusText.textContent = 'Upload complete! Server is extracting & linking shots...';
+                            progressPercentBadge.textContent = 'Processing...';
+                        }
+                    }
+                };
+
+                xhr.onload = function() {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        try {
+                            const res = JSON.parse(xhr.responseText);
+                            if (res.success) {
+                                progressBarFill.style.width = '100%';
+                                progressBarFill.className = 'bg-green-500 h-full rounded-full transition-all';
+                                progressPercentBadge.textContent = '100%';
+                                progressPercentBadge.className = 'text-[12px] font-mono font-bold text-green-400';
+                                progressStatusText.textContent = res.message || 'Import successful!';
+                                progressSpinner.textContent = 'check_circle';
+                                progressSpinner.className = 'material-symbols-outlined text-green-400 text-[18px]';
+
+                                setTimeout(() => {
+                                    window.location.href = res.redirect || window.location.href;
+                                }, 1200);
+                                return;
+                            } else {
+                                showImportError(res.error || 'Import failed.');
+                            }
+                        } catch (err) {
+                            // Fallback for HTML redirects
+                            window.location.reload();
+                        }
+                    } else {
+                        let errDetail = `Server Error (HTTP ${xhr.status})`;
+                        try {
+                            const res = JSON.parse(xhr.responseText);
+                            if (res.error) errDetail = res.error;
+                        } catch (e) {
+                            if (xhr.status === 413) {
+                                errDetail = 'File size exceeds server upload limit (HTTP 413: Payload Too Large). Try uploading a smaller ZIP batch.';
+                            } else if (xhr.status === 504 || xhr.status === 500) {
+                                errDetail = `Server timed out or encountered an error (HTTP ${xhr.status}). Try splitting into smaller batches.`;
+                            }
+                        }
+                        showImportError(errDetail);
+                    }
+                };
+
+                xhr.onerror = function() {
+                    showImportError('Network error: Connection was lost or timed out during upload.');
+                };
+
+                function showImportError(msg) {
+                    importSubmitBtn.disabled = false;
+                    importSubmitBtn.classList.remove('opacity-60', 'cursor-not-allowed');
+                    importSubmitBtnText.textContent = 'Retry Import';
+                    progressSpinner.textContent = 'error';
+                    progressSpinner.className = 'material-symbols-outlined text-red-400 text-[18px]';
+                    progressStatusText.textContent = 'Import failed';
+                    errorMsg.textContent = msg;
+                    errorAlert.classList.remove('hidden');
+                }
+
+                xhr.send(formData);
+            });
         }
     });
 

@@ -616,23 +616,51 @@ class Projects extends BaseController
                                 }
                             }
 
-                            return redirect()->to('/admin/projects/' . $projectId)->with('message', "Media update complete: Linked {$matchedVideos} preview videos and {$matchedThumbs} thumbnails to your existing shots!");
+                            $mediaMsg = "Media update complete: Linked {$matchedVideos} preview videos and {$matchedThumbs} thumbnails to your existing shots!";
+                            if ($this->request->isAJAX() || $this->request->getHeaderLine('X-Requested-With') === 'XMLHttpRequest') {
+                                return $this->response->setJSON([
+                                    'success' => true,
+                                    'message' => $mediaMsg,
+                                    'redirect' => '/admin/projects/' . $projectId
+                                ]);
+                            }
+                            return redirect()->to('/admin/projects/' . $projectId)->with('message', $mediaMsg);
                         } else {
-                            return redirect()->back()->with('error', 'No CSV or media files found inside the uploaded ZIP archive.');
+                            $err = 'No CSV or media files found inside the uploaded ZIP archive.';
+                            if ($this->request->isAJAX() || $this->request->getHeaderLine('X-Requested-With') === 'XMLHttpRequest') {
+                                return $this->response->setJSON(['success' => false, 'error' => $err])->setStatusCode(400);
+                            }
+                            return redirect()->back()->with('error', $err);
                         }
                     }
                 } else {
-                    return redirect()->back()->with('error', 'Failed to extract uploaded ZIP file.');
+                    $err = 'Failed to extract uploaded ZIP file.';
+                    if ($this->request->isAJAX() || $this->request->getHeaderLine('X-Requested-With') === 'XMLHttpRequest') {
+                        return $this->response->setJSON(['success' => false, 'error' => $err])->setStatusCode(400);
+                    }
+                    return redirect()->back()->with('error', $err);
                 }
             } else {
-                return redirect()->back()->with('error', 'Unsupported file format. Please upload a .csv or .zip file.');
+                $err = 'Unsupported file format. Please upload a .csv or .zip file.';
+                if ($this->request->isAJAX() || $this->request->getHeaderLine('X-Requested-With') === 'XMLHttpRequest') {
+                    return $this->response->setJSON(['success' => false, 'error' => $err])->setStatusCode(400);
+                }
+                return redirect()->back()->with('error', $err);
             }
         } else {
-            return redirect()->back()->with('error', 'Please provide an AE export folder path or upload a CSV/ZIP file.');
+            $err = 'Please provide an AE export folder path or upload a CSV/ZIP file.';
+            if ($this->request->isAJAX() || $this->request->getHeaderLine('X-Requested-With') === 'XMLHttpRequest') {
+                return $this->response->setJSON(['success' => false, 'error' => $err])->setStatusCode(400);
+            }
+            return redirect()->back()->with('error', $err);
         }
 
         if (empty($rows)) {
-            return redirect()->back()->with('error', 'No valid shot rows could be parsed from the import source.');
+            $err = 'No valid shot rows could be parsed from the import source.';
+            if ($this->request->isAJAX() || $this->request->getHeaderLine('X-Requested-With') === 'XMLHttpRequest') {
+                return $this->response->setJSON(['success' => false, 'error' => $err])->setStatusCode(400);
+            }
+            return redirect()->back()->with('error', $err);
         }
 
         // Apply limit if specified (e.g. testing 5 shots)
@@ -892,6 +920,13 @@ class Projects extends BaseController
         }
 
         $summary = "Import completed: {$importedCount} new shots added, {$updatedCount} updated, {$createdSeqs} new sequences created, {$thumbCount} thumbnails linked, and {$videoCount} preview videos linked.";
+        if ($this->request->isAJAX() || $this->request->getHeaderLine('X-Requested-With') === 'XMLHttpRequest') {
+            return $this->response->setJSON([
+                'success'  => true,
+                'message'  => $summary,
+                'redirect' => '/admin/projects/' . $projectId
+            ]);
+        }
         return redirect()->to('/admin/projects/' . $projectId)->with('message', $summary);
     }
 
