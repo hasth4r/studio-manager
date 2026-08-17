@@ -118,6 +118,9 @@ $routes->group('admin', ['filter' => 'auth', 'namespace' => 'App\Controllers\Adm
     $routes->post('reviews/uploadReference', 'Reviews::uploadReference');
     $routes->post('reviews/updateComment/(:num)', 'Reviews::updateComment/$1');
     $routes->post('reviews/deleteComment/(:num)', 'Reviews::deleteComment/$1');
+    $routes->post('reviews/createShareLink', 'Reviews::createShareLink');
+    $routes->get('reviews/getShareLinks/(:num)', 'Reviews::getShareLinks/$1');
+    $routes->post('reviews/revokeShareLink', 'Reviews::revokeShareLink');
     
     // Media Manager
     $routes->get('media', 'MediaManager::index');
@@ -137,6 +140,9 @@ $routes->group('admin', ['filter' => 'auth', 'namespace' => 'App\Controllers\Adm
 
 // Secure Media Serving Route
 $routes->get('media/serve/(.+)', 'Media::serve/$1');
+
+// Public Presentation Share Route (No login required)
+$routes->get('share/lineup/(:num)', 'Share::lineup/$1');
 
 $routes->get('sys-migrate', function() {
     $migrate = \Config\Services::migrations();

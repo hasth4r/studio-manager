@@ -426,4 +426,107 @@ class Reviews extends BaseController
 
         return $this->response->setJSON(['status' => 'success', 'playlist' => $playlist]);
     }
+
+    /**
+     * Generate Public Share Link with Expiration
+     */
+    public function createShareLink()
+    {
+        $sequenceId = (int)$this->request->getPost('sequence_id');
+        $expiresIn = $this->request->getPost('expires_in') ?? '7d';
+        $customWatermark = trim($this->request->getPost('watermark_text') ?? '');
+
+        if (!$sequenceId) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Sequence ID is required', 'csrf' => csrf_hash()]);
+        }
+
+        $expiresAt = match ($expiresIn) {
+            '24h' => date('Y-m-d H:i:s', strtotime('+24 hours')),
+            '3d'  => date('Y-m-d H:i:s', strtotime('+3 days')),
+            '7d'  => date('Y-m-d H:i:s', strtotime('+7 days')),
+            '30d' => date('Y-m-d H:i:s', strtotime('+30 days')),
+            'never' => null,
+            default => date('Y-m-d H:i:s', strtotime('+7 days'))
+        };
+
+        $token = bin2hex(random_bytes(20)); // 40 chars unique token
+        $db = \Config\Database::connect();
+
+        // Ensure table exists
+        $shareCtrl = new \App\Controllers\Share();
+        $reflector = new \ReflectionClass($shareCtrl);
+        $method = $reflector->getMethod('ensureTableExists');
+        $method->setAccessible(true);
+        $method->invoke($shareCtrl, $db);
+
+        $db->table('public_share_tokens')->insert([
+            'token'          => $token,
+            'resource_type'  => 'sequence',
+            'resource_id'    => $sequenceId,
+            'watermark_text' => !empty($customWatermark) ? $customWatermark : null,
+            'expires_at'     => $expiresAt,
+            'created_by'     => session()->get('userId'),
+            'created_at'     => date('Y-m-d H:i:s'),
+            'updated_at'     => date('Y-m-d H:i:s'),
+        ]);
+
+        $shareUrl = base_url('share/lineup/' . $sequenceId . '?token=' . $token);
+
+        return $this->response->setJSON([
+            'status'     => 'success',
+            'url'        => $shareUrl,
+            'token'      => $token,
+            'expires_at' => $expiresAt ? date('M d, Y H:i', strtotime($expiresAt)) : 'Never',
+            'csrf'       => csrf_hash(),
+        ]);
+    }
+
+    /**
+     * Get Active Share Links for a Sequence
+     */
+    public function getShareLinks($sequenceId)
+    {
+        $db = \Config\Database::connect();
+        if (!$db->tableExists('public_share_tokens')) {
+            return $this->response->setJSON(['status' => 'success', 'links' => []]);
+        }
+
+        $links = $db->table('public_share_tokens')
+            ->where('resource_type', 'sequence')
+            ->where('resource_id', (int)$sequenceId)
+            ->orderBy('created_at', 'DESC')
+            ->get()->getResult();
+
+        $formatted = array_map(function($l) {
+            $isExpired = !empty($l->expires_at) && strtotime($l->expires_at) < time();
+            return [
+                'id'         => $l->id,
+                'token'      => $l->token,
+                'url'        => base_url('share/lineup/' . $l->resource_id . '?token=' . $l->token),
+                'expires_at' => $l->expires_at ? date('M d, Y H:i', strtotime($l->expires_at)) : 'Never',
+                'is_expired' => $isExpired,
+                'view_count' => $l->view_count,
+                'created_at' => date('M d, Y', strtotime($l->created_at)),
+            ];
+        }, $links);
+
+        return $this->response->setJSON(['status' => 'success', 'links' => $formatted]);
+    }
+
+    /**
+     * Revoke Share Link
+     */
+    public function revokeShareLink()
+    {
+        $tokenId = (int)$this->request->getPost('token_id');
+        if (!$tokenId) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Token ID required', 'csrf' => csrf_hash()]);
+        }
+
+        $db = \Config\Database::connect();
+        $db->table('public_share_tokens')->where('id', $tokenId)->delete();
+
+        return $this->response->setJSON(['status' => 'success', 'csrf' => csrf_hash()]);
+    }
 }
+

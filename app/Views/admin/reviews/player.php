@@ -145,11 +145,18 @@ if (!function_exists('renderCommentBox')) {
                 </div>
             </div>
 
-            <!-- Decision Buttons: Admin/Supervisor only -->
+            <!-- Decision & Share Buttons: Admin/Supervisor only -->
             <?php 
                 $isAdminOrPM = in_array(strtolower($userRole ?? ''), ['admin', 'project_manager', 'system admin', 'project manager', 'supervisor']);
             ?>
-            <?php if($isAdminOrPM): ?>
+            <?php if(isset($isSequenceMode) && $isSequenceMode && (isset($sequence->id) || isset($review->seq_id))): ?>
+                <?php $seqId = $sequence->id ?? $review->seq_id ?? 0; ?>
+                <button type="button" onclick="openShareModal(<?= $seqId ?>)" class="flex items-center gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:shadow-[0_0_20px_rgba(59,130,246,0.5)] border border-blue-400/40 px-3.5 py-1.5 rounded-full text-[13px] font-semibold transition-all">
+                    <span class="material-symbols-outlined text-[16px]">share</span> Share Lineup
+                </button>
+            <?php endif; ?>
+
+            <?php if($isAdminOrPM && (!isset($isSequenceMode) || !$isSequenceMode)): ?>
             <form action="/<?= $routePrefix ?>/reviews/updateStatus/<?= $review->id ?>" method="POST" class="m-0 flex gap-2">
                 <input type="hidden" name="task_id" value="<?= $review->vfx_task_assignment_id ?>">
                 <input type="hidden" name="<?= csrf_token() ?>" id="decisionCsrf" value="<?= csrf_hash() ?>">
@@ -1565,6 +1572,202 @@ if (!function_exists('renderCommentBox')) {
                 alert('Request failed');
             }
         };
+
+        // --- Share Lineup Modal Logic ---
+        let currentShareSequenceId = null;
+
+        window.openShareModal = function(sequenceId) {
+            currentShareSequenceId = sequenceId;
+            document.getElementById('shareModal').classList.remove('hidden');
+            document.getElementById('newLinkResult').classList.add('hidden');
+            loadActiveShareLinks(sequenceId);
+        };
+
+        window.closeShareModal = function() {
+            document.getElementById('shareModal').classList.add('hidden');
+        };
+
+        window.generateShareLink = async function() {
+            if (!currentShareSequenceId) return;
+            const expiresIn = document.getElementById('shareExpiresIn').value;
+            const watermarkText = document.getElementById('shareWatermark').value;
+            const btn = document.getElementById('generateLinkBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="material-symbols-outlined text-[16px] animate-spin">progress_activity</span> Generating...';
+
+            try {
+                const formData = new FormData();
+                formData.append('sequence_id', currentShareSequenceId);
+                formData.append('expires_in', expiresIn);
+                formData.append('watermark_text', watermarkText);
+                formData.append('<?= csrf_token() ?>', getCsrfToken());
+
+                const res = await fetch('<?= base_url('admin/reviews/createShareLink') ?>', {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const data = await res.json();
+                if (data.csrf) currentCsrfHash = data.csrf;
+
+                if (data.status === 'success') {
+                    document.getElementById('shareUrlInput').value = data.url;
+                    document.getElementById('newLinkResult').classList.remove('hidden');
+                    loadActiveShareLinks(currentShareSequenceId);
+                } else {
+                    alert(data.message || 'Failed to generate link');
+                }
+            } catch(e) {
+                console.error(e);
+                alert('Network error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span class="material-symbols-outlined text-[16px]">add_link</span> Generate Share Link';
+            }
+        };
+
+        window.copyShareUrl = function() {
+            const input = document.getElementById('shareUrlInput');
+            input.select();
+            navigator.clipboard.writeText(input.value);
+            const copyBtn = document.getElementById('copyShareBtn');
+            const originalHtml = copyBtn.innerHTML;
+            copyBtn.innerHTML = '<span class="material-symbols-outlined text-[16px]">check</span> Copied!';
+            copyBtn.classList.replace('bg-ytBlue', 'bg-green-600');
+            setTimeout(() => {
+                copyBtn.innerHTML = originalHtml;
+                copyBtn.classList.replace('bg-green-600', 'bg-ytBlue');
+            }, 2000);
+        };
+
+        window.loadActiveShareLinks = async function(sequenceId) {
+            const container = document.getElementById('activeShareLinksList');
+            container.innerHTML = '<div class="text-xs text-ytMuted py-2 flex items-center gap-1.5"><span class="material-symbols-outlined text-[14px] animate-spin">progress_activity</span> Loading active links...</div>';
+            
+            try {
+                const res = await fetch('<?= base_url('admin/reviews/getShareLinks/') ?>' + sequenceId, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const data = await res.json();
+                if (data.status === 'success' && data.links.length > 0) {
+                    container.innerHTML = data.links.map(link => `
+                        <div class="flex items-center justify-between p-2.5 rounded-lg bg-[#161a23] border border-slate-800 text-xs gap-3">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="font-mono text-slate-300 truncate max-w-[200px]">${link.url}</span>
+                                    <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold ${link.is_expired ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-green-500/10 text-green-400 border border-green-500/20'}">
+                                        ${link.is_expired ? 'Expired' : 'Active'}
+                                    </span>
+                                </div>
+                                <div class="text-[10px] text-slate-400 flex items-center gap-3">
+                                    <span>⏱️ Expires: ${link.expires_at}</span>
+                                    <span>👁️ Views: ${link.view_count}</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <button type="button" onclick="navigator.clipboard.writeText('${link.url}'); alert('Link copied!');" class="p-1.5 rounded hover:bg-slate-700 text-slate-300" title="Copy Link">
+                                    <span class="material-symbols-outlined text-[15px]">content_copy</span>
+                                </button>
+                                <button type="button" onclick="revokeShareLink(${link.id})" class="p-1.5 rounded hover:bg-red-500/20 text-red-400" title="Revoke Link">
+                                    <span class="material-symbols-outlined text-[15px]">delete</span>
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    container.innerHTML = '<div class="text-xs text-slate-500 py-1">No active share links created yet.</div>';
+                }
+            } catch(e) {
+                container.innerHTML = '<div class="text-xs text-red-400 py-1">Failed to load links.</div>';
+            }
+        };
+
+        window.revokeShareLink = async function(tokenId) {
+            if (!confirm('Are you sure you want to revoke this public link? Anyone with this link will immediately lose access.')) return;
+            try {
+                const formData = new FormData();
+                formData.append('token_id', tokenId);
+                formData.append('<?= csrf_token() ?>', getCsrfToken());
+
+                const res = await fetch('<?= base_url('admin/reviews/revokeShareLink') ?>', {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const data = await res.json();
+                if (data.csrf) currentCsrfHash = data.csrf;
+                loadActiveShareLinks(currentShareSequenceId);
+            } catch(e) {
+                alert('Failed to revoke link');
+            }
+        };
     </script>
+
+    <!-- Share Lineup Modal -->
+    <div id="shareModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 hidden">
+        <div class="bg-[#111827] border border-slate-800 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-[18px]">share</span>
+                    </div>
+                    <div>
+                        <h3 class="text-[15px] font-bold text-white leading-tight">Share Sequence Lineup</h3>
+                        <p class="text-[11px] text-slate-400">Generate public view-only links with expiration & watermark</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeShareModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors">
+                    <span class="material-symbols-outlined text-[18px]">close</span>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 space-y-4 max-h-[75vh] overflow-y-auto custom-scrollbar">
+                <!-- Expiration Select -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1.5">Link Expiration</label>
+                    <select id="shareExpiresIn" class="w-full bg-[#1e293b] border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+                        <option value="24h">24 Hours (1 Day)</option>
+                        <option value="3d">3 Days</option>
+                        <option value="7d" selected>7 Days (Recommended)</option>
+                        <option value="30d">30 Days (1 Month)</option>
+                        <option value="never">No Expiration (Permanent)</option>
+                    </select>
+                </div>
+
+                <!-- Custom Watermark -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1.5">Custom Watermark Overlay (Optional)</label>
+                    <input type="text" id="shareWatermark" placeholder="e.g. Confidential • Review Only • Client Name" class="w-full bg-[#1e293b] border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 placeholder-slate-500">
+                </div>
+
+                <button type="button" id="generateLinkBtn" onclick="generateShareLink()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30">
+                    <span class="material-symbols-outlined text-[16px]">add_link</span> Generate Share Link
+                </button>
+
+                <!-- New Link Result Banner -->
+                <div id="newLinkResult" class="hidden bg-blue-950/40 border border-blue-800/60 rounded-xl p-3 space-y-2">
+                    <span class="text-xs font-semibold text-blue-300 flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[14px]">check_circle</span> Public Presentation URL Created
+                    </span>
+                    <div class="flex items-center gap-2">
+                        <input type="text" id="shareUrlInput" readonly class="flex-1 bg-black/60 border border-blue-900/60 rounded-lg px-3 py-1.5 text-xs text-slate-200 font-mono focus:outline-none">
+                        <button type="button" id="copyShareBtn" onclick="copyShareUrl()" class="bg-ytBlue text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-blue-500 transition-colors flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px]">content_copy</span> Copy
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Active Share Links Section -->
+                <div class="pt-3 border-t border-slate-800">
+                    <label class="block text-xs font-semibold text-slate-300 mb-2">Active Presentation Links</label>
+                    <div id="activeShareLinksList" class="space-y-2">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
