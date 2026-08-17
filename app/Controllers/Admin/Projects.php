@@ -2028,7 +2028,7 @@ class Projects extends BaseController
 
         // Tasks
         $taskBuilder = $db->table('tasks');
-        $taskBuilder->select('tasks.*, task_types.name as task_type_name, users.name as assigned_user_name, users.role as user_role, users.experience_level');
+        $taskBuilder->select('tasks.*, task_types.name as task_type_name, users.name as assigned_user_name, users.global_role as user_role, users.experience_level');
         $taskBuilder->join('task_types', 'task_types.id = tasks.task_type_id', 'left');
         $taskBuilder->join('users', 'users.id = tasks.assigned_to', 'left');
         $taskBuilder->where('tasks.project_id', $id);
@@ -2126,11 +2126,11 @@ class Projects extends BaseController
         $requiredDailyHours = $workingDaysRemaining > 0 ? round($remainingHours / $workingDaysRemaining, 1) : $remainingHours;
 
         // 3. ARTIST CAPACITY & STAFFING (STRICTLY PRODUCTION ARTISTS)
-        $productionArtistsOnly = array_filter($artistWorkloadMap, fn($a) => $a['role'] === 'artist' || empty($a['role']));
+        $productionArtistsOnly = array_filter($artistWorkloadMap, fn($a) => ($a['role'] ?? '') === 'artist' || empty($a['role']));
         $activeArtistsCount = count($productionArtistsOnly);
 
         // Also check all artists in studio if no one assigned yet
-        $studioArtists = array_filter($allUsers, fn($u) => $u->role === 'artist');
+        $studioArtists = array_filter($allUsers, fn($u) => ($u->global_role ?? '') === 'artist');
         $totalStudioArtistsCount = count($studioArtists);
 
         // Effective artists working on this project (fallback to studio artists count if unassigned)
