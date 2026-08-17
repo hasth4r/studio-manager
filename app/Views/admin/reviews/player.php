@@ -253,7 +253,7 @@ if (!function_exists('renderCommentBox')) {
             <div class="media-container flex-1 flex items-center justify-center relative">
                 <?php $mediaUrl = media_cdn_url(esc($review->proxy_path)); ?>
                 
-                <?php if($review->file_type === 'video'): ?>
+                <?php if($review->file_type === 'video' || (isset($isSequenceMode) && $isSequenceMode)): ?>
                     <video id="mediaElement" class="w-full h-full object-contain" disablePictureInPicture controlsList="nodownload" oncontextmenu="return false;">
                         <!-- Source injected securely via JS -->
                         Your browser does not support the video tag.
@@ -267,7 +267,7 @@ if (!function_exists('renderCommentBox')) {
             </div>
             
             <!-- DJV 1.1.0 Replica Controls -->
-            <?php if($review->file_type === 'video'): ?>
+            <?php if($review->file_type === 'video' || (isset($isSequenceMode) && $isSequenceMode)): ?>
             <div class="bg-[#383838] flex flex-col shrink-0 z-10 relative border-t border-[#111]">
                 
                 <!-- Top Row: Timeline and Sequence Track (Full width) -->

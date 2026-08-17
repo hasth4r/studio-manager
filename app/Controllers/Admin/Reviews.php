@@ -279,7 +279,7 @@ class Reviews extends BaseController
         
         foreach ($shots as $shot) {
             $fps = !empty($shot->fps) ? (float)$shot->fps : 24.0;
-            $duration = !empty($shot->frame_count) ? round((float)$shot->frame_count / $fps, 2) : 0.0;
+            $duration = !empty($shot->frame_count) ? round((float)$shot->frame_count / $fps, 2) : 1.0;
 
             $latestReview = $db->table('reviews r')
                 ->select('r.id as review_id, rf.proxy_path, rf.file_type, r.version_string, c.name as task_name')
@@ -302,6 +302,7 @@ class Reviews extends BaseController
                     'proxy_url' => media_cdn_url($latestReview->proxy_path),
                     'version_string' => $latestReview->version_string,
                     'task_name' => $latestReview->task_name,
+                    'file_type' => 'video',
                     'duration' => $duration
                 ];
                 $reviewIds[] = $latestReview->review_id;
@@ -315,6 +316,20 @@ class Reviews extends BaseController
                     'proxy_url' => media_cdn_url($shot->preview_video_path),
                     'version_string' => 'Editorial Preview',
                     'task_name' => 'Editorial Lineup',
+                    'file_type' => 'video',
+                    'duration' => $duration
+                ];
+            } else {
+                $playlist[] = [
+                    'shot_id' => $shot->id,
+                    'shot_number' => $shot->shot_number,
+                    'thumbnail_path' => $shot->thumbnail_path ? media_cdn_url($shot->thumbnail_path) : '',
+                    'review_id' => 0,
+                    'proxy_path' => $shot->thumbnail_path,
+                    'proxy_url' => $shot->thumbnail_path ? media_cdn_url($shot->thumbnail_path) : '',
+                    'version_string' => 'Still Frame',
+                    'task_name' => 'Shot Preview',
+                    'file_type' => !empty($shot->thumbnail_path) ? 'image' : 'none',
                     'duration' => $duration
                 ];
             }
