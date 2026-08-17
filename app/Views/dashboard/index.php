@@ -27,10 +27,10 @@
             <?php if (isset($latestReview) && $latestReview): ?>
                 <div class="w-full h-32 bg-[#121212] rounded-lg mb-4 flex items-center justify-center border border-ytBorder relative overflow-hidden group">
                     <?php if ($latestReview->file_type === 'video'): ?>
-                        <video src="<?= base_url('media/serve/' . $latestReview->proxy_path) ?>" class="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video>
+                        <video src="<?= media_cdn_url($latestReview->proxy_path) ?>" class="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video>
                         <div class="absolute bottom-2 right-2 bg-black/80 px-1 rounded text-xs text-ytText"><span class="material-symbols-outlined text-[12px] align-middle">movie</span></div>
                     <?php else: ?>
-                        <img src="<?= base_url('media/serve/' . $latestReview->proxy_path) ?>" class="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity">
+                        <img src="<?= media_cdn_url($latestReview->proxy_path) ?>" class="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity">
                         <div class="absolute bottom-2 right-2 bg-black/80 px-1 rounded text-xs text-ytText"><span class="material-symbols-outlined text-[12px] align-middle">image</span></div>
                     <?php endif; ?>
                 </div>

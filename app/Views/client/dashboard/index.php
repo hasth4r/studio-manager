@@ -126,7 +126,7 @@
                                 <!-- Thumbnail -->
                                 <div class="w-14 h-10 flex-shrink-0 bg-[#1a1a1a] border border-ytBorder/50 rounded overflow-hidden flex items-center justify-center group-hover:border-ytBlue/50 transition-colors">
                                     <?php if(!empty($rev->shot_thumb)): ?>
-                                        <img src="/<?= esc($rev->shot_thumb) ?>" alt="Thumb" class="w-full h-full object-cover">
+                                        <img src="<?= media_cdn_url(esc($rev->shot_thumb)) ?>" alt="Thumb" class="w-full h-full object-cover">
                                     <?php else: ?>
                                         <span class="material-symbols-outlined text-[20px] text-ytMuted">movie</span>
                                     <?php endif; ?>

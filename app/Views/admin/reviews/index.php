@@ -54,7 +54,7 @@
                                     <!-- Thumbnail Placeholder -->
                                     <div class="w-12 h-12 flex-shrink-0 bg-[#1a1a1a] border border-ytBorder/50 rounded flex items-center justify-center relative overflow-hidden">
                                         <?php if(!empty($review->shot_thumb)): ?>
-                                            <img src="/<?= esc($review->shot_thumb) ?>" alt="Thumbnail" class="w-full h-full object-cover">
+                                            <img src="<?= media_cdn_url(esc($review->shot_thumb)) ?>" alt="Thumbnail" class="w-full h-full object-cover">
                                         <?php else: ?>
                                             <span class="material-symbols-outlined text-[20px] text-ytMuted">movie</span>
                                         <?php endif; ?>
