@@ -269,6 +269,28 @@ if ($pdo) {
             echo "</div>";
         }
 
+        // Ensure Project 2 exists with correct code and sequence in database
+        $now = date('Y-m-d H:i:s');
+        try {
+            $p2 = $pdo->query("SELECT id, project_code FROM projects WHERE id = 2")->fetch(PDO::FETCH_ASSOC);
+            if (!$p2) {
+                $insP = $pdo->prepare("INSERT INTO projects (id, name, project_code, status, fps, created_at, updated_at) VALUES (2, 'Mahalaya', 'MHLYA-1', 'active', 25, ?, ?)");
+                $insP->execute([$now, $now]);
+            } elseif (empty($p2['project_code']) || $p2['project_code'] === 'PROJECT_2') {
+                $upP = $pdo->prepare("UPDATE projects SET name = 'Mahalaya', project_code = 'MHLYA-1' WHERE id = 2");
+                $upP->execute();
+            }
+
+            $seq2 = $pdo->query("SELECT id, name FROM sequences WHERE project_id = 2 LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+            if (!$seq2) {
+                $insS = $pdo->prepare("INSERT INTO sequences (project_id, name, description, created_at, updated_at) VALUES (2, 'War', 'Main Sequence', ?, ?)");
+                $insS->execute([$now, $now]);
+            } elseif ($seq2['name'] !== 'War') {
+                $upS = $pdo->prepare("UPDATE sequences SET name = 'War' WHERE project_id = 2");
+                $upS->execute();
+            }
+        } catch (\Throwable $e) {}
+
         // AJAX Batch Hierarchy Reorganizer (Fast 10-shot chunks, Zero Timeouts, Zero Duplicate Bytes)
         if (isset($_GET['action']) && $_GET['action'] === 'batch_reorganize_step') {
             header('Content-Type: application/json');
@@ -276,8 +298,6 @@ if ($pdo) {
             if ($limit < 1) $limit = 10;
             if ($limit > 25) $limit = 25;
 
-            $now = date('Y-m-d H:i:s');
-            
             // Get all shots with project name, project code, and sequence name
             $allQuery = "SELECT s.id, s.project_id, s.shot_number, s.preview_video_path, s.thumbnail_path, p.name as project_name, p.project_code, seq.name as seq_name 
                          FROM shots s 
@@ -289,10 +309,10 @@ if ($pdo) {
             // Filter rows that are NOT yet in standard uploads/{pCode}/{sName}/{sCode}/ folder
             $shotsToMove = [];
             foreach ($allRows as $r) {
-                $pCode = !empty($r['project_code']) ? $r['project_code'] : (!empty($r['project_name']) ? $r['project_name'] : ($r['project_id'] == 2 ? 'MHLYA-1' : 'Project_' . $r['project_id']));
+                $pCode = ($r['project_id'] == 2) ? 'MHLYA-1' : (!empty($r['project_code']) ? $r['project_code'] : (!empty($r['project_name']) ? $r['project_name'] : 'Project_' . $r['project_id']));
                 $pCode = preg_replace('/[^a-zA-Z0-9_-]/', '_', trim($pCode));
 
-                $sName = !empty($r['seq_name']) ? $r['seq_name'] : ($r['project_id'] == 2 ? 'War' : 'WAR');
+                $sName = ($r['project_id'] == 2) ? 'War' : (!empty($r['seq_name']) ? $r['seq_name'] : 'WAR');
                 $sName = preg_replace('/[^a-zA-Z0-9_-]/', '_', trim($sName));
 
                 $sCode = preg_replace('/[^a-zA-Z0-9_-]/', '_', trim($r['shot_number']));
