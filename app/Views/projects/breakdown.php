@@ -118,27 +118,27 @@
             <table class="w-full text-left border-collapse" id="breakdownTable">
                 <thead class="sticky top-0 z-30 bg-[#141414] border-b border-ytBorder/80 text-[11px] uppercase tracking-wider text-ytMuted font-semibold select-none">
                     <tr>
-                        <th class="py-2.5 px-2 w-8 text-center">
+                        <th class="py-2.5 px-2 w-8 text-center shrink-0">
                             <input type="checkbox" id="selectAllShotsCheckbox" onchange="toggleSelectAllShots(this.checked)" class="rounded border-ytBorder bg-ytBg text-ytBlue focus:ring-0 cursor-pointer">
                         </th>
-                        <th class="py-2.5 px-2 w-16 text-center">Thumb</th>
-                        <th class="py-2.5 px-2.5 w-28">Shot &amp; Seq</th>
+                        <th class="py-2.5 px-1.5 w-14 text-center shrink-0">Thumb</th>
+                        <th class="py-2.5 px-2 w-28 shrink-0">Shot &amp; Seq</th>
                         
                         <!-- Metadata Columns (Collapsible) -->
-                        <th class="py-2.5 px-1.5 w-16 text-center meta-col">Frame In</th>
-                        <th class="py-2.5 px-1.5 w-16 text-center meta-col">Frame Out</th>
-                        <th class="py-2.5 px-1.5 w-14 text-center meta-col">Frames</th>
-                        <th class="py-2.5 px-1.5 w-12 text-center meta-col">FPS</th>
-                        <th class="py-2.5 px-2 w-28 meta-col">Timecode</th>
-                        <th class="py-2.5 px-2 w-20 meta-col">Resolution</th>
-                        <th class="py-2.5 px-2 w-32 meta-col">AE Comp Name</th>
+                        <th class="py-2.5 px-1 w-14 text-center meta-col shrink-0">Frame In</th>
+                        <th class="py-2.5 px-1 w-14 text-center meta-col shrink-0">Frame Out</th>
+                        <th class="py-2.5 px-1 w-12 text-center meta-col shrink-0">Frames</th>
+                        <th class="py-2.5 px-1 w-10 text-center meta-col shrink-0">FPS</th>
+                        <th class="py-2.5 px-1.5 w-24 text-center meta-col shrink-0">Timecode</th>
+                        <th class="py-2.5 px-1.5 w-20 text-center meta-col shrink-0">Resolution</th>
+                        <th class="py-2.5 px-2 w-28 meta-col shrink-0">AE Comp Name</th>
                         
                         <!-- Compact Meta summary (Shows when columns hidden) -->
-                        <th class="py-2.5 px-3 w-40 meta-summary-col hidden">Timing &amp; Specs</th>
+                        <th class="py-2.5 px-3 w-36 meta-summary-col hidden shrink-0">Timing &amp; Specs</th>
 
-                        <!-- Task Pipeline Matrix -->
+                        <!-- Task Pipeline Matrix (Takes all remaining width) -->
                         <th class="py-2.5 px-3 min-w-[320px]">Assigned Tasks &amp; Benchmark Estimates</th>
-                        <th class="py-2.5 px-3 w-20 text-right">Shot Total</th>
+                        <th class="py-2.5 px-3 w-16 text-right shrink-0">Shot Total</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-ytBorder/30 text-[12px]">
@@ -169,12 +169,12 @@
                         data-has-unassigned="<?= !empty(array_filter($shotTasks, fn($t) => empty($t->assigned_to))) ? '1' : '0' ?>">
                         
                         <!-- 1. Selection Checkbox -->
-                        <td class="py-1.5 px-2 text-center align-middle">
+                        <td class="py-1.5 px-2 text-center align-middle w-8 shrink-0">
                             <input type="checkbox" value="<?= $shot->id ?>" onchange="updateSelectionState()" class="shot-checkbox rounded border-ytBorder bg-ytBg text-ytBlue focus:ring-0 cursor-pointer">
                         </td>
 
                         <!-- 2. Thumbnail & Floating Video Preview Trigger -->
-                        <td class="py-1.5 px-2 text-center align-middle">
+                        <td class="py-1.5 px-1.5 text-center align-middle w-14 shrink-0">
                             <div class="w-14 h-9 bg-[#111] rounded border border-ytBorder/60 overflow-hidden relative group/thumb cursor-pointer shrink-0 inline-block align-middle"
                                  onmouseenter="showFloatingPreview(event, '<?= !empty($shot->preview_video_path) ? base_url(esc($shot->preview_video_path)) : '' ?>', '<?= !empty($shot->thumbnail_path) ? base_url(esc($shot->thumbnail_path)) : '' ?>', '<?= esc($shot->shot_number) ?>')"
                                  onmouseleave="hideFloatingPreview()"
@@ -197,12 +197,12 @@
                         </td>
 
                         <!-- 3. Shot Number & Sequence (Compact Stack) -->
-                        <td class="py-1.5 px-2.5 align-middle">
+                        <td class="py-1.5 px-2 align-middle w-28 shrink-0 whitespace-nowrap">
                             <div class="flex flex-col justify-center">
                                 <input type="text" value="<?= esc($shot->shot_number) ?>" 
                                        onchange="inlineUpdateShot(<?= $shot->id ?>, 'shot_number', this.value)"
-                                       class="bg-transparent border-b border-transparent hover:border-ytBorder focus:border-ytBlue text-ytText font-bold text-[12px] px-1 py-0 rounded focus:bg-ytBg w-22 focus:outline-none transition-all font-mono leading-tight">
-                                <span class="text-[10px] text-ytMuted font-mono px-1 truncate max-w-[120px] inline-flex items-center gap-1 mt-0.5" title="<?= esc($shot->sequence_name ?? 'Independent') ?>">
+                                       class="bg-transparent border-b border-transparent hover:border-ytBorder focus:border-ytBlue text-ytText font-bold text-[12px] px-1 py-0 rounded focus:bg-ytBg w-20 focus:outline-none transition-all font-mono leading-tight">
+                                <span class="text-[10px] text-ytMuted font-mono px-1 truncate max-w-[100px] inline-flex items-center gap-1 mt-0.5" title="<?= esc($shot->sequence_name ?? 'Independent') ?>">
                                     <span class="material-symbols-outlined text-[12px] text-ytMuted shrink-0">folder</span>
                                     <span><?= esc($shot->sequence_name ?? 'Independent') ?></span>
                                 </span>
@@ -210,49 +210,49 @@
                         </td>
 
                         <!-- 4. Frame In (Meta) -->
-                        <td class="py-1.5 px-1.5 align-middle meta-col text-center">
+                        <td class="py-1.5 px-1 align-middle meta-col text-center w-14 shrink-0">
                             <input type="number" value="<?= esc($shot->frame_in ?? '') ?>" 
-                                   placeholder="1001"
-                                   onchange="inlineUpdateShot(<?= $shot->id ?>, 'frame_in', this.value)"
-                                   class="bg-ytBg/60 border border-ytBorder/40 hover:border-ytBorder focus:border-ytBlue text-ytText text-[11px] font-mono px-1 py-0.5 rounded w-14 focus:outline-none text-center">
+                                    placeholder="1001"
+                                    onchange="inlineUpdateShot(<?= $shot->id ?>, 'frame_in', this.value)"
+                                    class="bg-ytBg/60 border border-ytBorder/40 hover:border-ytBorder focus:border-ytBlue text-ytText text-[11px] font-mono px-1 py-0.5 rounded w-13 focus:outline-none text-center">
                         </td>
 
                         <!-- 5. Frame Out (Meta) -->
-                        <td class="py-1.5 px-1.5 align-middle meta-col text-center">
+                        <td class="py-1.5 px-1 align-middle meta-col text-center w-14 shrink-0">
                             <input type="number" value="<?= esc($shot->frame_out ?? '') ?>" 
-                                   placeholder="1075"
-                                   onchange="inlineUpdateShot(<?= $shot->id ?>, 'frame_out', this.value)"
-                                   class="bg-ytBg/60 border border-ytBorder/40 hover:border-ytBorder focus:border-ytBlue text-ytText text-[11px] font-mono px-1 py-0.5 rounded w-14 focus:outline-none text-center">
+                                    placeholder="1075"
+                                    onchange="inlineUpdateShot(<?= $shot->id ?>, 'frame_out', this.value)"
+                                    class="bg-ytBg/60 border border-ytBorder/40 hover:border-ytBorder focus:border-ytBlue text-ytText text-[11px] font-mono px-1 py-0.5 rounded w-13 focus:outline-none text-center">
                         </td>
 
                         <!-- 6. Frames Count (Meta) -->
-                        <td class="py-1.5 px-1.5 align-middle meta-col text-center">
+                        <td class="py-1.5 px-1 align-middle meta-col text-center w-12 shrink-0">
                             <input type="number" value="<?= esc($shot->frame_count ?? '') ?>" 
-                                   placeholder="75"
-                                   onchange="inlineUpdateShot(<?= $shot->id ?>, 'frame_count', this.value)"
-                                   class="bg-ytBg border border-ytBorder/60 hover:border-ytBlue focus:border-ytBlue text-ytText font-semibold text-[11px] font-mono px-1 py-0.5 rounded w-12 focus:outline-none text-center">
+                                    placeholder="75"
+                                    onchange="inlineUpdateShot(<?= $shot->id ?>, 'frame_count', this.value)"
+                                    class="bg-ytBg border border-ytBorder/60 hover:border-ytBlue focus:border-ytBlue text-ytText font-semibold text-[11px] font-mono px-1 py-0.5 rounded w-11 focus:outline-none text-center">
                         </td>
 
                         <!-- 7. FPS (Meta) -->
-                        <td class="py-1.5 px-1.5 align-middle meta-col text-center">
+                        <td class="py-1.5 px-1 align-middle meta-col text-center w-10 shrink-0">
                             <input type="number" value="<?= esc($shot->fps ?? $project->fps ?? 24) ?>" 
-                                   placeholder="25"
-                                   onchange="inlineUpdateShot(<?= $shot->id ?>, 'fps', this.value)"
-                                   class="bg-ytBg/60 border border-ytBorder/40 hover:border-ytBorder focus:border-ytBlue text-ytText text-[11px] font-mono px-1 py-0.5 rounded w-11 focus:outline-none text-center">
+                                    placeholder="25"
+                                    onchange="inlineUpdateShot(<?= $shot->id ?>, 'fps', this.value)"
+                                    class="bg-ytBg/60 border border-ytBorder/40 hover:border-ytBorder focus:border-ytBlue text-ytText text-[11px] font-mono px-1 py-0.5 rounded w-10 focus:outline-none text-center">
                         </td>
 
                         <!-- 8. Timecode In/Out (Meta) -->
-                        <td class="py-1.5 px-1.5 align-middle meta-col text-[10px] font-mono text-ytMuted space-y-0.5">
+                        <td class="py-1.5 px-1.5 align-middle meta-col text-[10px] font-mono text-ytMuted space-y-0.5 w-24 shrink-0">
                             <input type="text" value="<?= esc($shot->timecode_in ?? '') ?>" placeholder="00:00:00:00"
-                                   onchange="inlineUpdateShot(<?= $shot->id ?>, 'timecode_in', this.value)"
-                                   class="bg-transparent border-b border-transparent hover:border-ytBorder focus:border-ytBlue text-ytText text-[10px] font-mono px-1 py-0 w-22 focus:bg-ytBg focus:outline-none block">
+                                    onchange="inlineUpdateShot(<?= $shot->id ?>, 'timecode_in', this.value)"
+                                    class="bg-transparent border-b border-transparent hover:border-ytBorder focus:border-ytBlue text-ytText text-[10px] font-mono px-1 py-0 w-20 focus:bg-ytBg focus:outline-none block">
                             <input type="text" value="<?= esc($shot->timecode_out ?? '') ?>" placeholder="00:00:03:00"
-                                   onchange="inlineUpdateShot(<?= $shot->id ?>, 'timecode_out', this.value)"
-                                   class="bg-transparent border-b border-transparent hover:border-ytBorder focus:border-ytBlue text-ytText text-[10px] font-mono px-1 py-0 w-22 focus:bg-ytBg focus:outline-none block">
+                                    onchange="inlineUpdateShot(<?= $shot->id ?>, 'timecode_out', this.value)"
+                                    class="bg-transparent border-b border-transparent hover:border-ytBorder focus:border-ytBlue text-ytText text-[10px] font-mono px-1 py-0 w-20 focus:bg-ytBg focus:outline-none block">
                         </td>
 
                         <!-- 9. Resolution (Meta) -->
-                        <td class="py-1.5 px-2 align-middle meta-col text-[11px] font-mono text-ytText text-center">
+                        <td class="py-1.5 px-1.5 align-middle meta-col text-[11px] font-mono text-ytText text-center w-20 shrink-0">
                             <?php if(!empty($shot->width) && !empty($shot->height)): ?>
                                 <span><?= esc($shot->width) ?>&times;<?= esc($shot->height) ?></span>
                             <?php else: ?>
@@ -261,12 +261,12 @@
                         </td>
 
                         <!-- 10. AE Comp Name (Meta) -->
-                        <td class="py-1.5 px-2 align-middle meta-col text-[11px] font-mono text-ytMuted truncate max-w-[140px]" title="<?= esc($shot->comp_name ?? '') ?>">
+                        <td class="py-1.5 px-2 align-middle meta-col text-[11px] font-mono text-ytMuted truncate max-w-[120px] w-28 shrink-0" title="<?= esc($shot->comp_name ?? '') ?>">
                             <?= esc($shot->comp_name ?: '-') ?>
                         </td>
 
                         <!-- Compact Meta Summary (Shown when columns collapsed) -->
-                        <td class="py-1.5 px-3 align-middle meta-summary-col hidden text-[11px] font-mono space-y-1">
+                        <td class="py-1.5 px-3 align-middle meta-summary-col hidden text-[11px] font-mono space-y-1 w-36 shrink-0">
                             <div class="text-ytText font-medium">
                                 <?= !empty($shot->frame_in) && !empty($shot->frame_out) ? esc($shot->frame_in) . '–' . esc($shot->frame_out) : '' ?>
                                 <span class="text-ytBlue">(<?= esc($shot->frame_count ?? '-') ?> fr)</span>
