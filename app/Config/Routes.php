@@ -48,6 +48,10 @@ $routes->group('admin', ['filter' => 'auth', 'namespace' => 'App\Controllers\Adm
     $routes->post('users/store', 'Users::store');
     $routes->post('users/update/(:num)', 'Users::update/$1');
 
+    // Studio Budgeting & Economics
+    $routes->get('budgeting', 'Budgeting::index');
+    $routes->post('budgeting/update', 'Budgeting::update');
+
     // Projects Management
     $routes->get('projects', 'Projects::index');
     $routes->get('projects/create', 'Projects::create');

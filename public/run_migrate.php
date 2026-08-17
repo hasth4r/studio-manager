@@ -135,7 +135,12 @@ try {
     if ($settingsTable) {
         $defaultSettings = [
             'studio_currency'        => '₹',
-            'studio_ops_hourly_rate' => '100.00',
+            'studio_ops_hourly_rate' => '126.67',
+            'monthly_ai_bills'       => '15000.00',
+            'monthly_storage_bills'  => '8000.00',
+            'monthly_software_bills' => '10000.00',
+            'monthly_ops_bills'      => '5000.00',
+            'monthly_billable_hours' => '300.00',
             'studio_commission_pct'  => '30',
             'default_artist_rate'    => '500.00',
         ];

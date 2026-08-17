@@ -175,9 +175,14 @@
                     <p class="section-title px-4 text-[11px] font-bold uppercase tracking-wider text-ytMuted mb-2">Settings</p>
                     <div class="space-y-0.5">
                         <?php $isActive = (strpos($currentUri, 'admin/users') === 0); ?>
-                        <a href="/admin/users" class="<?= $isActive ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors" title="Team">
+                        <a href="/admin/users" class="<?= $isActive ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors" title="Team & Freelancers">
                             <span class="material-symbols-outlined <?= $isActive ? 'text-ytBlue' : 'text-ytMuted' ?>">manage_accounts</span>
-                            <span class="nav-text">Team</span>
+                            <span class="nav-text">Team &amp; Rates</span>
+                        </a>
+                        <?php $isActive = (strpos($currentUri, 'admin/budgeting') === 0); ?>
+                        <a href="/admin/budgeting" class="<?= $isActive ? 'active-nav-item bg-ytHover text-green-400' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors" title="Studio Budgeting & Monthly Bills">
+                            <span class="material-symbols-outlined <?= $isActive ? 'text-green-400' : 'text-green-400/80' ?>">payments</span>
+                            <span class="nav-text">Budgeting &amp; Bills</span>
                         </a>
                         <?php $isActive = (strpos($currentUri, 'admin/clients') === 0); ?>
                         <a href="/admin/clients" class="<?= $isActive ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors" title="Clients">

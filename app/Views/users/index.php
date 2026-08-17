@@ -9,13 +9,19 @@
                 <span class="material-symbols-outlined">group</span>
             </div>
             <div>
-                <h2 class="text-[24px] font-medium text-ytText">Team Management</h2>
-                <p class="text-[13px] text-ytMuted mt-1">Manage artists, supervisors, and admins</p>
+                <h2 class="text-[24px] font-medium text-ytText">Team &amp; Freelancer Rates</h2>
+                <p class="text-[13px] text-ytMuted mt-1">Manage artists, individual monthly salaries, and freelance payout rates.</p>
             </div>
         </div>
-        <button onclick="openModal('userModal')" class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] text-white shadow-[0_0_15px_rgba(23,123,207,0.3)] border border-[#177bcf]/40 px-4 py-2 rounded-full font-medium text-[13px] hover:shadow-[0_0_25px_rgba(23,123,207,0.6)] hover:from-[#0d346e] hover:to-[#238bf2] transition-colors flex items-center">
-            <span class="material-symbols-outlined mr-1 text-[18px]">add</span> Add User
-        </button>
+        <div class="flex items-center gap-3">
+            <a href="/admin/budgeting" class="bg-green-950/40 border border-green-700/50 hover:border-green-500 text-green-300 px-4 py-2 rounded-full font-medium text-[13px] hover:bg-green-900/30 transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(34,197,94,0.15)]">
+                <span class="material-symbols-outlined text-[18px] text-green-400">payments</span>
+                <span>Studio Budgeting &amp; Bills</span>
+            </a>
+            <button onclick="openModal('userModal')" class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] text-white shadow-[0_0_15px_rgba(23,123,207,0.3)] border border-[#177bcf]/40 px-4 py-2 rounded-full font-medium text-[13px] hover:shadow-[0_0_25px_rgba(23,123,207,0.6)] hover:from-[#0d346e] hover:to-[#238bf2] transition-colors flex items-center gap-1">
+                <span class="material-symbols-outlined text-[18px]">add</span> Add Team Member
+            </button>
+        </div>
     </div>
 </div>
 
@@ -101,58 +107,86 @@
 
 <!-- MODAL: Add User -->
 <div id="userModal" class="fixed inset-0 z-50 hidden bg-black/70 flex items-center justify-center backdrop-blur-sm">
-    <div class="bg-ytCard border border-ytBorder rounded-xl w-full max-w-md mx-4 shadow-2xl">
-        <div class="px-6 py-4 border-b border-ytBorder/50 flex justify-between items-center">
-            <h3 class="text-[18px] font-medium text-ytText">Add Team Member</h3>
+    <div class="bg-ytCard border border-ytBorder rounded-xl w-full max-w-lg mx-4 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+        <div class="px-6 py-4 border-b border-ytBorder/50 flex justify-between items-center bg-[#141414]">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-ytBlue text-[20px]">person_add</span>
+                <h3 class="text-[16px] font-semibold text-ytText">Add Team Member</h3>
+            </div>
             <button type="button" onclick="closeModal('userModal')" class="text-ytMuted hover:text-ytText"><span class="material-symbols-outlined">close</span></button>
         </div>
-        <form action="/admin/users/store" method="POST" class="p-6">
+        <form action="/admin/users/store" method="POST" class="p-6 overflow-y-auto space-y-4">
             <?= csrf_field() ?>
             
-            <div class="mb-4">
-                <label class="block text-[13px] font-medium text-ytText mb-2">Full Name <span class="text-ytRed">*</span></label>
-                <input type="text" name="name" required class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-4 py-2 focus:outline-none focus:border-ytBlue" placeholder="e.g. John Doe">
-            </div>
-            
-            <div class="mb-4">
-                <label class="block text-[13px] font-medium text-ytText mb-2">Email <span class="text-ytRed">*</span></label>
-                <input type="email" name="email" required class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-4 py-2 focus:outline-none focus:border-ytBlue" placeholder="john@example.com">
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-[13px] font-medium text-ytText mb-2">Temporary Password <span class="text-ytRed">*</span></label>
-                <input type="text" name="password" required class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-4 py-2 focus:outline-none focus:border-ytBlue" placeholder="Must be at least 5 characters">
-            </div>
-
-            <div class="grid grid-cols-2 gap-4 mb-4">
+            <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-[13px] font-medium text-ytText mb-2">Global Role <span class="text-ytRed">*</span></label>
-                    <select name="global_role" required class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-4 py-2 focus:outline-none focus:border-ytBlue">
-                        <option value="artist">Artist</option>
+                    <label class="block text-[12px] font-medium text-ytText mb-1">Full Name <span class="text-ytRed">*</span></label>
+                    <input type="text" name="name" required class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-3 py-2 text-[13px] focus:outline-none focus:border-ytBlue" placeholder="e.g. Adith Satheesh">
+                </div>
+                <div>
+                    <label class="block text-[12px] font-medium text-ytText mb-1">Email <span class="text-ytRed">*</span></label>
+                    <input type="email" name="email" required class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-3 py-2 text-[13px] focus:outline-none focus:border-ytBlue" placeholder="adith@studio.com">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-[12px] font-medium text-ytText mb-1">Temporary Password <span class="text-ytRed">*</span></label>
+                <input type="text" name="password" required class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-3 py-2 text-[13px] focus:outline-none focus:border-ytBlue" placeholder="Must be at least 5 characters">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-[12px] font-medium text-ytText mb-1">Global Role <span class="text-ytRed">*</span></label>
+                    <select name="global_role" required class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-3 py-2 text-[13px] focus:outline-none focus:border-ytBlue">
+                        <option value="artist">Artist / Freelancer</option>
                         <option value="project_manager">Project Manager</option>
                         <option value="client">Client</option>
                         <option value="admin">Administrator</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-[13px] font-medium text-ytText mb-2">Experience Level</label>
-                    <select name="experience_level" class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-4 py-2 focus:outline-none focus:border-ytBlue">
-                        <option value="Junior">Junior (1.5x)</option>
-                        <option value="Mid" selected>Mid (1.0x)</option>
-                        <option value="Senior">Senior (0.8x)</option>
+                    <label class="block text-[12px] font-medium text-ytText mb-1">Experience Level</label>
+                    <select name="experience_level" class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-3 py-2 text-[13px] focus:outline-none focus:border-ytBlue">
+                        <option value="Junior">Junior (1.5x Multiplier)</option>
+                        <option value="Mid" selected>Mid (1.0x Benchmark)</option>
+                        <option value="Senior">Senior (0.8x Fast)</option>
                     </select>
                 </div>
             </div>
 
-            <div class="mb-6">
-                <label class="block text-[13px] font-medium text-ytText mb-2">Freelance Payout Rate (₹ / hr)</label>
-                <input type="number" step="1" min="0" name="hourly_rate" value="500" required class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-4 py-2 focus:outline-none focus:border-ytBlue font-mono" placeholder="500">
-                <p class="text-[11px] text-ytMuted mt-1">Hourly payout paid to this freelancer upon task delivery.</p>
+            <!-- Person Compensation & Monthly Pay Converter Box -->
+            <div class="bg-[#121212] border border-ytBorder/80 rounded-xl p-3.5 space-y-2.5">
+                <div class="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-ytMuted">
+                    <span class="flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[15px] text-green-400">payments</span>
+                        Rate / Monthly Pay Calculator
+                    </span>
+                    <span class="text-green-400 font-mono font-bold" id="add_calc_preview">₹500 / hr</span>
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block text-[10px] text-ytMuted mb-0.5">Monthly Salary (₹)</label>
+                        <input type="number" step="100" min="0" id="add_monthly_salary" oninput="convertSalaryToHourly('add')" class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-2.5 py-1.5 text-[12px] font-mono" placeholder="e.g. 90640">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-ytMuted mb-0.5">Days / Month</label>
+                        <input type="number" step="1" min="1" max="31" id="add_work_days" value="22" oninput="convertSalaryToHourly('add')" class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-2.5 py-1.5 text-[12px] font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-ytMuted mb-0.5">Hours / Day</label>
+                        <input type="number" step="1" min="1" max="24" id="add_work_hours" value="8" oninput="convertSalaryToHourly('add')" class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-2.5 py-1.5 text-[12px] font-mono">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-ytText mb-1">Effective Payout Rate (₹ / hr) <span class="text-ytRed">*</span></label>
+                    <input type="number" step="1" min="0" name="hourly_rate" id="add_hourly_rate" value="500" required class="w-full bg-ytBg border border-green-500/50 text-green-400 font-bold text-[14px] rounded px-3 py-1.5 font-mono focus:outline-none focus:border-ytBlue">
+                    <p class="text-[10px] text-ytMuted mt-0.5">Auto-calculated or type directly for hourly freelancers.</p>
+                </div>
             </div>
             
-            <div class="flex justify-end space-x-3">
+            <div class="pt-2 flex justify-end space-x-3">
                 <button type="button" onclick="closeModal('userModal')" class="px-4 py-2 rounded-full text-[13px] text-ytText hover:bg-ytHover">Cancel</button>
-                <button type="submit" class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] text-white shadow-[0_0_15px_rgba(23,123,207,0.3)] border border-[#177bcf]/40 px-4 py-2 rounded-full font-medium text-[13px] hover:shadow-[0_0_25px_rgba(23,123,207,0.6)] hover:from-[#0d346e] hover:to-[#238bf2]">Create User</button>
+                <button type="submit" class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] text-white shadow-[0_0_15px_rgba(23,123,207,0.3)] border border-[#177bcf]/40 px-5 py-2 rounded-full font-medium text-[13px] hover:shadow-[0_0_25px_rgba(23,123,207,0.6)] hover:from-[#0d346e] hover:to-[#238bf2]">Create Team Member</button>
             </div>
         </form>
     </div>
@@ -164,6 +198,19 @@
     }
     function closeModal(modalId) {
         document.getElementById(modalId).classList.add('hidden');
+    }
+
+    function convertSalaryToHourly(prefix) {
+        const salary = parseFloat(document.getElementById(`${prefix}_monthly_salary`).value) || 0;
+        const days = parseFloat(document.getElementById(`${prefix}_work_days`).value) || 22;
+        const hours = parseFloat(document.getElementById(`${prefix}_work_hours`).value) || 8;
+
+        if (salary > 0 && days > 0 && hours > 0) {
+            const totalHours = days * hours;
+            const hourly = Math.round(salary / totalHours);
+            document.getElementById(`${prefix}_hourly_rate`).value = hourly;
+            document.getElementById(`${prefix}_calc_preview`).textContent = `₹${hourly.toLocaleString()} / hr`;
+        }
     }
 
     function openEditModal(user) {
@@ -178,7 +225,14 @@
         document.getElementById('edit_email').value = user.email;
         document.getElementById('edit_global_role').value = user.global_role;
         document.getElementById('edit_experience_level').value = user.experience_level || 'Mid';
-        document.getElementById('edit_hourly_rate').value = user.hourly_rate || 500;
+        
+        const rate = user.hourly_rate || 500;
+        document.getElementById('edit_hourly_rate').value = rate;
+        document.getElementById('edit_calc_preview').textContent = `₹${Number(rate).toLocaleString()} / hr`;
+
+        // Reverse estimate monthly salary for preview if not set
+        document.getElementById('edit_monthly_salary').value = Math.round(rate * 22 * 8);
+
         document.getElementById('edit_status').value = user.status;
         
         // Clear password field
@@ -190,66 +244,93 @@
 
 <!-- MODAL: Edit User -->
 <div id="editUserModal" class="fixed inset-0 z-50 hidden bg-black/70 flex items-center justify-center backdrop-blur-sm">
-    <div class="bg-ytCard border border-ytBorder rounded-xl w-full max-w-md mx-4 shadow-2xl">
-        <div class="px-6 py-4 border-b border-ytBorder/50 flex justify-between items-center">
-            <h3 class="text-[18px] font-medium text-ytText">Edit Team Member</h3>
+    <div class="bg-ytCard border border-ytBorder rounded-xl w-full max-w-lg mx-4 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+        <div class="px-6 py-4 border-b border-ytBorder/50 flex justify-between items-center bg-[#141414]">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-ytBlue text-[20px]">edit</span>
+                <h3 class="text-[16px] font-semibold text-ytText">Edit Team Member &amp; Rates</h3>
+            </div>
             <button type="button" onclick="closeModal('editUserModal')" class="text-ytMuted hover:text-ytText"><span class="material-symbols-outlined">close</span></button>
         </div>
-        <form id="editUserForm" method="POST" class="p-6">
+        <form id="editUserForm" method="POST" class="p-6 overflow-y-auto space-y-4">
             <?= csrf_field() ?>
             
-            <div class="mb-4">
-                <label class="block text-[13px] font-medium text-ytText mb-2">Full Name <span class="text-ytRed">*</span></label>
-                <input type="text" name="name" id="edit_name" required class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-4 py-2 focus:outline-none focus:border-ytBlue">
-            </div>
-            
-            <div class="mb-4">
-                <label class="block text-[13px] font-medium text-ytText mb-2">Email <span class="text-ytRed">*</span></label>
-                <input type="email" name="email" id="edit_email" required class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-4 py-2 focus:outline-none focus:border-ytBlue">
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-[13px] font-medium text-ytText mb-2">New Password (Optional)</label>
-                <input type="text" name="password" id="edit_password" class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-4 py-2 focus:outline-none focus:border-ytBlue" placeholder="Leave blank to keep current password">
-            </div>
-
-            <div class="grid grid-cols-2 gap-4 mb-4">
+            <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-[13px] font-medium text-ytText mb-2">Global Role <span class="text-ytRed">*</span></label>
-                    <select name="global_role" id="edit_global_role" required class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-4 py-2 focus:outline-none focus:border-ytBlue">
-                        <option value="artist">Artist</option>
+                    <label class="block text-[12px] font-medium text-ytText mb-1">Full Name <span class="text-ytRed">*</span></label>
+                    <input type="text" name="name" id="edit_name" required class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-3 py-2 text-[13px] focus:outline-none focus:border-ytBlue">
+                </div>
+                <div>
+                    <label class="block text-[12px] font-medium text-ytText mb-1">Email <span class="text-ytRed">*</span></label>
+                    <input type="email" name="email" id="edit_email" required class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-3 py-2 text-[13px] focus:outline-none focus:border-ytBlue">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-[12px] font-medium text-ytText mb-1">New Password (Optional)</label>
+                <input type="text" name="password" id="edit_password" class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-3 py-2 text-[13px] focus:outline-none focus:border-ytBlue" placeholder="Leave blank to keep current password">
+            </div>
+
+            <div class="grid grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-[12px] font-medium text-ytText mb-1">Global Role <span class="text-ytRed">*</span></label>
+                    <select name="global_role" id="edit_global_role" required class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-3 py-2 text-[13px] focus:outline-none focus:border-ytBlue">
+                        <option value="artist">Artist / Freelancer</option>
                         <option value="project_manager">Project Manager</option>
                         <option value="client">Client</option>
                         <option value="admin">Administrator</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-[13px] font-medium text-ytText mb-2">Status <span class="text-ytRed">*</span></label>
-                    <select name="status" id="edit_status" required class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-4 py-2 focus:outline-none focus:border-ytBlue">
+                    <label class="block text-[12px] font-medium text-ytText mb-1">Status <span class="text-ytRed">*</span></label>
+                    <select name="status" id="edit_status" required class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-3 py-2 text-[13px] focus:outline-none focus:border-ytBlue">
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>
                     </select>
                 </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4 mb-6">
                 <div>
-                    <label class="block text-[13px] font-medium text-ytText mb-2">Experience Level</label>
-                    <select name="experience_level" id="edit_experience_level" class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-4 py-2 focus:outline-none focus:border-ytBlue">
+                    <label class="block text-[12px] font-medium text-ytText mb-1">Experience</label>
+                    <select name="experience_level" id="edit_experience_level" class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-3 py-2 text-[13px] focus:outline-none focus:border-ytBlue">
                         <option value="Junior">Junior (1.5x)</option>
                         <option value="Mid">Mid (1.0x)</option>
                         <option value="Senior">Senior (0.8x)</option>
                     </select>
                 </div>
+            </div>
+
+            <!-- Person Compensation & Monthly Pay Converter Box -->
+            <div class="bg-[#121212] border border-ytBorder/80 rounded-xl p-3.5 space-y-2.5">
+                <div class="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-ytMuted">
+                    <span class="flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[15px] text-green-400">payments</span>
+                        Rate / Monthly Pay Calculator
+                    </span>
+                    <span class="text-green-400 font-mono font-bold" id="edit_calc_preview">₹500 / hr</span>
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block text-[10px] text-ytMuted mb-0.5">Monthly Pay (₹)</label>
+                        <input type="number" step="100" min="0" id="edit_monthly_salary" oninput="convertSalaryToHourly('edit')" class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-2.5 py-1.5 text-[12px] font-mono" placeholder="e.g. 90640">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-ytMuted mb-0.5">Days / Month</label>
+                        <input type="number" step="1" min="1" max="31" id="edit_work_days" value="22" oninput="convertSalaryToHourly('edit')" class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-2.5 py-1.5 text-[12px] font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-ytMuted mb-0.5">Hours / Day</label>
+                        <input type="number" step="1" min="1" max="24" id="edit_work_hours" value="8" oninput="convertSalaryToHourly('edit')" class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-2.5 py-1.5 text-[12px] font-mono">
+                    </div>
+                </div>
                 <div>
-                    <label class="block text-[13px] font-medium text-ytText mb-2">Payout Rate (₹ / hr)</label>
-                    <input type="number" step="1" min="0" name="hourly_rate" id="edit_hourly_rate" required class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-4 py-2 focus:outline-none focus:border-ytBlue font-mono" placeholder="500">
+                    <label class="block text-[11px] font-medium text-ytText mb-1">Effective Payout Rate (₹ / hr) <span class="text-ytRed">*</span></label>
+                    <input type="number" step="1" min="0" name="hourly_rate" id="edit_hourly_rate" required class="w-full bg-ytBg border border-green-500/50 text-green-400 font-bold text-[14px] rounded px-3 py-1.5 font-mono focus:outline-none focus:border-ytBlue">
+                    <p class="text-[10px] text-ytMuted mt-0.5">Directly used to calculate this person's task cost &amp; payouts.</p>
                 </div>
             </div>
             
-            <div class="flex justify-end space-x-3">
+            <div class="pt-2 flex justify-end space-x-3">
                 <button type="button" onclick="closeModal('editUserModal')" class="px-4 py-2 rounded-full text-[13px] text-ytText hover:bg-ytHover">Cancel</button>
-                <button type="submit" class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] text-white shadow-[0_0_15px_rgba(23,123,207,0.3)] border border-[#177bcf]/40 px-4 py-2 rounded-full font-medium text-[13px] hover:shadow-[0_0_25px_rgba(23,123,207,0.6)] hover:from-[#0d346e] hover:to-[#238bf2]">Save Changes</button>
+                <button type="submit" class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] text-white shadow-[0_0_15px_rgba(23,123,207,0.3)] border border-[#177bcf]/40 px-5 py-2 rounded-full font-medium text-[13px] hover:shadow-[0_0_25px_rgba(23,123,207,0.6)] hover:from-[#0d346e] hover:to-[#238bf2]">Save Changes</button>
             </div>
         </form>
     </div>

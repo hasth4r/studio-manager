@@ -56,90 +56,21 @@
         </div>
     </div>
 
-    <!-- Freelance Studio Economics & Budgeting Rates Card -->
-    <div class="bg-ytCard border border-ytBorder rounded-xl overflow-hidden">
-        <div class="px-6 py-4 border-b border-ytBorder/60 bg-[#121212] flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-green-400 text-[20px]">payments</span>
-                <h3 class="text-[15px] font-medium text-ytText">Studio Budgeting & Hourly Rates (Freelance Model)</h3>
+    <!-- Quick Link to Studio Budgeting & Monthly Bills -->
+    <div class="bg-gradient-to-r from-[#121c2a] to-[#122a1c] border border-green-700/40 rounded-xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg">
+        <div class="flex items-center gap-3.5">
+            <div class="p-3 bg-green-950/60 rounded-xl flex items-center justify-center text-green-400 border border-green-700/50 shadow-[0_0_15px_rgba(34,197,94,0.2)]">
+                <span class="material-symbols-outlined text-[24px]">payments</span>
             </div>
-            <span class="text-[10px] font-mono bg-green-950/60 border border-green-700/50 text-green-300 px-2 py-0.5 rounded font-bold">
-                AUTO-RECALCULATED
-            </span>
+            <div>
+                <h3 class="text-[16px] font-semibold text-ytText">Studio Budgeting &amp; Monthly Bills</h3>
+                <p class="text-[12px] text-ytMuted mt-0.5">Configure your monthly AI tools, cloud storage, software bills, and profit margins on the dedicated page.</p>
+            </div>
         </div>
-        <div class="p-6">
-            <form action="/admin/settings/update" method="POST">
-                <?= csrf_field() ?>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
-                    <!-- Currency Symbol -->
-                    <div>
-                        <label class="block text-[13px] font-medium text-ytText mb-1 flex items-center gap-1">
-                            <span>Studio Currency Symbol</span>
-                        </label>
-                        <input type="text" name="studio_currency" value="<?= esc($studio_currency ?? '₹') ?>" required
-                               class="w-full bg-ytBg border border-ytBorder text-ytText font-bold text-[14px] rounded px-3.5 py-2 focus:outline-none focus:border-ytBlue font-mono"
-                               placeholder="₹">
-                        <p class="text-[10px] text-ytMuted mt-1">Default currency for all project budgets & payouts.</p>
-                    </div>
-
-                    <!-- AI, Storage & Ops Overhead per Hour -->
-                    <div>
-                        <label class="block text-[13px] font-medium text-ytText mb-1 flex items-center gap-1">
-                            <span>AI, Storage & Ops Rate (<?= esc($studio_currency ?? '₹') ?> / hr)</span>
-                        </label>
-                        <input type="number" step="1" min="0" name="studio_ops_hourly_rate" value="<?= esc($studio_ops_hourly_rate ?? '100.00') ?>" required
-                               class="w-full bg-ytBg border border-ytBorder text-ytText font-bold text-[14px] rounded px-3.5 py-2 focus:outline-none focus:border-ytBlue font-mono"
-                               placeholder="100">
-                        <p class="text-[10px] text-ytMuted mt-1">Recovers AI tools (Claude/Midjourney), Cloudflare R2 storage, VPS & software per billable hr.</p>
-                    </div>
-
-                    <!-- Studio Commission / Margin % -->
-                    <div>
-                        <label class="block text-[13px] font-medium text-ytText mb-1 flex items-center gap-1">
-                            <span>Studio Commission Margin (%)</span>
-                        </label>
-                        <input type="number" step="1" min="0" max="200" name="studio_commission_pct" value="<?= esc($studio_commission_pct ?? '30') ?>" required
-                               class="w-full bg-ytBg border border-ytBorder text-ytText font-bold text-[14px] rounded px-3.5 py-2 focus:outline-none focus:border-ytBlue font-mono"
-                               placeholder="30">
-                        <p class="text-[10px] text-ytMuted mt-1">Studio profit margin added on top of freelance artist & ops costs.</p>
-                    </div>
-
-                    <!-- Default Artist Rate -->
-                    <div>
-                        <label class="block text-[13px] font-medium text-ytText mb-1 flex items-center gap-1">
-                            <span>Default Artist Rate (<?= esc($studio_currency ?? '₹') ?> / hr)</span>
-                        </label>
-                        <input type="number" step="1" min="0" name="default_artist_rate" value="<?= esc($default_artist_rate ?? '500.00') ?>" required
-                               class="w-full bg-ytBg border border-ytBorder text-ytText font-bold text-[14px] rounded px-3.5 py-2 focus:outline-none focus:border-ytBlue font-mono"
-                               placeholder="500">
-                        <p class="text-[10px] text-ytMuted mt-1">Fallback freelance payout rate when a task is unassigned.</p>
-                    </div>
-                </div>
-
-                <!-- Rate Breakdown Formula Preview Box -->
-                <div class="bg-[#0e0e0e] border border-ytBorder/60 rounded-lg p-3.5 mb-5 text-[12px] font-mono">
-                    <div class="text-ytMuted font-bold mb-1 uppercase tracking-wider text-[10px] flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-[14px] text-ytBlue">calculate</span>
-                        Hourly Rate Calculation Preview
-                    </div>
-                    <div class="text-ytText space-y-0.5">
-                        <div>• Freelancer Payout: <span class="text-green-400 font-bold"><?= esc($studio_currency ?? '₹') ?><?= esc($default_artist_rate ?? '500') ?>/hr</span></div>
-                        <div>• AI, Cloudflare R2 &amp; Hosting: <span class="text-purple-300 font-bold"><?= esc($studio_currency ?? '₹') ?><?= esc($studio_ops_hourly_rate ?? '100') ?>/hr</span></div>
-                        <div>• Studio Net Margin: <span class="text-amber-300 font-bold"><?= esc($studio_commission_pct ?? '30') ?>%</span></div>
-                        <div class="pt-1.5 border-t border-ytBorder/40 text-blue-300 font-bold">
-                            = Client Billable Rate: <?= esc($studio_currency ?? '₹') ?><?= round(((float)($default_artist_rate ?? 500) + (float)($studio_ops_hourly_rate ?? 100)) * (1 + ((float)($studio_commission_pct ?? 30) / 100)), 0) ?> / hr
-                        </div>
-                    </div>
-                </div>
-
-                <div class="pt-3 border-t border-ytBorder/50 flex justify-end">
-                    <button type="submit" class="bg-gradient-to-br from-green-700 to-emerald-600 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)] border border-emerald-500/40 px-6 py-2 rounded-full font-medium text-[13px] hover:shadow-[0_0_25px_rgba(16,185,129,0.6)] hover:from-green-600 hover:to-emerald-500 transition-colors">
-                        Save Rate Economics
-                    </button>
-                </div>
-            </form>
-        </div>
+        <a href="/admin/budgeting" class="bg-green-600 hover:bg-green-500 text-white px-5 py-2 rounded-full font-medium text-[13px] shadow-[0_0_15px_rgba(34,197,94,0.3)] transition-all flex items-center gap-1.5 shrink-0">
+            <span>Open Budgeting &amp; Bills</span>
+            <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+        </a>
     </div>
 </div>
 
