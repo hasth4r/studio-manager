@@ -130,42 +130,67 @@ if (!$pdo && file_exists($envPath)) {
 
 if ($pdo) {
     try {
-        // Auto-Link Action: If user clicks link
+        // Auto-Link & Auto-Create Action: If user clicks link
         if (isset($_GET['action']) && $_GET['action'] === 'autolink') {
             $files = is_dir($videoDir) ? scandir($videoDir) : [];
             $videoFiles = array_filter($files, fn($f) => !in_array($f, ['.', '..']));
+            $createdCount = 0;
             $linkedCount = 0;
 
-            $allShots = $pdo->query("SELECT id, project_id, shot_number, comp_name, preview_video_path FROM shots")->fetchAll(PDO::FETCH_ASSOC);
+            // Get sequence for Project 2 (or create 'WAR' sequence)
+            $seqStmt = $pdo->prepare("SELECT id FROM sequences WHERE project_id = 2 LIMIT 1");
+            $seqStmt->execute();
+            $defaultSeq = $seqStmt->fetch(PDO::FETCH_ASSOC);
+            $seqId = $defaultSeq ? $defaultSeq['id'] : null;
+            if (!$seqId) {
+                try {
+                    $insSeq = $pdo->prepare("INSERT INTO sequences (project_id, name, description, created_at, updated_at) VALUES (2, 'WAR', 'Production Sequence', NOW(), NOW())");
+                    $insSeq->execute();
+                    $seqId = $pdo->lastInsertId();
+                } catch (\Throwable $e) {}
+            }
 
             foreach ($videoFiles as $vf) {
                 // Expected format: vid_{projectId}_{shotNum}_{uid}.mp4
-                foreach ($allShots as $sh) {
-                    $sClean = strtolower(trim($sh['shot_number']));
-                    $compClean = strtolower(trim($sh['comp_name'] ?? ''));
-                    $fLower = strtolower($vf);
+                if (preg_match('/^vid_(\d+)_(.+?)_[a-f0-9]+(\.[a-zA-Z0-9]+)$/i', $vf, $m)) {
+                    $projId = (int)$m[1];
+                    $rawShotNum = $m[2]; // e.g. sh0010
+                    $shotNum = strtoupper($rawShotNum); // e.g. SH0010
+                    $relPath = 'uploads/shots/videos/' . $vf;
 
-                    // Check if filename contains project and shot
-                    $matchesProject = strpos($fLower, 'vid_' . $sh['project_id'] . '_') !== false;
-                    $matchesShot = strpos($fLower, '_' . $sClean . '_') !== false || (!empty($compClean) && strpos($fLower, '_' . $compClean . '_') !== false);
+                    // Check if shot already exists in DB
+                    $checkStmt = $pdo->prepare("SELECT id FROM shots WHERE project_id = ? AND (LOWER(shot_number) = ? OR LOWER(comp_name) = ?)");
+                    $checkStmt->execute([$projId, strtolower($rawShotNum), strtolower($rawShotNum)]);
+                    $existing = $checkStmt->fetch(PDO::FETCH_ASSOC);
 
-                    if ($matchesProject && $matchesShot) {
-                        $relPath = 'uploads/shots/videos/' . $vf;
+                    if ($existing) {
                         $updateStmt = $pdo->prepare("UPDATE shots SET preview_video_path = ? WHERE id = ?");
-                        $updateStmt->execute([$relPath, $sh['id']]);
+                        $updateStmt->execute([$relPath, $existing['id']]);
                         $linkedCount++;
-                        break;
+                    } else {
+                        // Auto-create shot in database!
+                        try {
+                            $insertStmt = $pdo->prepare("INSERT INTO shots (project_id, sequence_id, shot_number, preview_video_path, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())");
+                            $insertStmt->execute([$projId, $seqId, $shotNum, $relPath]);
+                            $createdCount++;
+                        } catch (\Throwable $e) {
+                            // Fallback if sequence_id fails
+                            $insertStmt = $pdo->prepare("INSERT INTO shots (project_id, shot_number, preview_video_path, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())");
+                            $insertStmt->execute([$projId, $shotNum, $relPath]);
+                            $createdCount++;
+                        }
                     }
                 }
             }
-            echo "<div style='background:#064e3b; border:1px solid #059669; color:#a7f3d0; padding:12px; border-radius:8px; margin-bottom:15px;'>";
-            echo "<b>🎉 Success! Auto-linked {$linkedCount} video files on disk directly to database shots!</b>";
+            echo "<div style='background:#064e3b; border:1px solid #059669; color:#a7f3d0; padding:15px; border-radius:8px; margin-bottom:15px;'>";
+            echo "<h4 style='margin:0 0 5px 0;'>🎉 Done!</h4>";
+            echo "<p style='margin:0;'>Created <b>{$createdCount}</b> new shots and linked <b>{$linkedCount}</b> existing shots in Project 2!</p>";
             echo "</div>";
         }
 
         // Action Toolbar
         echo "<div style='margin-bottom:15px;'>";
-        echo "<a href='?action=autolink' style='background:#2563eb; color:#fff; padding:8px 16px; border-radius:6px; text-decoration:none; font-weight:bold; font-size:13px;'>🔗 Auto-Link All 94 Disk Videos to Database Shots</a>";
+        echo "<a href='?action=autolink' style='background:#2563eb; color:#fff; padding:10px 20px; border-radius:8px; text-decoration:none; font-weight:bold; font-size:14px; display:inline-block;'>🔗 Auto-Create &amp; Link All 94 Shots in Database</a>";
         echo "</div>";
 
         // Query Project 2 (Mahalaya) shots first, then others
