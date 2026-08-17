@@ -202,7 +202,7 @@
                         <a href="/admin/shots/<?= $shot->id ?>" class="bg-ytCard border border-ytBorder rounded-lg overflow-hidden hover:border-ytBlue transition-colors group">
                             <div class="aspect-video bg-[#1a1a1a] relative overflow-hidden">
                                 <?php if($shot->thumbnail_path): ?>
-                                    <img src="/<?= esc($shot->thumbnail_path) ?>" class="w-full h-full object-cover">
+                                    <img src="<?= base_url(esc($shot->thumbnail_path)) ?>" class="w-full h-full object-cover">
                                 <?php else: ?>
                                     <div class="w-full h-full flex items-center justify-center text-ytMuted">
                                         <span class="material-symbols-outlined text-[32px]">image</span>
@@ -210,7 +210,7 @@
                                 <?php endif; ?>
 
                                 <?php if(!empty($shot->preview_video_path)): ?>
-                                    <video src="/<?= esc($shot->preview_video_path) ?>" 
+                                    <video src="<?= base_url(esc($shot->preview_video_path)) ?>" 
                                            class="w-full h-full object-cover absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" 
                                            muted loop playsinline 
                                            onmouseover="this.play()" 
@@ -255,7 +255,7 @@
                     <a href="/admin/shots/<?= $shot->id ?>" class="bg-ytCard border border-ytBorder rounded-lg overflow-hidden hover:border-ytBlue transition-colors group">
                         <div class="aspect-video bg-[#1a1a1a] relative overflow-hidden">
                             <?php if($shot->thumbnail_path): ?>
-                                <img src="/<?= esc($shot->thumbnail_path) ?>" class="w-full h-full object-cover">
+                                <img src="<?= base_url(esc($shot->thumbnail_path)) ?>" class="w-full h-full object-cover">
                             <?php else: ?>
                                 <div class="w-full h-full flex items-center justify-center text-ytMuted">
                                     <span class="material-symbols-outlined text-[32px]">image</span>
@@ -263,7 +263,7 @@
                             <?php endif; ?>
 
                             <?php if(!empty($shot->preview_video_path)): ?>
-                                <video src="/<?= esc($shot->preview_video_path) ?>" 
+                                <video src="<?= base_url(esc($shot->preview_video_path)) ?>" 
                                        class="w-full h-full object-cover absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" 
                                        muted loop playsinline 
                                        onmouseover="this.play()" 

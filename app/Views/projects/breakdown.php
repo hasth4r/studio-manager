@@ -169,7 +169,7 @@
                         <td class="py-2 px-2 text-center align-top">
                             <div class="w-14 h-9 bg-[#111] rounded border border-ytBorder/60 overflow-hidden relative group/thumb cursor-pointer">
                                 <?php if($shot->thumbnail_path): ?>
-                                    <img src="/<?= esc($shot->thumbnail_path) ?>" class="w-full h-full object-cover">
+                                    <img src="<?= base_url(esc($shot->thumbnail_path)) ?>" class="w-full h-full object-cover">
                                 <?php else: ?>
                                     <div class="w-full h-full flex items-center justify-center text-ytMuted">
                                         <span class="material-symbols-outlined text-[16px]">image</span>
@@ -182,12 +182,12 @@
                                     </span>
                                     <!-- Video Zoom Tooltip -->
                                     <div class="fixed hidden group-hover/thumb:block z-50 pointer-events-none shadow-2xl rounded-lg overflow-hidden border border-blue-500/50 bg-black -mt-24 ml-16 w-64 aspect-video">
-                                        <video src="/<?= esc($shot->preview_video_path) ?>" autoplay muted loop playsinline class="w-full h-full object-cover"></video>
+                                        <video src="<?= base_url(esc($shot->preview_video_path)) ?>" autoplay muted loop playsinline class="w-full h-full object-cover"></video>
                                     </div>
                                 <?php elseif($shot->thumbnail_path): ?>
                                     <!-- Image Zoom Tooltip -->
                                     <div class="fixed hidden group-hover/thumb:block z-50 pointer-events-none shadow-2xl rounded-lg overflow-hidden border border-ytBorder bg-black -mt-20 ml-16 w-56 aspect-video">
-                                        <img src="/<?= esc($shot->thumbnail_path) ?>" class="w-full h-full object-cover">
+                                        <img src="<?= base_url(esc($shot->thumbnail_path)) ?>" class="w-full h-full object-cover">
                                     </div>
                                 <?php endif; ?>
                             </div>

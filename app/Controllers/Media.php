@@ -16,21 +16,41 @@ class Media extends BaseController
 
         // Reconstruct the path from the wildcard segments
         $path = implode('/', $pathArr);
-        
+        $cleanPath = ltrim($path, '/');
+        $noUploadsPrefix = preg_replace('#^uploads/#', '', $cleanPath);
+
+        // 1. Cloudflare R2 Storage
         $r2 = new \App\Libraries\CloudflareStorage();
-        if ($r2->isConfigured() && $r2->fileExists('uploads/' . $path)) {
-            // Anti-Download: Shorten URL lifespan to 10 minutes so shared links die quickly
-            $signedUrl = $r2->getSignedUrl('uploads/' . $path, '+10 minutes');
-            if ($signedUrl) {
-                return redirect()->to($signedUrl);
+        if ($r2->isConfigured()) {
+            $r2Keys = ['uploads/' . $noUploadsPrefix, $cleanPath, $noUploadsPrefix];
+            foreach ($r2Keys as $r2Key) {
+                if ($r2->fileExists($r2Key)) {
+                    $signedUrl = $r2->getSignedUrl($r2Key, '+30 minutes');
+                    if ($signedUrl) {
+                        return redirect()->to($signedUrl);
+                    }
+                }
             }
         }
 
-        // FALLBACK: Local File Streaming
-        $filePath = WRITEPATH . 'uploads/' . $path;
+        // 2. FALLBACK: Local File Streaming (FCPATH public & WRITEPATH writable)
+        $candidatePaths = [
+            FCPATH . $cleanPath,
+            FCPATH . 'uploads' . DIRECTORY_SEPARATOR . $noUploadsPrefix,
+            WRITEPATH . 'uploads' . DIRECTORY_SEPARATOR . $noUploadsPrefix,
+            WRITEPATH . $cleanPath,
+        ];
 
-        if (!is_file($filePath)) {
-            throw new PageNotFoundException('Media not found');
+        $filePath = null;
+        foreach ($candidatePaths as $cand) {
+            if (is_file($cand)) {
+                $filePath = $cand;
+                break;
+            }
+        }
+
+        if (!$filePath || !is_file($filePath)) {
+            throw new PageNotFoundException('Media not found: ' . esc($path));
         }
 
         $mimeType = mime_content_type($filePath);

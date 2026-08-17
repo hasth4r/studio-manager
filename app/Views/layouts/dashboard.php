@@ -329,27 +329,31 @@
             if(mobileMenuClose) mobileMenuClose.addEventListener('click', closeMobileMenu);
             if(mobileSidebarOverlay) mobileSidebarOverlay.addEventListener('click', closeMobileMenu);
             
-            menuToggle.addEventListener('click', () => {
-                const nowCollapsed = !sidebar.classList.contains('sidebar-collapsed');
-                applyCollapsedState(nowCollapsed);
-                localStorage.setItem('sidebarCollapsed', nowCollapsed);
-            });
+            if(menuToggle) {
+                menuToggle.addEventListener('click', () => {
+                    const nowCollapsed = !sidebar.classList.contains('sidebar-collapsed');
+                    applyCollapsedState(nowCollapsed);
+                    localStorage.setItem('sidebarCollapsed', nowCollapsed);
+                });
+            }
 
             // Profile Dropdown Toggle
             const profileToggle = document.getElementById('profileToggle');
             const profileDropdown = document.getElementById('profileDropdown');
 
-            profileToggle.addEventListener('click', (e) => {
-                e.stopPropagation();
-                profileDropdown.classList.toggle('hidden');
-            });
+            if(profileToggle && profileDropdown) {
+                profileToggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    profileDropdown.classList.toggle('hidden');
+                });
 
-            // Close dropdown when clicking outside
-            document.addEventListener('click', (e) => {
-                if (!profileToggle.contains(e.target) && !profileDropdown.contains(e.target)) {
-                    profileDropdown.classList.add('hidden');
-                }
-            });
+                // Close dropdown when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (!profileToggle.contains(e.target) && !profileDropdown.contains(e.target)) {
+                        profileDropdown.classList.add('hidden');
+                    }
+                });
+            }
         });
     </script>
     <!-- Global Notifications Widget -->
