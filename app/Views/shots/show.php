@@ -47,22 +47,88 @@
                 <p class="text-[13px] text-ytMuted whitespace-pre-wrap"><?= esc($shot->description ?: 'No description provided.') ?></p>
             </div>
             
+            <!-- Pipeline Metadata Overview -->
+            <?php if(!empty($shot->comp_name) || !empty($shot->frame_in) || !empty($shot->width) || !empty($shot->timecode_in)): ?>
+            <div class="px-5 py-3.5 bg-[#141414] border-t border-ytBorder/40 space-y-2">
+                <div class="flex items-center justify-between text-[12px]">
+                    <span class="text-ytMuted">Frame Range:</span>
+                    <span class="font-mono text-ytText font-medium">
+                        <?= esc($shot->frame_in ?? '-') ?> &ndash; <?= esc($shot->frame_out ?? '-') ?>
+                        <span class="text-ytBlue font-normal">(<?= esc($shot->frame_count ?? '-') ?> fr)</span>
+                    </span>
+                </div>
+                <?php if(!empty($shot->timecode_in)): ?>
+                <div class="flex items-center justify-between text-[12px]">
+                    <span class="text-ytMuted">Timecode:</span>
+                    <span class="font-mono text-ytText"><?= esc($shot->timecode_in) ?> &ndash; <?= esc($shot->timecode_out) ?></span>
+                </div>
+                <?php endif; ?>
+                <?php if(!empty($shot->width) && !empty($shot->height)): ?>
+                <div class="flex items-center justify-between text-[12px]">
+                    <span class="text-ytMuted">Resolution:</span>
+                    <span class="font-mono text-ytText"><?= esc($shot->width) ?> &times; <?= esc($shot->height) ?></span>
+                </div>
+                <?php endif; ?>
+                <?php if(!empty($shot->comp_name)): ?>
+                <div class="text-[11px] pt-1 text-ytMuted truncate" title="<?= esc($shot->comp_name) ?>">
+                    <span class="text-ytMuted">AE Comp:</span> <code class="text-ytBlue font-mono"><?= esc($shot->comp_name) ?></code>
+                </div>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
+
             <div class="p-5 border-t border-ytBorder/50">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-[14px] font-medium text-ytText">Shot Settings</h3>
+                    <h3 class="text-[14px] font-medium text-ytText">Shot Pipeline Settings</h3>
                 </div>
-                <form action="/admin/shots/updateSettings/<?= $shot->id ?>" method="POST" class="grid grid-cols-2 gap-4">
+                <form action="/admin/shots/updateSettings/<?= $shot->id ?>" method="POST" class="space-y-3">
                     <?= csrf_field() ?>
-                    <div>
-                        <label class="block text-[11px] font-medium text-ytMuted mb-1">Frame Count</label>
-                        <input type="number" name="frame_count" value="<?= esc($shot->frame_count ?? '') ?>" min="1" class="w-full bg-[#1a1a1a] border border-ytBorder/50 text-ytText rounded px-3 py-1.5 focus:outline-none focus:border-ytBlue text-[13px]" placeholder="e.g. 240">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-medium text-ytMuted mb-1">Frame Count</label>
+                            <input type="number" name="frame_count" value="<?= esc($shot->frame_count ?? '') ?>" min="1" class="w-full bg-[#1a1a1a] border border-ytBorder/50 text-ytText rounded px-3 py-1.5 focus:outline-none focus:border-ytBlue text-[13px]" placeholder="e.g. 75">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-medium text-ytMuted mb-1">FPS Override</label>
+                            <input type="number" name="fps" value="<?= esc($shot->fps ?? '') ?>" min="1" class="w-full bg-[#1a1a1a] border border-ytBorder/50 text-ytText rounded px-3 py-1.5 focus:outline-none focus:border-ytBlue text-[13px]" placeholder="Project: <?= esc($shot->project_fps ?? 24) ?>">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-medium text-ytMuted mb-1">Frame In</label>
+                            <input type="number" name="frame_in" value="<?= esc($shot->frame_in ?? '') ?>" class="w-full bg-[#1a1a1a] border border-ytBorder/50 text-ytText rounded px-3 py-1.5 focus:outline-none focus:border-ytBlue text-[13px]" placeholder="1001">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-medium text-ytMuted mb-1">Frame Out</label>
+                            <input type="number" name="frame_out" value="<?= esc($shot->frame_out ?? '') ?>" class="w-full bg-[#1a1a1a] border border-ytBorder/50 text-ytText rounded px-3 py-1.5 focus:outline-none focus:border-ytBlue text-[13px]" placeholder="1075">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-medium text-ytMuted mb-1">Timecode In</label>
+                            <input type="text" name="timecode_in" value="<?= esc($shot->timecode_in ?? '') ?>" class="w-full bg-[#1a1a1a] border border-ytBorder/50 text-ytText rounded px-3 py-1.5 focus:outline-none focus:border-ytBlue text-[13px]" placeholder="00:00:00:00">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-medium text-ytMuted mb-1">Timecode Out</label>
+                            <input type="text" name="timecode_out" value="<?= esc($shot->timecode_out ?? '') ?>" class="w-full bg-[#1a1a1a] border border-ytBorder/50 text-ytText rounded px-3 py-1.5 focus:outline-none focus:border-ytBlue text-[13px]" placeholder="00:00:03:00">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-medium text-ytMuted mb-1">Width (px)</label>
+                            <input type="number" name="width" value="<?= esc($shot->width ?? '') ?>" class="w-full bg-[#1a1a1a] border border-ytBorder/50 text-ytText rounded px-3 py-1.5 focus:outline-none focus:border-ytBlue text-[13px]" placeholder="3840">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-medium text-ytMuted mb-1">Height (px)</label>
+                            <input type="number" name="height" value="<?= esc($shot->height ?? '') ?>" class="w-full bg-[#1a1a1a] border border-ytBorder/50 text-ytText rounded px-3 py-1.5 focus:outline-none focus:border-ytBlue text-[13px]" placeholder="2160">
+                        </div>
                     </div>
                     <div>
-                        <label class="block text-[11px] font-medium text-ytMuted mb-1">FPS Override</label>
-                        <input type="number" name="fps" value="<?= esc($shot->fps ?? '') ?>" min="1" class="w-full bg-[#1a1a1a] border border-ytBorder/50 text-ytText rounded px-3 py-1.5 focus:outline-none focus:border-ytBlue text-[13px]" placeholder="Project: <?= esc($shot->project_fps ?? 24) ?>">
+                        <label class="block text-[11px] font-medium text-ytMuted mb-1">AE Comp Name</label>
+                        <input type="text" name="comp_name" value="<?= esc($shot->comp_name ?? '') ?>" class="w-full bg-[#1a1a1a] border border-ytBorder/50 text-ytText rounded px-3 py-1.5 focus:outline-none focus:border-ytBlue text-[13px]" placeholder="e.g. mhlya-1_war_sh0010_edit_v00">
                     </div>
-                    <div class="col-span-2 text-right mt-1">
-                        <button type="submit" class="bg-[#1a1a1a] text-ytText border border-ytBorder px-3 py-1.5 rounded-full font-medium text-[12px] hover:bg-ytHover transition-colors">Save Settings</button>
+                    <div class="text-right pt-2">
+                        <button type="submit" class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] text-white shadow-[0_0_15px_rgba(23,123,207,0.3)] border border-[#177bcf]/40 px-4 py-1.5 rounded-full font-medium text-[12px] hover:shadow-[0_0_25px_rgba(23,123,207,0.6)] hover:from-[#0d346e] hover:to-[#238bf2] transition-colors">Save Settings</button>
                     </div>
                 </form>
             </div>

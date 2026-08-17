@@ -16,10 +16,18 @@ class ShotModel extends Model
         'project_id',
         'sequence_id',
         'shot_number',
+        'comp_name',
         'description',
         'thumbnail_path',
         'fps',
-        'frame_count'
+        'frame_count',
+        'frame_in',
+        'frame_out',
+        'duration_seconds',
+        'timecode_in',
+        'timecode_out',
+        'width',
+        'height'
     ];
 
     protected $useTimestamps = true;

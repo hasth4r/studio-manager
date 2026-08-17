@@ -603,10 +603,18 @@ class Projects extends BaseController
                 }
             }
 
-            // Extract Frame Count & FPS
+            // Extract Metadata & Pipeline Fields
             $frameCount = $cleanRow['duration_frames'] ?? $cleanRow['frame_count'] ?? $cleanRow['frames'] ?? $cleanRow['duration'] ?? null;
             $fps = $cleanRow['fps'] ?? $cleanRow['frame_rate'] ?? ($project->fps ?? 24);
-            $description = $cleanRow['description'] ?? $cleanRow['comp_name'] ?? null;
+            $description = $cleanRow['description'] ?? null;
+            $compName = $cleanRow['comp_name'] ?? null;
+            $frameIn = $cleanRow['frame_in'] ?? null;
+            $frameOut = $cleanRow['frame_out'] ?? null;
+            $durationSec = $cleanRow['duration_sec'] ?? $cleanRow['duration_seconds'] ?? null;
+            $timecodeIn = $cleanRow['timecode_in'] ?? null;
+            $timecodeOut = $cleanRow['timecode_out'] ?? null;
+            $width = $cleanRow['width'] ?? null;
+            $height = $cleanRow['height'] ?? null;
 
             // Resolve Thumbnail
             $thumbFileRef = $cleanRow['thumbnail_file'] ?? $cleanRow['thumbnail'] ?? $cleanRow['thumb'] ?? null;
@@ -677,11 +685,19 @@ class Projects extends BaseController
             $existingShot = $query->first();
 
             $shotData = [
-                'project_id'  => $projectId,
-                'sequence_id' => $sequenceId,
-                'shot_number' => $shotNumber,
-                'fps'         => !empty($fps) ? (int)$fps : null,
-                'frame_count' => !empty($frameCount) ? (int)$frameCount : null,
+                'project_id'       => $projectId,
+                'sequence_id'      => $sequenceId,
+                'shot_number'      => $shotNumber,
+                'comp_name'        => !empty($compName) ? $compName : null,
+                'fps'              => !empty($fps) ? (int)$fps : null,
+                'frame_count'      => !empty($frameCount) ? (int)$frameCount : null,
+                'frame_in'         => !empty($frameIn) ? (int)$frameIn : null,
+                'frame_out'        => !empty($frameOut) ? (int)$frameOut : null,
+                'duration_seconds' => !empty($durationSec) ? (float)$durationSec : null,
+                'timecode_in'      => !empty($timecodeIn) ? $timecodeIn : null,
+                'timecode_out'     => !empty($timecodeOut) ? $timecodeOut : null,
+                'width'            => !empty($width) ? (int)$width : null,
+                'height'           => !empty($height) ? (int)$height : null,
             ];
             if (!empty($description)) {
                 $shotData['description'] = $description;

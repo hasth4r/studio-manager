@@ -103,10 +103,26 @@ class Shots extends BaseController
 
         $fps = $this->request->getPost('fps');
         $frameCount = $this->request->getPost('frame_count');
+        $frameIn = $this->request->getPost('frame_in');
+        $frameOut = $this->request->getPost('frame_out');
+        $compName = $this->request->getPost('comp_name');
+        $timecodeIn = $this->request->getPost('timecode_in');
+        $timecodeOut = $this->request->getPost('timecode_out');
+        $width = $this->request->getPost('width');
+        $height = $this->request->getPost('height');
+        $durationSeconds = $this->request->getPost('duration_seconds');
 
         $model->update($id, [
-            'fps'         => $fps ? (int)$fps : null,
-            'frame_count' => $frameCount ? (int)$frameCount : null,
+            'fps'              => $fps !== null && $fps !== '' ? (int)$fps : null,
+            'frame_count'      => $frameCount !== null && $frameCount !== '' ? (int)$frameCount : null,
+            'frame_in'         => $frameIn !== null && $frameIn !== '' ? (int)$frameIn : null,
+            'frame_out'        => $frameOut !== null && $frameOut !== '' ? (int)$frameOut : null,
+            'comp_name'        => !empty($compName) ? $compName : null,
+            'timecode_in'      => !empty($timecodeIn) ? $timecodeIn : null,
+            'timecode_out'     => !empty($timecodeOut) ? $timecodeOut : null,
+            'width'            => $width !== null && $width !== '' ? (int)$width : null,
+            'height'           => $height !== null && $height !== '' ? (int)$height : null,
+            'duration_seconds' => $durationSeconds !== null && $durationSeconds !== '' ? (float)$durationSeconds : null,
         ]);
 
         return redirect()->back()->with('message', 'Shot settings updated successfully.');

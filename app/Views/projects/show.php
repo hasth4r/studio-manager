@@ -149,9 +149,19 @@
                                     <span class="material-symbols-outlined text-[32px]">image</span>
                                 </div>
                             <?php endif; ?>
+                            <?php if(!empty($shot->frame_count)): ?>
+                                <span class="absolute bottom-1.5 right-1.5 bg-black/80 backdrop-blur-xs text-white text-[10px] px-1.5 py-0.5 rounded font-mono border border-white/10">
+                                    <?= !empty($shot->frame_in) && !empty($shot->frame_out) ? esc($shot->frame_in) . '–' . esc($shot->frame_out) : esc($shot->frame_count) . ' fr' ?>
+                                </span>
+                            <?php endif; ?>
                         </div>
                         <div class="p-3 flex justify-between items-start relative z-10">
-                            <p class="text-[14px] font-medium text-ytText group-hover:text-ytBlue transition-colors"><?= esc($shot->shot_number) ?></p>
+                            <div>
+                                <p class="text-[14px] font-medium text-ytText group-hover:text-ytBlue transition-colors leading-tight"><?= esc($shot->shot_number) ?></p>
+                                <?php if(!empty($shot->frame_count) || !empty($shot->fps)): ?>
+                                    <p class="text-[11px] text-ytMuted font-mono mt-0.5"><?= esc($shot->frame_count ?? '-') ?> fr &bull; <?= esc($shot->fps ?? $project->fps ?? 24) ?> FPS</p>
+                                <?php endif; ?>
+                            </div>
                             <button onclick="editShot(event, <?= $shot->id ?>, <?= $shot->sequence_id ?: 'null' ?>, <?= htmlspecialchars(json_encode($shot->shot_number), ENT_QUOTES, 'UTF-8') ?>, <?= $shot->fps ?: 'null' ?>, <?= $shot->frame_count ?: 'null' ?>, <?= htmlspecialchars(json_encode($shot->description), ENT_QUOTES, 'UTF-8') ?>)" class="text-ytMuted hover:text-ytText transition-colors p-1 rounded-full hover:bg-ytHover opacity-0 group-hover:opacity-100">
                                 <span class="material-symbols-outlined text-[16px] block">edit</span>
                             </button>
@@ -191,9 +201,19 @@
                                         <span class="material-symbols-outlined text-[32px]">image</span>
                                     </div>
                                 <?php endif; ?>
+                                <?php if(!empty($shot->frame_count)): ?>
+                                    <span class="absolute bottom-1.5 right-1.5 bg-black/80 backdrop-blur-xs text-white text-[10px] px-1.5 py-0.5 rounded font-mono border border-white/10">
+                                        <?= !empty($shot->frame_in) && !empty($shot->frame_out) ? esc($shot->frame_in) . '–' . esc($shot->frame_out) : esc($shot->frame_count) . ' fr' ?>
+                                    </span>
+                                <?php endif; ?>
                             </div>
                             <div class="p-3 flex justify-between items-start relative z-10">
-                                <p class="text-[14px] font-medium text-ytText group-hover:text-ytBlue transition-colors"><?= esc($shot->shot_number) ?></p>
+                                <div>
+                                    <p class="text-[14px] font-medium text-ytText group-hover:text-ytBlue transition-colors leading-tight"><?= esc($shot->shot_number) ?></p>
+                                    <?php if(!empty($shot->frame_count) || !empty($shot->fps)): ?>
+                                        <p class="text-[11px] text-ytMuted font-mono mt-0.5"><?= esc($shot->frame_count ?? '-') ?> fr &bull; <?= esc($shot->fps ?? $project->fps ?? 24) ?> FPS</p>
+                                    <?php endif; ?>
+                                </div>
                                 <button onclick="editShot(event, <?= $shot->id ?>, <?= $shot->sequence_id ?: 'null' ?>, <?= htmlspecialchars(json_encode($shot->shot_number), ENT_QUOTES, 'UTF-8') ?>, <?= $shot->fps ?: 'null' ?>, <?= $shot->frame_count ?: 'null' ?>, <?= htmlspecialchars(json_encode($shot->description), ENT_QUOTES, 'UTF-8') ?>)" class="text-ytMuted hover:text-ytText transition-colors p-1 rounded-full hover:bg-ytHover opacity-0 group-hover:opacity-100">
                                     <span class="material-symbols-outlined text-[16px] block">edit</span>
                                 </button>
