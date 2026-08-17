@@ -93,8 +93,8 @@ if (file_exists($envFile)) {
     echo "<p style='color:#aaa;'>No .env found for R2 check.</p>";
 }
 
-// 2. Check Database Shots Table
-echo "<h3>2. Database Status (Shots with Video Previews)</h3>";
+// 2. Check Database Shots Table & Auto-Linker
+echo "<h3>2. Database Status &amp; Auto-Linker</h3>";
 
 $sqlitePath = dirname(__DIR__) . '/writable/database.db';
 $envPath = dirname(__DIR__) . '/.env';
@@ -130,19 +130,58 @@ if (!$pdo && file_exists($envPath)) {
 
 if ($pdo) {
     try {
-        $stmt = $pdo->query("SELECT id, project_id, shot_number, comp_name, preview_video_path, thumbnail_path FROM shots ORDER BY id ASC LIMIT 50");
+        // Auto-Link Action: If user clicks link
+        if (isset($_GET['action']) && $_GET['action'] === 'autolink') {
+            $files = is_dir($videoDir) ? scandir($videoDir) : [];
+            $videoFiles = array_filter($files, fn($f) => !in_array($f, ['.', '..']));
+            $linkedCount = 0;
+
+            $allShots = $pdo->query("SELECT id, project_id, shot_number, comp_name, preview_video_path FROM shots")->fetchAll(PDO::FETCH_ASSOC);
+
+            foreach ($videoFiles as $vf) {
+                // Expected format: vid_{projectId}_{shotNum}_{uid}.mp4
+                foreach ($allShots as $sh) {
+                    $sClean = strtolower(trim($sh['shot_number']));
+                    $compClean = strtolower(trim($sh['comp_name'] ?? ''));
+                    $fLower = strtolower($vf);
+
+                    // Check if filename contains project and shot
+                    $matchesProject = strpos($fLower, 'vid_' . $sh['project_id'] . '_') !== false;
+                    $matchesShot = strpos($fLower, '_' . $sClean . '_') !== false || (!empty($compClean) && strpos($fLower, '_' . $compClean . '_') !== false);
+
+                    if ($matchesProject && $matchesShot) {
+                        $relPath = 'uploads/shots/videos/' . $vf;
+                        $updateStmt = $pdo->prepare("UPDATE shots SET preview_video_path = ? WHERE id = ?");
+                        $updateStmt->execute([$relPath, $sh['id']]);
+                        $linkedCount++;
+                        break;
+                    }
+                }
+            }
+            echo "<div style='background:#064e3b; border:1px solid #059669; color:#a7f3d0; padding:12px; border-radius:8px; margin-bottom:15px;'>";
+            echo "<b>🎉 Success! Auto-linked {$linkedCount} video files on disk directly to database shots!</b>";
+            echo "</div>";
+        }
+
+        // Action Toolbar
+        echo "<div style='margin-bottom:15px;'>";
+        echo "<a href='?action=autolink' style='background:#2563eb; color:#fff; padding:8px 16px; border-radius:6px; text-decoration:none; font-weight:bold; font-size:13px;'>🔗 Auto-Link All 94 Disk Videos to Database Shots</a>";
+        echo "</div>";
+
+        // Query Project 2 (Mahalaya) shots first, then others
+        $stmt = $pdo->query("SELECT id, project_id, shot_number, comp_name, preview_video_path, thumbnail_path FROM shots ORDER BY project_id DESC, id ASC LIMIT 250");
         $shots = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         echo "<table>";
-        echo "<tr><th>Shot ID</th><th>Shot Number</th><th>Comp Name</th><th>Preview Video Path</th><th>On Local Disk?</th>" . ($r2Configured ? "<th>On R2 CDN?</th>" : "") . "<th>Live Video Player</th></tr>";
+        echo "<tr><th>Shot ID</th><th>Project</th><th>Shot Number</th><th>Comp Name</th><th>Preview Video Path</th><th>On Local Disk?</th>" . ($r2Configured ? "<th>On R2 CDN?</th>" : "") . "<th>Live Video Player</th></tr>";
         
-        $hasAnyVideo = false;
+        $hasAnyVideo = 0;
         foreach ($shots as $s) {
             $vpath = $s['preview_video_path'] ?? null;
             $diskExists = false;
             $r2Exists = false;
             if ($vpath) {
-                $hasAnyVideo = true;
+                $hasAnyVideo++;
                 $fullPath = __DIR__ . '/' . ltrim($vpath, '/');
                 $diskExists = file_exists($fullPath);
                 if ($r2Configured && $r2Client) {
@@ -154,6 +193,7 @@ if ($pdo) {
 
             echo "<tr>";
             echo "<td>{$s['id']}</td>";
+            echo "<td>Project <b>{$s['project_id']}</b></td>";
             echo "<td><b>{$s['shot_number']}</b></td>";
             echo "<td>" . ($s['comp_name'] ?: '-') . "</td>";
             echo "<td>" . ($vpath ? "<code>$vpath</code>" : "<span class='badge-no'>None</span>") . "</td>";
@@ -163,18 +203,16 @@ if ($pdo) {
             }
             echo "<td>";
             if ($vpath && ($diskExists || $r2Exists)) {
-                echo "<video src='/$vpath' controls></video>";
+                echo "<video src='/$vpath' controls preload='metadata'></video>";
             } else {
-                echo "<span style='color:#666;'>No video</span>";
+                echo "<span style='color:#666;'>No video linked</span>";
             }
             echo "</td>";
             echo "</tr>";
         }
         echo "</table>";
 
-        if (!$hasAnyVideo) {
-            echo "<p class='badge-no'>&#x26A0; No shots in the database have a preview_video_path assigned yet.</p>";
-        }
+        echo "<p style='margin-top:10px;'>Total Shots with Linked Videos: <b>{$hasAnyVideo}</b> / " . count($shots) . "</p>";
     } catch (\Throwable $e) {
         echo "<p class='badge-no'>DB Error: " . htmlspecialchars($e->getMessage()) . "</p>";
     }
