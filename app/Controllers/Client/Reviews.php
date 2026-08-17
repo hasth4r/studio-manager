@@ -214,10 +214,10 @@ class Reviews extends BaseController
                 $playlist[] = [
                     'shot_id' => $shot->id,
                     'shot_number' => $shot->shot_number,
-                    'thumbnail_path' => $shot->thumbnail_path ? base_url($shot->thumbnail_path) : '',
+                    'thumbnail_path' => $shot->thumbnail_path ? media_cdn_url($shot->thumbnail_path) : '',
                     'review_id' => $latestReview->review_id,
                     'proxy_path' => $latestReview->proxy_path,
-                    'proxy_url' => base_url('media/serve/' . $latestReview->proxy_path),
+                    'proxy_url' => media_cdn_url($latestReview->proxy_path),
                     'version_string' => $latestReview->version_string,
                     'task_name' => $latestReview->task_name
                 ];
