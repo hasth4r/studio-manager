@@ -604,11 +604,13 @@ class Projects extends BaseController
                                             $newVidName = 'vid_' . $projectId . '_' . preg_replace('/[^a-zA-Z0-9_-]/', '_', $eshot->shot_number) . '_' . uniqid() . '.' . $mExt;
                                             @copy($mediaPath, $targetVideoDir . DIRECTORY_SEPARATOR . $newVidName);
                                             $shotModel->update($eshot->id, ['preview_video_path' => 'uploads/shots/videos/' . $newVidName]);
+                                            $this->syncMediaToR2($targetVideoDir . DIRECTORY_SEPARATOR . $newVidName, 'uploads/shots/videos/' . $newVidName);
                                             $matchedVideos++;
                                         } else {
                                             $newThumbName = 'shot_' . $projectId . '_' . preg_replace('/[^a-zA-Z0-9_-]/', '_', $eshot->shot_number) . '_' . uniqid() . '.' . $mExt;
                                             @copy($mediaPath, $targetThumbDir . DIRECTORY_SEPARATOR . $newThumbName);
                                             $shotModel->update($eshot->id, ['thumbnail_path' => 'uploads/shots/' . $newThumbName]);
+                                            $this->syncMediaToR2($targetThumbDir . DIRECTORY_SEPARATOR . $newThumbName, 'uploads/shots/' . $newThumbName);
                                             $matchedThumbs++;
                                         }
                                         break;
@@ -1212,11 +1214,13 @@ class Projects extends BaseController
                                 $newVidName = 'vid_' . $projectId . '_' . preg_replace('/[^a-zA-Z0-9_-]/', '_', $eshot->shot_number) . '_' . uniqid() . '.' . $mExt;
                                 @copy($mediaPath, $targetVideoDir . DIRECTORY_SEPARATOR . $newVidName);
                                 $shotModel->update($eshot->id, ['preview_video_path' => 'uploads/shots/videos/' . $newVidName]);
+                                $this->syncMediaToR2($targetVideoDir . DIRECTORY_SEPARATOR . $newVidName, 'uploads/shots/videos/' . $newVidName);
                                 $matchedVideos++;
                             } else {
                                 $newThumbName = 'shot_' . $projectId . '_' . preg_replace('/[^a-zA-Z0-9_-]/', '_', $eshot->shot_number) . '_' . uniqid() . '.' . $mExt;
                                 @copy($mediaPath, $targetThumbDir . DIRECTORY_SEPARATOR . $newThumbName);
                                 $shotModel->update($eshot->id, ['thumbnail_path' => 'uploads/shots/' . $newThumbName]);
+                                $this->syncMediaToR2($targetThumbDir . DIRECTORY_SEPARATOR . $newThumbName, 'uploads/shots/' . $newThumbName);
                                 $matchedThumbs++;
                             }
                             break;
@@ -1288,6 +1292,7 @@ class Projects extends BaseController
 
             $relPath = 'uploads/shots/' . $filename;
             $shotModel->update($shotId, ['thumbnail_path' => $relPath]);
+            $this->syncMediaToR2($filePath, $relPath);
 
             return $this->response->setJSON([
                 'success' => true,
@@ -1297,6 +1302,21 @@ class Projects extends BaseController
         }
 
         return $this->response->setJSON(['success' => false, 'error' => 'Invalid image payload'])->setStatusCode(400);
+    }
+
+    /**
+     * Optional sync to Cloudflare R2 CDN if configured in .env.
+     */
+    private function syncMediaToR2($localAbsolutePath, $destRelativePath)
+    {
+        try {
+            $r2 = new \App\Libraries\CloudflareStorage();
+            if ($r2->isConfigured()) {
+                $r2->uploadFile($localAbsolutePath, $destRelativePath);
+            }
+        } catch (\Throwable $e) {
+            log_message('error', 'R2 Sync Warning: ' . $e->getMessage());
+        }
     }
 
     /**

@@ -27,17 +27,70 @@ if (!is_dir($videoDir)) {
 } else {
     $files = scandir($videoDir);
     $videoFiles = array_filter($files, fn($f) => !in_array($f, ['.', '..']));
-    echo "<p>Total video files on disk: <b>" . count($videoFiles) . "</b></p>";
+    echo "<p>Total video files on server disk: <b>" . count($videoFiles) . "</b></p>";
     if (!empty($videoFiles)) {
         echo "<ul>";
         foreach ($videoFiles as $vf) {
             $fsize = round(filesize($videoDir . '/' . $vf) / (1024 * 1024), 2);
-            echo "<li>&#x2705; <b>$vf</b> ($fsize MB) &mdash; <a href='/uploads/shots/videos/$vf' target='_blank' style='color:#3ea6ff;'>Direct Link</a></li>";
+            echo "<li>&#x2705; <b>$vf</b> ($fsize MB) &mdash; <a href='/uploads/shots/videos/$vf' target='_blank' style='color:#3ea6ff;'>Direct Local Link</a></li>";
         }
         echo "</ul>";
     } else {
-        echo "<p style='color:#fbbf24;'>&#x26A0; Directory is ready, but no video files have been uploaded yet.</p>";
+        echo "<p style='color:#fbbf24;'>&#x26A0; No video files found in local uploads/shots/videos folder yet.</p>";
     }
+}
+
+// 1.5. Check Cloudflare R2 CDN Storage
+echo "<h3>1.5. Cloudflare R2 CDN Storage</h3>";
+$autoloadPath = dirname(__DIR__) . '/vendor/autoload.php';
+$r2Configured = false;
+$r2Client = null;
+$r2Bucket = '';
+$r2CustomDomain = '';
+
+if (file_exists($autoloadPath)) {
+    require_once $autoloadPath;
+}
+
+$envFile = dirname(__DIR__) . '/.env';
+if (file_exists($envFile)) {
+    $envLines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    $r2Key = ''; $r2Secret = ''; $r2Endpoint = ''; $r2Region = 'auto';
+    foreach ($envLines as $line) {
+        $line = trim($line);
+        if (strpos($line, '#') === 0) continue;
+        if (strpos($line, '=') !== false) {
+            list($k, $v) = explode('=', $line, 2);
+            $k = trim($k);
+            $v = trim($v, " \t\n\r\0\x0B'\"");
+            if ($k === 'r2.key') $r2Key = $v;
+            if ($k === 'r2.secret') $r2Secret = $v;
+            if ($k === 'r2.bucket') $r2Bucket = $v;
+            if ($k === 'r2.endpoint') $r2Endpoint = $v;
+            if ($k === 'r2.region') $r2Region = $v;
+            if ($k === 'r2.customDomain') $r2CustomDomain = $v;
+        }
+    }
+
+    if (!empty($r2Key) && !empty($r2Secret) && !empty($r2Bucket) && class_exists('\Aws\S3\S3Client')) {
+        try {
+            $r2Client = new \Aws\S3\S3Client([
+                'version'     => 'latest',
+                'region'      => $r2Region,
+                'endpoint'    => $r2Endpoint,
+                'credentials' => ['key' => $r2Key, 'secret' => $r2Secret],
+                'use_path_style_endpoint' => true,
+            ]);
+            $r2Configured = true;
+            echo "<p class='badge-yes'>&#x2705; Cloudflare R2 is configured (Bucket: <code>$r2Bucket</code>" . ($r2CustomDomain ? ", Custom CDN: <code>$r2CustomDomain</code>" : "") . ")</p>";
+        } catch (\Throwable $e) {
+            echo "<p class='badge-no'>&#x274C; R2 Connection error: " . htmlspecialchars($e->getMessage()) . "</p>";
+        }
+    } else {
+        echo "<p style='color:#aaa;'>Cloudflare R2 is not configured in .env (Videos are stored directly on your web hosting server disk).</p>";
+    }
+} else {
+    echo "<p style='color:#aaa;'>No .env found for R2 check.</p>";
 }
 
 // 2. Check Database Shots Table
@@ -81,16 +134,22 @@ if ($pdo) {
         $shots = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         echo "<table>";
-        echo "<tr><th>Shot ID</th><th>Shot Number</th><th>Comp Name</th><th>Preview Video Path</th><th>File Exists on Disk?</th><th>Live Video Player</th></tr>";
+        echo "<tr><th>Shot ID</th><th>Shot Number</th><th>Comp Name</th><th>Preview Video Path</th><th>On Local Disk?</th>" . ($r2Configured ? "<th>On R2 CDN?</th>" : "") . "<th>Live Video Player</th></tr>";
         
         $hasAnyVideo = false;
         foreach ($shots as $s) {
             $vpath = $s['preview_video_path'] ?? null;
             $diskExists = false;
+            $r2Exists = false;
             if ($vpath) {
                 $hasAnyVideo = true;
                 $fullPath = __DIR__ . '/' . ltrim($vpath, '/');
                 $diskExists = file_exists($fullPath);
+                if ($r2Configured && $r2Client) {
+                    try {
+                        $r2Exists = $r2Client->doesObjectExist($r2Bucket, ltrim($vpath, '/'));
+                    } catch (\Throwable $e) {}
+                }
             }
 
             echo "<tr>";
@@ -99,8 +158,11 @@ if ($pdo) {
             echo "<td>" . ($s['comp_name'] ?: '-') . "</td>";
             echo "<td>" . ($vpath ? "<code>$vpath</code>" : "<span class='badge-no'>None</span>") . "</td>";
             echo "<td>" . ($vpath ? ($diskExists ? "<span class='badge-yes'>&#x2705; YES</span>" : "<span class='badge-no'>&#x274C; Missing file</span>") : "-") . "</td>";
+            if ($r2Configured) {
+                echo "<td>" . ($vpath ? ($r2Exists ? "<span class='badge-yes'>&#x2705; YES</span>" : "<span class='badge-no'>&#x274C; Not in R2</span>") : "-") . "</td>";
+            }
             echo "<td>";
-            if ($vpath && $diskExists) {
+            if ($vpath && ($diskExists || $r2Exists)) {
                 echo "<video src='/$vpath' controls></video>";
             } else {
                 echo "<span style='color:#666;'>No video</span>";
