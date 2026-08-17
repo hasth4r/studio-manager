@@ -215,9 +215,11 @@
                                            muted loop playsinline 
                                            onmouseover="this.play()" 
                                            onmouseout="this.pause(); this.currentTime=0;"></video>
-                                    <span class="absolute top-1.5 left-1.5 bg-black/80 backdrop-blur-xs border border-blue-500/40 text-blue-300 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5 z-10">
-                                        <span class="material-symbols-outlined text-[11px]">play_circle</span> Preview
-                                    </span>
+                                    <button type="button" 
+                                            onclick="openVideoModal(event, '<?= base_url(esc($shot->preview_video_path)) ?>', '<?= esc($shot->shot_number) ?>')" 
+                                            class="absolute top-1.5 left-1.5 bg-black/90 hover:bg-blue-600 backdrop-blur-xs border border-blue-500/50 text-blue-200 hover:text-white text-[10px] font-mono font-bold px-2 py-0.5 rounded flex items-center gap-1 z-20 cursor-pointer shadow-md transition-all">
+                                        <span class="material-symbols-outlined text-[13px]">play_circle</span> Preview
+                                    </button>
                                 <?php endif; ?>
 
                                 <?php if(!empty($shot->frame_count)): ?>
@@ -268,9 +270,11 @@
                                        muted loop playsinline 
                                        onmouseover="this.play()" 
                                        onmouseout="this.pause(); this.currentTime=0;"></video>
-                                <span class="absolute top-1.5 left-1.5 bg-black/80 backdrop-blur-xs border border-blue-500/40 text-blue-300 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5 z-10">
-                                    <span class="material-symbols-outlined text-[11px]">play_circle</span> Preview
-                                </span>
+                                <button type="button" 
+                                        onclick="openVideoModal(event, '<?= base_url(esc($shot->preview_video_path)) ?>', '<?= esc($shot->shot_number) ?>')" 
+                                        class="absolute top-1.5 left-1.5 bg-black/90 hover:bg-blue-600 backdrop-blur-xs border border-blue-500/50 text-blue-200 hover:text-white text-[10px] font-mono font-bold px-2 py-0.5 rounded flex items-center gap-1 z-20 cursor-pointer shadow-md transition-all">
+                                    <span class="material-symbols-outlined text-[13px]">play_circle</span> Preview
+                                </button>
                             <?php endif; ?>
 
                             <?php if(!empty($shot->frame_count)): ?>
@@ -847,6 +851,51 @@
             document.getElementById('deleteShotForm').submit();
         }
     }
+
+    function openVideoModal(e, videoUrl, shotTitle) {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        const modal = document.getElementById('quickVideoModal');
+        const video = document.getElementById('quickVideoPlayer');
+        const title = document.getElementById('quickVideoTitle');
+        if (!modal || !video) return;
+
+        title.textContent = `Preview: Shot ${shotTitle}`;
+        video.src = videoUrl;
+        modal.classList.remove('hidden');
+        video.play().catch(() => {});
+    }
+
+    function closeVideoModal() {
+        const modal = document.getElementById('quickVideoModal');
+        const video = document.getElementById('quickVideoPlayer');
+        if (!modal || !video) return;
+
+        video.pause();
+        video.currentTime = 0;
+        video.src = '';
+        modal.classList.add('hidden');
+    }
 </script>
+
+<!-- Quick Video Player Modal -->
+<div id="quickVideoModal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-md flex items-center justify-center p-4" onclick="if(event.target===this) closeVideoModal()">
+    <div class="bg-ytCard border border-ytBorder rounded-2xl overflow-hidden shadow-2xl max-w-3xl w-full">
+        <div class="px-5 py-3.5 border-b border-ytBorder/60 flex items-center justify-between bg-[#111]">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-ytBlue text-[20px]">play_circle</span>
+                <h4 id="quickVideoTitle" class="text-[14px] font-bold text-ytText font-mono">Video Preview</h4>
+            </div>
+            <button type="button" onclick="closeVideoModal()" class="text-ytMuted hover:text-ytText p-1 rounded-full hover:bg-ytHover transition-colors">
+                <span class="material-symbols-outlined text-[20px]">close</span>
+            </button>
+        </div>
+        <div class="aspect-video bg-black flex items-center justify-center">
+            <video id="quickVideoPlayer" controls playsinline class="w-full h-full object-contain"></video>
+        </div>
+    </div>
+</div>
 
 <?= $this->endSection() ?>

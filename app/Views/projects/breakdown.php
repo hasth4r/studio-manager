@@ -167,7 +167,11 @@
 
                         <!-- 2. Thumbnail & Video Preview -->
                         <td class="py-2 px-2 text-center align-top">
-                            <div class="w-14 h-9 bg-[#111] rounded border border-ytBorder/60 overflow-hidden relative group/thumb cursor-pointer">
+                            <div class="w-14 h-9 bg-[#111] rounded border border-ytBorder/60 overflow-hidden relative group/thumb cursor-pointer"
+                                 <?php if(!empty($shot->preview_video_path)): ?>
+                                     onclick="openVideoModal('<?= base_url(esc($shot->preview_video_path)) ?>', '<?= esc($shot->shot_number) ?>')"
+                                     title="Click to play video preview"
+                                 <?php endif; ?>>
                                 <?php if($shot->thumbnail_path): ?>
                                     <img src="<?= base_url(esc($shot->thumbnail_path)) ?>" class="w-full h-full object-cover">
                                 <?php else: ?>
@@ -177,8 +181,8 @@
                                 <?php endif; ?>
 
                                 <?php if(!empty($shot->preview_video_path)): ?>
-                                    <span class="absolute bottom-0.5 right-0.5 bg-blue-600/90 text-white text-[8px] font-bold px-1 rounded flex items-center">
-                                        ▶
+                                    <span class="absolute bottom-0.5 right-0.5 bg-blue-600 hover:bg-blue-500 text-white text-[8px] font-bold px-1 rounded flex items-center shadow-md">
+                                        ▶ Play
                                     </span>
                                     <!-- Video Zoom Tooltip -->
                                     <div class="fixed hidden group-hover/thumb:block z-50 pointer-events-none shadow-2xl rounded-lg overflow-hidden border border-blue-500/50 bg-black -mt-24 ml-16 w-64 aspect-video">
@@ -636,6 +640,48 @@
             toast.classList.add('hidden');
         }, 2200);
     }
+
+    // 10. Quick Video Player Modal
+    function openVideoModal(videoUrl, shotTitle) {
+        const modal = document.getElementById('quickVideoModal');
+        const video = document.getElementById('quickVideoPlayer');
+        const title = document.getElementById('quickVideoTitle');
+        if (!modal || !video) return;
+
+        title.textContent = `Preview: Shot ${shotTitle}`;
+        video.src = videoUrl;
+        modal.classList.remove('hidden');
+        video.play().catch(() => {});
+    }
+
+    function closeVideoModal() {
+        const modal = document.getElementById('quickVideoModal');
+        const video = document.getElementById('quickVideoPlayer');
+        if (!modal || !video) return;
+
+        video.pause();
+        video.currentTime = 0;
+        video.src = '';
+        modal.classList.add('hidden');
+    }
 </script>
+
+<!-- Quick Video Player Modal -->
+<div id="quickVideoModal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-md flex items-center justify-center p-4" onclick="if(event.target===this) closeVideoModal()">
+    <div class="bg-ytCard border border-ytBorder rounded-2xl overflow-hidden shadow-2xl max-w-3xl w-full">
+        <div class="px-5 py-3.5 border-b border-ytBorder/60 flex items-center justify-between bg-[#111]">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-ytBlue text-[20px]">play_circle</span>
+                <h4 id="quickVideoTitle" class="text-[14px] font-bold text-ytText font-mono">Video Preview</h4>
+            </div>
+            <button type="button" onclick="closeVideoModal()" class="text-ytMuted hover:text-ytText p-1 rounded-full hover:bg-ytHover transition-colors">
+                <span class="material-symbols-outlined text-[20px]">close</span>
+            </button>
+        </div>
+        <div class="aspect-video bg-black flex items-center justify-center">
+            <video id="quickVideoPlayer" controls playsinline class="w-full h-full object-contain"></video>
+        </div>
+    </div>
+</div>
 
 <?= $this->endSection() ?>
