@@ -350,7 +350,7 @@
                     </tr>
                     <?php endforeach; ?>
                 </tbody>
-            </table>     </table>
+            </table>
         </div>
     </div>
 </div>
