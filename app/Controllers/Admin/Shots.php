@@ -112,7 +112,7 @@ class Shots extends BaseController
         $height = $this->request->getPost('height');
         $durationSeconds = $this->request->getPost('duration_seconds');
 
-        $model->update($id, [
+        $updateData = [
             'fps'              => $fps !== null && $fps !== '' ? (int)$fps : null,
             'frame_count'      => $frameCount !== null && $frameCount !== '' ? (int)$frameCount : null,
             'frame_in'         => $frameIn !== null && $frameIn !== '' ? (int)$frameIn : null,
@@ -123,7 +123,33 @@ class Shots extends BaseController
             'width'            => $width !== null && $width !== '' ? (int)$width : null,
             'height'           => $height !== null && $height !== '' ? (int)$height : null,
             'duration_seconds' => $durationSeconds !== null && $durationSeconds !== '' ? (float)$durationSeconds : null,
-        ]);
+        ];
+
+        // Handle Video Preview Upload
+        $uploadedVid = $this->request->getFile('preview_video');
+        if ($uploadedVid && $uploadedVid->isValid() && !$uploadedVid->hasMoved()) {
+            $targetVideoDir = FCPATH . 'uploads' . DIRECTORY_SEPARATOR . 'shots' . DIRECTORY_SEPARATOR . 'videos';
+            if (!is_dir($targetVideoDir)) {
+                @mkdir($targetVideoDir, 0777, true);
+            }
+            $newVidName = $uploadedVid->getRandomName();
+            $uploadedVid->move($targetVideoDir, $newVidName);
+            $updateData['preview_video_path'] = 'uploads/shots/videos/' . $newVidName;
+        }
+
+        // Handle Thumbnail Upload
+        $uploadedThumb = $this->request->getFile('thumbnail');
+        if ($uploadedThumb && $uploadedThumb->isValid() && !$uploadedThumb->hasMoved()) {
+            $targetThumbDir = FCPATH . 'uploads' . DIRECTORY_SEPARATOR . 'shots';
+            if (!is_dir($targetThumbDir)) {
+                @mkdir($targetThumbDir, 0777, true);
+            }
+            $newThumbName = $uploadedThumb->getRandomName();
+            $uploadedThumb->move($targetThumbDir, $newThumbName);
+            $updateData['thumbnail_path'] = 'uploads/shots/' . $newThumbName;
+        }
+
+        $model->update($id, $updateData);
 
         return redirect()->back()->with('message', 'Shot settings updated successfully.');
     }

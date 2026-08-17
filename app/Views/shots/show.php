@@ -33,8 +33,10 @@
     <!-- Left Column: Details & Thumbnail -->
     <div class="col-span-1 space-y-6">
         <div class="bg-ytCard border border-ytBorder rounded-xl overflow-hidden">
-            <div class="aspect-video bg-[#1a1a1a] relative">
-                <?php if($shot->thumbnail_path): ?>
+            <div class="aspect-video bg-[#1a1a1a] relative overflow-hidden flex items-center justify-center">
+                <?php if(!empty($shot->preview_video_path)): ?>
+                    <video src="/<?= esc($shot->preview_video_path) ?>" controls class="w-full h-full object-contain" poster="<?= $shot->thumbnail_path ? '/' . esc($shot->thumbnail_path) : '' ?>"></video>
+                <?php elseif($shot->thumbnail_path): ?>
                     <img src="/<?= esc($shot->thumbnail_path) ?>" class="w-full h-full object-cover">
                 <?php else: ?>
                     <div class="w-full h-full flex items-center justify-center text-ytMuted">
@@ -81,8 +83,16 @@
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-[14px] font-medium text-ytText">Shot Pipeline Settings</h3>
                 </div>
-                <form action="/admin/shots/updateSettings/<?= $shot->id ?>" method="POST" class="space-y-3">
+                <form action="/admin/shots/updateSettings/<?= $shot->id ?>" method="POST" enctype="multipart/form-data" class="space-y-3">
                     <?= csrf_field() ?>
+                    <div>
+                        <label class="block text-[11px] font-medium text-ytMuted mb-1">Preview Video (.mp4 / .mov)</label>
+                        <input type="file" name="preview_video" accept="video/mp4,video/quicktime,video/webm" class="w-full bg-[#1a1a1a] border border-ytBorder/50 text-ytText rounded px-2.5 py-1 text-[12px] file:mr-2 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-[11px] file:bg-ytCard file:text-ytText cursor-pointer">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-medium text-ytMuted mb-1">Thumbnail Image (.png / .jpg)</label>
+                        <input type="file" name="thumbnail" accept="image/*" class="w-full bg-[#1a1a1a] border border-ytBorder/50 text-ytText rounded px-2.5 py-1 text-[12px] file:mr-2 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-[11px] file:bg-ytCard file:text-ytText cursor-pointer">
+                    </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-[11px] font-medium text-ytMuted mb-1">Frame Count</label>

@@ -568,7 +568,58 @@ class Projects extends BaseController
                             $localVideoDir = dirname($targetCsv);
                         }
                     } else {
-                        return redirect()->back()->with('error', 'No CSV file found inside the uploaded ZIP archive.');
+                        // Direct Media-Only ZIP Update Mode (No CSV required!)
+                        $extractedMedia = [];
+                        foreach ($dirIterator as $item) {
+                            if ($item->isFile()) {
+                                $ext = strtolower($item->getExtension());
+                                if (in_array($ext, ['mp4', 'mov', 'webm', 'm4v', 'png', 'jpg', 'jpeg'])) {
+                                    $extractedMedia[] = $item->getPathname();
+                                }
+                            }
+                        }
+
+                        if (!empty($extractedMedia)) {
+                            $shotModel = new \App\Models\ShotModel();
+                            $existingShots = $shotModel->where('project_id', $projectId)->findAll();
+                            $matchedVideos = 0;
+                            $matchedThumbs = 0;
+
+                            foreach ($extractedMedia as $mediaPath) {
+                                $mFilename = pathinfo($mediaPath, PATHINFO_FILENAME);
+                                $mExt = strtolower(pathinfo($mediaPath, PATHINFO_EXTENSION));
+                                $isVideo = in_array($mExt, ['mp4', 'mov', 'webm', 'm4v']);
+
+                                foreach ($existingShots as $eshot) {
+                                    $shotNumClean = strtolower(trim($eshot->shot_number));
+                                    $compNameClean = strtolower(trim($eshot->comp_name ?? ''));
+                                    $mLower = strtolower($mFilename);
+
+                                    $isMatch = ($mLower === $shotNumClean)
+                                        || (!empty($compNameClean) && $mLower === $compNameClean)
+                                        || (strpos($mLower, $shotNumClean) !== false && strlen($shotNumClean) >= 3);
+
+                                    if ($isMatch) {
+                                        if ($isVideo) {
+                                            $newVidName = 'vid_' . $projectId . '_' . preg_replace('/[^a-zA-Z0-9_-]/', '_', $eshot->shot_number) . '_' . uniqid() . '.' . $mExt;
+                                            @copy($mediaPath, $targetVideoDir . DIRECTORY_SEPARATOR . $newVidName);
+                                            $shotModel->update($eshot->id, ['preview_video_path' => 'uploads/shots/videos/' . $newVidName]);
+                                            $matchedVideos++;
+                                        } else {
+                                            $newThumbName = 'shot_' . $projectId . '_' . preg_replace('/[^a-zA-Z0-9_-]/', '_', $eshot->shot_number) . '_' . uniqid() . '.' . $mExt;
+                                            @copy($mediaPath, $targetThumbDir . DIRECTORY_SEPARATOR . $newThumbName);
+                                            $shotModel->update($eshot->id, ['thumbnail_path' => 'uploads/shots/' . $newThumbName]);
+                                            $matchedThumbs++;
+                                        }
+                                        break;
+                                    }
+                                }
+                            }
+
+                            return redirect()->to('/admin/projects/' . $projectId)->with('message', "Media update complete: Linked {$matchedVideos} preview videos and {$matchedThumbs} thumbnails to your existing shots!");
+                        } else {
+                            return redirect()->back()->with('error', 'No CSV or media files found inside the uploaded ZIP archive.');
+                        }
                     }
                 } else {
                     return redirect()->back()->with('error', 'Failed to extract uploaded ZIP file.');
@@ -577,7 +628,7 @@ class Projects extends BaseController
                 return redirect()->back()->with('error', 'Unsupported file format. Please upload a .csv or .zip file.');
             }
         } else {
-            return redirect()->back()->with('error', 'Please provide an AE export folder path or upload a CSV file.');
+            return redirect()->back()->with('error', 'Please provide an AE export folder path or upload a CSV/ZIP file.');
         }
 
         if (empty($rows)) {
