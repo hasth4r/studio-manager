@@ -196,12 +196,26 @@
                             </div>
                         </td>
 
-                        <!-- 3. Shot Number & Sequence (Compact Stack) -->
+                        <!-- 3. Shot Number & Sequence (Compact Stack) with Client Info trigger -->
                         <td class="py-1.5 px-2 align-middle w-28 shrink-0 whitespace-nowrap">
                             <div class="flex flex-col justify-center">
-                                <input type="text" value="<?= esc($shot->shot_number) ?>" 
-                                       onchange="inlineUpdateShot(<?= $shot->id ?>, 'shot_number', this.value)"
-                                       class="bg-transparent border-b border-transparent hover:border-ytBorder focus:border-ytBlue text-ytText font-bold text-[12px] px-1 py-0 rounded focus:bg-ytBg w-20 focus:outline-none transition-all font-mono leading-tight">
+                                <div class="flex items-center gap-1">
+                                    <input type="text" value="<?= esc($shot->shot_number) ?>" 
+                                           onchange="inlineUpdateShot(<?= $shot->id ?>, 'shot_number', this.value)"
+                                           class="bg-transparent border-b border-transparent hover:border-ytBorder focus:border-ytBlue text-ytText font-bold text-[12px] px-1 py-0 rounded focus:bg-ytBg w-16 focus:outline-none transition-all font-mono leading-tight">
+                                    
+                                    <?php 
+                                        $hasBrief = !empty(trim($shot->description ?? '')) || !empty(trim($shot->client_notes ?? ''));
+                                        $refArr = !empty($shot->reference_images) ? json_decode($shot->reference_images, true) : [];
+                                        $hasRefs = !empty($refArr);
+                                    ?>
+                                    <button type="button" 
+                                            onclick='openClientInfoModal(<?= (int)$shot->id ?>, <?= json_encode($shot->shot_number) ?>, <?= json_encode($shot->description ?? "") ?>, <?= json_encode($shot->client_notes ?? "") ?>, <?= json_encode(is_array($refArr) ? $refArr : []) ?>)'
+                                            class="p-0.5 rounded transition-all flex items-center justify-center <?= ($hasBrief || $hasRefs) ? "text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20" : "text-ytMuted/40 hover:text-ytMuted hover:bg-ytHover" ?>"
+                                            title="Client Brief & References (Click to view)">
+                                        <span class="material-symbols-outlined text-[15px]">info</span>
+                                    </button>
+                                </div>
                                 <span class="text-[10px] text-ytMuted font-mono px-1 truncate max-w-[100px] inline-flex items-center gap-1 mt-0.5" title="<?= esc($shot->sequence_name ?? 'Independent') ?>">
                                     <span class="material-symbols-outlined text-[12px] text-ytMuted shrink-0">folder</span>
                                     <span><?= esc($shot->sequence_name ?? 'Independent') ?></span>
@@ -944,6 +958,77 @@
         }
         modal.classList.add('hidden');
     }
+
+    // Client Input & Reference Modal Engine
+    function openClientInfoModal(shotId, shotNumber, description, clientNotes, references) {
+        const modal = document.getElementById('clientInfoModal');
+        const title = document.getElementById('clientInfoModalTitle');
+        const descEl = document.getElementById('clientInfoDesc');
+        const notesEl = document.getElementById('clientInfoNotes');
+        const refsEl = document.getElementById('clientInfoRefs');
+        if (!modal) return;
+
+        title.textContent = `Shot ${shotNumber}: Client Brief & References`;
+
+        // Description
+        if (description && description.trim() !== '') {
+            descEl.textContent = description;
+            descEl.classList.remove('text-ytMuted', 'italic');
+        } else {
+            descEl.innerHTML = '<span class="text-ytMuted italic">No description provided for this shot.</span>';
+        }
+
+        // Client Notes
+        if (clientNotes && clientNotes.trim() !== '') {
+            notesEl.textContent = clientNotes;
+            notesEl.classList.remove('text-ytMuted', 'italic');
+        } else {
+            notesEl.innerHTML = '<span class="text-ytMuted italic">No client notes or feedback added yet.</span>';
+        }
+
+        // References
+        refsEl.innerHTML = '';
+        if (Array.isArray(references) && references.length > 0) {
+            references.forEach(ref => {
+                const card = document.createElement('div');
+                card.className = 'group/ref rounded-lg border border-ytBorder bg-[#0a0a0a] overflow-hidden shadow-sm hover:border-blue-500/50 transition-all';
+                
+                if (ref.is_image) {
+                    card.innerHTML = `
+                        <div class="aspect-square bg-black overflow-hidden relative cursor-pointer" onclick="window.open('${ref.url}', '_blank')">
+                            <img src="${ref.url}" loading="lazy" class="w-full h-full object-cover group-hover/ref:scale-105 transition-transform" title="${ref.name || 'Reference Image'}">
+                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover/ref:opacity-100 flex items-center justify-center transition-opacity">
+                                <span class="material-symbols-outlined text-white text-[20px]">open_in_new</span>
+                            </div>
+                        </div>
+                        <div class="p-1.5 bg-[#121212] border-t border-ytBorder/40 truncate text-[10px] font-mono text-ytMuted" title="${ref.name || ''}">
+                            ${ref.name || 'Image'}
+                        </div>
+                    `;
+                } else {
+                    card.innerHTML = `
+                        <a href="${ref.url}" target="_blank" class="aspect-square flex flex-col items-center justify-center p-2 text-center text-ytMuted hover:text-ytText bg-black">
+                            <span class="material-symbols-outlined text-[28px] text-ytBlue mb-1">description</span>
+                            <span class="text-[9px] font-mono truncate w-full">${ref.ext || 'doc'}</span>
+                        </a>
+                        <div class="p-1.5 bg-[#121212] border-t border-ytBorder/40 truncate text-[10px] font-mono text-ytMuted" title="${ref.name || ''}">
+                            ${ref.name || 'Attachment'}
+                        </div>
+                    `;
+                }
+                refsEl.appendChild(card);
+            });
+        } else {
+            refsEl.innerHTML = '<div class="col-span-full py-4 text-center text-ytMuted text-[11px] italic bg-[#0e0e0e] border border-ytBorder/40 rounded-lg">No reference files attached yet.</div>';
+        }
+
+        modal.classList.remove('hidden');
+    }
+
+    function closeClientInfoModal() {
+        const modal = document.getElementById('clientInfoModal');
+        if (modal) modal.classList.add('hidden');
+    }
 </script>
 
 <!-- Single Global Floating Hover Preview with Premium Glassmorphism & Glowing Loader -->
@@ -985,6 +1070,66 @@
                 <span class="text-[11px] text-blue-300 font-mono mt-2 tracking-wider">Loading Video Stream...</span>
             </div>
             <video id="quickVideoPlayer" controls playsinline class="w-full h-full object-contain"></video>
+        </div>
+    </div>
+</div>
+
+<!-- Client Input & References Modal -->
+<div id="clientInfoModal" class="fixed inset-0 z-50 hidden bg-black/85 backdrop-blur-md flex items-center justify-center p-4" onclick="if(event.target===this) closeClientInfoModal()">
+    <div class="bg-ytCard border border-ytBorder rounded-2xl overflow-hidden shadow-2xl max-w-2xl w-full flex flex-col max-h-[85vh] animate-fadeIn">
+        <div class="px-5 py-3.5 border-b border-ytBorder/60 flex items-center justify-between bg-[#111]">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-blue-400 text-[20px]">info</span>
+                <h4 id="clientInfoModalTitle" class="text-[14px] font-bold text-ytText font-mono">Shot: Client Brief & References</h4>
+            </div>
+            <button type="button" onclick="closeClientInfoModal()" class="text-ytMuted hover:text-ytText p-1 rounded-full hover:bg-ytHover transition-colors">
+                <span class="material-symbols-outlined text-[20px]">close</span>
+            </button>
+        </div>
+        
+        <div class="p-5 overflow-y-auto space-y-4 text-[13px]">
+            <!-- Shot Description / Brief -->
+            <div>
+                <label class="text-[11px] font-bold uppercase tracking-wider text-ytMuted font-mono mb-1.5 flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[14px] text-ytBlue">description</span>
+                    Shot Description / Creative Brief
+                </label>
+                <div id="clientInfoDesc" class="bg-[#0e0e0e] border border-ytBorder/60 rounded-lg p-3 text-ytText text-[12px] leading-relaxed whitespace-pre-wrap min-h-[50px]">
+                    <span class="text-ytMuted italic">No description provided.</span>
+                </div>
+            </div>
+
+            <!-- Client Feedback / Notes -->
+            <div>
+                <label class="text-[11px] font-bold uppercase tracking-wider text-ytMuted font-mono mb-1.5 flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[14px] text-amber-400">rate_review</span>
+                    Client Specific Notes & Instructions
+                </label>
+                <div id="clientInfoNotes" class="bg-[#0e0e0e] border border-ytBorder/60 rounded-lg p-3 text-ytText text-[12px] leading-relaxed whitespace-pre-wrap min-h-[50px]">
+                    <span class="text-ytMuted italic">No client notes added yet.</span>
+                </div>
+            </div>
+
+            <!-- Reference Attachments -->
+            <div>
+                <label class="text-[11px] font-bold uppercase tracking-wider text-ytMuted font-mono mb-1.5 flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[14px] text-purple-400">attach_file</span>
+                    Client Reference Attachments & Files
+                </label>
+                <div id="clientInfoRefs" class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
+                    <!-- Dynamic Reference Cards -->
+                </div>
+            </div>
+        </div>
+
+        <div class="px-5 py-3 border-t border-ytBorder/60 bg-[#111] flex items-center justify-between">
+            <a href="<?= base_url('client/projects/' . $project->id . '/briefing') ?>" target="_blank" class="text-[12px] text-ytBlue hover:underline flex items-center gap-1">
+                <span>Open Shot Briefing Matrix</span>
+                <span class="material-symbols-outlined text-[14px]">open_in_new</span>
+            </a>
+            <button type="button" onclick="closeClientInfoModal()" class="px-4 py-1.5 bg-ytHover hover:bg-ytBorder text-ytText rounded-lg text-[12px] font-medium transition-colors">
+                Close
+            </button>
         </div>
     </div>
 </div>
