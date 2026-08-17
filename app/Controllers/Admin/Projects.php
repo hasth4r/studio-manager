@@ -1403,6 +1403,10 @@ class Projects extends BaseController
         $taskBuilder->orderBy('tasks.id', 'ASC');
         $allTasks = $taskBuilder->get()->getResult();
 
+        // Shot Task Types & Users
+        $taskTypes = $taskTypeModel->where('category', 'shot')->findAll();
+        $users = $userModel->orderBy('name', 'ASC')->findAll();
+
         // Load Studio Rate Settings
         $settingsModel = new \App\Models\SettingsModel();
         $studioCurrency = $settingsModel->getSetting('studio_currency', '₹');
