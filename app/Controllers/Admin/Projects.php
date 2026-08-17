@@ -1242,6 +1242,64 @@ class Projects extends BaseController
     }
 
     /**
+     * AJAX endpoint to save auto-generated WebP thumbnails from client-side video frame capture.
+     */
+    public function saveAutoThumbnailAjax()
+    {
+        if (!session()->get('isLoggedIn')) {
+            return $this->response->setJSON(['success' => false, 'error' => 'Authentication required'])->setStatusCode(401);
+        }
+
+        $shotId = (int)$this->request->getPost('shot_id');
+        $imageData = $this->request->getPost('image_data');
+
+        if (!$shotId || empty($imageData)) {
+            return $this->response->setJSON(['success' => false, 'error' => 'Missing shot ID or image data'])->setStatusCode(400);
+        }
+
+        $shotModel = new \App\Models\ShotModel();
+        $shot = $shotModel->find($shotId);
+        if (!$shot) {
+            return $this->response->setJSON(['success' => false, 'error' => 'Shot not found'])->setStatusCode(404);
+        }
+
+        if (preg_match('/^data:image\/(\w+);base64,/', $imageData, $type)) {
+            $data = substr($imageData, strpos($imageData, ',') + 1);
+            $type = strtolower($type[1]);
+            if (!in_array($type, ['webp', 'jpeg', 'jpg', 'png'])) {
+                $type = 'webp';
+            }
+            $decodedData = base64_decode($data);
+
+            if ($decodedData === false) {
+                return $this->response->setJSON(['success' => false, 'error' => 'Failed to decode base64 image data'])->setStatusCode(400);
+            }
+
+            $targetThumbDir = FCPATH . 'uploads' . DIRECTORY_SEPARATOR . 'shots';
+            if (!is_dir($targetThumbDir)) {
+                @mkdir($targetThumbDir, 0777, true);
+            }
+
+            $cleanShotNum = preg_replace('/[^a-zA-Z0-9_-]/', '_', $shot->shot_number);
+            $filename = 'shot_' . $shot->project_id . '_' . $cleanShotNum . '_' . uniqid() . '.' . $type;
+            $filePath = $targetThumbDir . DIRECTORY_SEPARATOR . $filename;
+
+            file_put_contents($filePath, $decodedData);
+
+            $relPath = 'uploads/shots/' . $filename;
+            $shotModel->update($shotId, ['thumbnail_path' => $relPath]);
+
+            return $this->response->setJSON([
+                'success' => true,
+                'thumbnail_url' => base_url($relPath),
+                'shot_id' => $shotId
+            ]);
+        }
+
+        return $this->response->setJSON(['success' => false, 'error' => 'Invalid image payload'])->setStatusCode(400);
+    }
+
+    /**
      * Helper to parse CSV file into associative array.
      */
     private function parseCsvFile($filePath)

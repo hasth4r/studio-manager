@@ -25,6 +25,10 @@
         </div>
 
         <div class="flex items-center gap-2">
+            <button type="button" onclick="autoGenerateAllThumbnails()" class="bg-[#181818] border border-purple-500/40 hover:border-purple-400 text-purple-200 px-3.5 py-1.5 rounded-lg font-medium text-[12px] hover:bg-purple-950/40 transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(168,85,247,0.15)]" title="Auto-extract crisp mid-frame WebP thumbnails from all shot videos">
+                <span class="material-symbols-outlined text-[16px] text-purple-400">photo_camera</span>
+                <span>Auto-Gen WebP</span>
+            </button>
             <button type="button" id="toggleMetaBtn" onclick="toggleMetadataColumns()" class="bg-ytCard border border-ytBorder hover:border-ytText text-ytText px-3.5 py-1.5 rounded-lg font-medium text-[12px] hover:bg-ytHover transition-all flex items-center gap-1.5">
                 <span class="material-symbols-outlined text-[16px] text-ytBlue" id="toggleMetaIcon">visibility_off</span>
                 <span id="toggleMetaText">Hide Metadata</span>
@@ -173,7 +177,7 @@
                                      title="Click to play video preview"
                                  <?php endif; ?>>
                                 <?php if($shot->thumbnail_path): ?>
-                                    <img src="<?= base_url(esc($shot->thumbnail_path)) ?>" class="w-full h-full object-cover">
+                                    <img src="<?= base_url(esc($shot->thumbnail_path)) ?>" class="shot-thumb-img-<?= $shot->id ?> w-full h-full object-cover">
                                 <?php else: ?>
                                     <div class="w-full h-full flex items-center justify-center text-ytMuted">
                                         <span class="material-symbols-outlined text-[16px]">image</span>
@@ -663,6 +667,119 @@
         video.currentTime = 0;
         video.src = '';
         modal.classList.add('hidden');
+    }
+
+    // 11. Auto-Generate WebP Thumbnails from Video Mid-Frames
+    const shotsWithVideos = <?= json_encode(array_values(array_filter(array_map(function($s) {
+        return !empty($s->preview_video_path) ? [
+            'id' => $s->id,
+            'shot_number' => $s->shot_number,
+            'video_url' => base_url($s->preview_video_path)
+        ] : null;
+    }, $shots ?? [])))) ?>;
+
+    async function autoGenerateAllThumbnails() {
+        if (!shotsWithVideos || shotsWithVideos.length === 0) {
+            alert('No shots with video previews found in this project. Please upload videos first.');
+            return;
+        }
+
+        if (!confirm(`Extract crisp mid-frame WebP thumbnails for all ${shotsWithVideos.length} shot videos?`)) {
+            return;
+        }
+
+        const btn = event.currentTarget;
+        const origText = btn ? btn.innerHTML : '';
+        if (btn) {
+            btn.disabled = true;
+            btn.classList.add('opacity-75');
+        }
+
+        let successCount = 0;
+        const canvas = document.createElement('canvas');
+        canvas.width = 640;
+        canvas.height = 360;
+        const ctx = canvas.getContext('2d');
+
+        for (let i = 0; i < shotsWithVideos.length; i++) {
+            const item = shotsWithVideos[i];
+            if (btn) {
+                btn.innerHTML = `<span class="material-symbols-outlined text-[16px] animate-spin">progress_activity</span> Extracting ${i + 1}/${shotsWithVideos.length}...`;
+            }
+
+            try {
+                const dataUrl = await extractVideoMidFrame(item.video_url, canvas, ctx);
+                if (dataUrl) {
+                    const formData = new FormData();
+                    formData.append('shot_id', item.id);
+                    formData.append('image_data', dataUrl);
+
+                    const res = await fetch('/admin/projects/saveAutoThumbnailAjax', {
+                        method: 'POST',
+                        body: formData,
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    const result = await res.json();
+                    if (result.success && result.thumbnail_url) {
+                        successCount++;
+                        document.querySelectorAll(`.shot-thumb-img-${item.id}`).forEach(img => {
+                            img.src = result.thumbnail_url + '?t=' + Date.now();
+                        });
+                    }
+                }
+            } catch (err) {
+                console.warn(`Failed extracting thumbnail for ${item.shot_number}:`, err);
+            }
+        }
+
+        if (btn) {
+            btn.innerHTML = `<span class="material-symbols-outlined text-[16px] text-green-400">check_circle</span> Done (${successCount} WebP)!`;
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.classList.remove('opacity-75');
+                btn.innerHTML = origText;
+                window.location.reload();
+            }, 1200);
+        }
+    }
+
+    function extractVideoMidFrame(videoUrl, canvas, ctx) {
+        return new Promise((resolve, reject) => {
+            const video = document.createElement('video');
+            video.crossOrigin = 'anonymous';
+            video.muted = true;
+            video.playsInline = true;
+            video.preload = 'auto';
+
+            const timeout = setTimeout(() => {
+                video.src = '';
+                reject(new Error('Seek timeout'));
+            }, 12000);
+
+            video.onloadedmetadata = () => {
+                const midTime = video.duration > 0 ? video.duration / 2 : 0.5;
+                video.currentTime = midTime;
+            };
+
+            video.onseeked = () => {
+                clearTimeout(timeout);
+                try {
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    const dataUrl = canvas.toDataURL('image/webp', 0.85);
+                    video.src = '';
+                    resolve(dataUrl);
+                } catch (err) {
+                    reject(err);
+                }
+            };
+
+            video.onerror = () => {
+                clearTimeout(timeout);
+                reject(new Error('Video load error'));
+            };
+
+            video.src = videoUrl;
+        });
     }
 </script>
 

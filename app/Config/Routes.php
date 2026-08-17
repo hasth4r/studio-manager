@@ -70,6 +70,7 @@ $routes->group('admin', ['filter' => 'auth', 'namespace' => 'App\Controllers\Adm
     $routes->post('projects/inlineUpdateShot', 'Projects::inlineUpdateShot');
     $routes->post('projects/inlineAddTask', 'Projects::inlineAddTask');
     $routes->post('projects/deleteTaskAjax', 'Projects::deleteTaskAjax');
+    $routes->post('projects/saveAutoThumbnailAjax', 'Projects::saveAutoThumbnailAjax');
 
     // VFX Entities
     $routes->get('shots/(:num)', 'Shots::show/$1');

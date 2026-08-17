@@ -87,6 +87,7 @@ class Filters extends BaseFilters
                 'admin/projects/inlineUpdateShot',
                 'admin/projects/inlineAddTask',
                 'admin/projects/deleteTaskAjax',
+                'admin/projects/saveAutoThumbnailAjax',
             ]],
             // 'invalidchars',
         ],
