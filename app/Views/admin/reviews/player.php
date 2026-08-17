@@ -703,10 +703,10 @@ if (!function_exists('renderCommentBox')) {
         // preventing casual users from finding the link by right clicking -> View Page Source.
         const secureUrl = '<?= media_cdn_url(esc($review->proxy_path)) ?>';
         if (media.tagName === 'VIDEO') {
-            const sourceEl = document.createElement('source');
-            sourceEl.src = secureUrl;
-            sourceEl.type = 'video/mp4';
-            media.appendChild(sourceEl);
+            if (secureUrl) {
+                media.src = secureUrl;
+                media.load();
+            }
         } else {
             media.src = secureUrl;
             media.onload = resizeCanvas;
