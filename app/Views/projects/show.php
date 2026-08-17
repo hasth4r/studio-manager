@@ -200,7 +200,7 @@
                     <a href="/admin/shots/<?= $shot->id ?>" class="bg-ytCard border border-ytBorder rounded-lg overflow-hidden hover:border-ytBlue transition-colors group">
                         <div class="aspect-video bg-[#1a1a1a] relative">
                             <?php if($shot->thumbnail_path): ?>
-                                <img src="/<?= esc($shot->thumbnail_path) ?>" class="w-full h-full object-cover">
+                                <img src="<?= media_cdn_url(esc($shot->thumbnail_path)) ?>" class="w-full h-full object-cover">
                             <?php else: ?>
                                 <div class="w-full h-full flex items-center justify-center text-ytMuted">
                                     <span class="material-symbols-outlined text-[32px]">image</span>
@@ -250,10 +250,10 @@
                     <?php foreach($groupedShots[$seq->id] as $shot): ?>
                         <a href="/admin/shots/<?= $shot->id ?>" class="bg-ytCard border border-ytBorder rounded-lg overflow-hidden hover:border-ytBlue transition-colors group">
                             <div class="aspect-video bg-[#1a1a1a] relative overflow-hidden group/thumb"
-                                 onmouseenter="playHoverVideo(this, '<?= !empty($shot->preview_video_path) ? base_url(esc($shot->preview_video_path)) : '' ?>')"
+                                 onmouseenter="playHoverVideo(this, '<?= !empty($shot->preview_video_path) ? media_cdn_url(esc($shot->preview_video_path)) : '' ?>')"
                                  onmouseleave="stopHoverVideo(this)">
                                 <?php if($shot->thumbnail_path): ?>
-                                    <img src="<?= base_url(esc($shot->thumbnail_path)) ?>" loading="lazy" class="shot-thumb-img-<?= $shot->id ?> w-full h-full object-cover">
+                                    <img src="<?= media_cdn_url(esc($shot->thumbnail_path)) ?>" loading="lazy" class="shot-thumb-img-<?= $shot->id ?> w-full h-full object-cover">
                                 <?php else: ?>
                                     <div class="w-full h-full flex items-center justify-center text-ytMuted">
                                         <span class="material-symbols-outlined text-[32px]">image</span>
@@ -262,7 +262,7 @@
 
                                 <?php if(!empty($shot->preview_video_path)): ?>
                                     <button type="button" 
-                                            onclick="openVideoModal(event, '<?= base_url(esc($shot->preview_video_path)) ?>', '<?= esc($shot->shot_number) ?>')" 
+                                            onclick="openVideoModal(event, '<?= media_cdn_url(esc($shot->preview_video_path)) ?>', '<?= esc($shot->shot_number) ?>')" 
                                             class="absolute top-1.5 left-1.5 bg-black/90 hover:bg-blue-600 backdrop-blur-xs border border-blue-500/50 text-blue-200 hover:text-white text-[10px] font-mono font-bold px-2 py-0.5 rounded flex items-center gap-1 z-20 cursor-pointer shadow-md transition-all">
                                         <span class="material-symbols-outlined text-[13px]">play_circle</span> Preview
                                     </button>
