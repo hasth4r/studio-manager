@@ -36,12 +36,40 @@ class Projects extends BaseController
         $builder->join('clients', 'clients.id = projects.client_id', 'left');
         $builder->join('project_types', 'project_types.id = projects.project_type_id', 'left');
         $builder->join('collaborators', 'collaborators.id = projects.collaborator_id', 'left');
-        $builder->orderBy('projects.created_at', 'DESC');
-        $projects = $builder->get()->getResult();
+        $settingsModel = new \App\Models\SettingsModel();
+        $studioCurrency = $settingsModel->getSetting('studio_currency', '₹');
+        $opsHourlyRate = (float)$settingsModel->getSetting('studio_ops_hourly_rate', 100.00);
+        $commissionPct = (float)$settingsModel->getSetting('studio_commission_pct', 30.0);
+        $defaultArtistRate = (float)$settingsModel->getSetting('default_artist_rate', 500.00);
+
+        $userModel = new \App\Models\UserModel();
+        $users = $userModel->findAll();
+        $userRateMap = [];
+        foreach ($users as $u) {
+            $userRateMap[$u->id] = (float)($u->hourly_rate ?? $defaultArtistRate);
+        }
+
+        foreach ($projects as $proj) {
+            $tasks = $db->table('tasks')->where('project_id', $proj->id)->get()->getResult();
+            $projHours = 0.0;
+            $projIdealBudget = 0.0;
+            foreach ($tasks as $t) {
+                $h = (float)($t->estimated_hours ?? 0);
+                $r = !empty($t->assigned_to) && isset($userRateMap[$t->assigned_to]) ? $userRateMap[$t->assigned_to] : $defaultArtistRate;
+                $b = ($h * $r + $h * $opsHourlyRate) * (1 + ($commissionPct / 100.0));
+                $projHours += $h;
+                $projIdealBudget += $b;
+            }
+            $proj->total_hours = round($projHours, 1);
+            $proj->ideal_budget = round($projIdealBudget, 0);
+            $agreed = (float)($proj->agreed_budget ?? 0);
+            $proj->scale_percent = ($agreed > 0 && $projIdealBudget > 0) ? round(($agreed / $projIdealBudget) * 100, 1) : 100.0;
+        }
 
         $data = [
-            'pageTitle' => 'Projects',
-            'projects'  => $projects,
+            'pageTitle'      => 'Projects',
+            'projects'       => $projects,
+            'studioCurrency' => $studioCurrency,
         ];
 
         return view('projects/index', $data);
@@ -162,6 +190,33 @@ class Projects extends BaseController
         $completedTasks = count(array_filter($tasks, fn($t) => $t->status === 'completed' || $t->status === 'approved'));
         $progress = $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100) : 0;
 
+        // Economics & Budgeting Data
+        $settingsModel = new \App\Models\SettingsModel();
+        $studioCurrency = $settingsModel->getSetting('studio_currency', '₹');
+        $opsHourlyRate = (float)$settingsModel->getSetting('studio_ops_hourly_rate', 100.00);
+        $commissionPct = (float)$settingsModel->getSetting('studio_commission_pct', 30.0);
+        $defaultArtistRate = (float)$settingsModel->getSetting('default_artist_rate', 500.00);
+
+        $userModel = new \App\Models\UserModel();
+        $users = $userModel->findAll();
+        $userRateMap = [];
+        foreach ($users as $u) {
+            $userRateMap[$u->id] = (float)($u->hourly_rate ?? $defaultArtistRate);
+        }
+
+        $totalProjectHours = 0.0;
+        $totalIdealBudget = 0.0;
+        foreach ($tasks as $t) {
+            $h = (float)($t->estimated_hours ?? 0);
+            $r = !empty($t->assigned_to) && isset($userRateMap[$t->assigned_to]) ? $userRateMap[$t->assigned_to] : $defaultArtistRate;
+            $b = ($h * $r + $h * $opsHourlyRate) * (1 + ($commissionPct / 100.0));
+            $totalProjectHours += $h;
+            $totalIdealBudget += $b;
+        }
+
+        $agreedBudget = (float)($project->agreed_budget ?? 0);
+        $scalePercent = ($agreedBudget > 0 && $totalIdealBudget > 0) ? round(($agreedBudget / $totalIdealBudget) * 100, 1) : 100.0;
+
         // Benchmarks Data
         $taskTypeModel = new \App\Models\TaskTypeModel();
         $benchmarkModel = new \App\Models\TaskBenchmarkModel();
@@ -169,14 +224,19 @@ class Projects extends BaseController
         $benchmarks = $benchmarkModel->getProjectBenchmarks($id);
 
         $data = [
-            'pageTitle'      => 'Project: ' . $project->name,
-            'project'        => $project,
-            'sequences'      => $sequences,
-            'shots'          => $shots,
-            'assets'         => $assets,
-            'taskTypes'      => $taskTypes,
-            'benchmarks'     => $benchmarks,
-            'analytics'      => [
+            'pageTitle'          => 'Project: ' . $project->name,
+            'project'            => $project,
+            'sequences'          => $sequences,
+            'shots'              => $shots,
+            'assets'             => $assets,
+            'taskTypes'          => $taskTypes,
+            'benchmarks'         => $benchmarks,
+            'totalProjectHours'  => round($totalProjectHours, 1),
+            'totalIdealBudget'   => round($totalIdealBudget, 0),
+            'agreedBudget'       => round($agreedBudget, 0),
+            'scalePercent'       => $scalePercent,
+            'studioCurrency'     => $studioCurrency,
+            'analytics'          => [
                 'sequences' => $totalSequences,
                 'shots'     => $totalShots,
                 'assets'    => $totalAssets,

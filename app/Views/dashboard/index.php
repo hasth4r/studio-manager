@@ -107,26 +107,52 @@
             </div>
         </div>
 
-        <!-- Widget 3 (Ideas / News) -->
-        <div class="flex flex-col gap-6">
-            <div class="bg-ytCard border border-ytBorder rounded-xl p-6 flex flex-col justify-between h-1/2">
-                <div>
-                    <h3 class="text-[15px] font-medium text-ytText mb-4">Ideas for you</h3>
-                    <p class="text-[13px] font-medium text-ytText mb-2">Get up to 10% more efficiency</p>
-                    <p class="text-xs text-ytMuted leading-relaxed">
-                        Setting up automated render pipelines can help you gain more time for creative tasks.
-                    </p>
+        <!-- Widget 3 (Studio Pipeline Economics) -->
+        <div class="bg-ytCard border border-ytBorder rounded-xl p-6 flex flex-col justify-between">
+            <div>
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-[15px] font-medium text-ytText">Studio Economics</h3>
+                    <span class="bg-green-950/70 border border-green-700/50 text-green-300 px-2 py-0.5 rounded text-[10px] font-mono font-bold">
+                        LIVE
+                    </span>
                 </div>
-                <button class="mt-4 text-[13px] font-medium bg-white text-black px-4 py-2 rounded-full-full w-fit hover:bg-gray-200">Set up pipeline</button>
+
+                <div class="space-y-4">
+                    <!-- Benchmark Quote -->
+                    <div class="bg-[#121212] border border-ytBorder/60 rounded-lg p-3">
+                        <div class="text-[11px] text-ytMuted uppercase font-bold tracking-wider">Total Pipeline Benchmark Quote</div>
+                        <div class="text-[22px] font-bold text-ytBlue font-mono mt-0.5">
+                            <?= esc($studioCurrency) ?><?= number_format($totalPipelineBudget, 0) ?>
+                        </div>
+                        <div class="text-[11px] text-ytMuted font-mono mt-0.5">
+                            Across <?= round($totalPipelineHours, 1) ?> estimated production hours
+                        </div>
+                    </div>
+
+                    <!-- Locked Budget (if set) -->
+                    <div class="bg-[#121212] border border-green-700/40 rounded-lg p-3">
+                        <div class="flex items-center justify-between text-[11px] uppercase font-bold tracking-wider text-green-400">
+                            <span>Agreed / Locked Client Revenue</span>
+                            <span class="material-symbols-outlined text-[15px]">lock</span>
+                        </div>
+                        <div class="text-[22px] font-bold text-green-300 font-mono mt-0.5">
+                            <?= esc($studioCurrency) ?><?= number_format($totalLockedBudget > 0 ? $totalLockedBudget : $totalPipelineBudget, 0) ?>
+                        </div>
+                        <div class="text-[11px] text-ytMuted font-mono mt-0.5">
+                            <?= $totalLockedBudget > 0 ? 'Scaled across active project caps' : '100% of benchmark quote' ?>
+                        </div>
+                    </div>
+                </div>
             </div>
-            
-            <div class="bg-ytCard border border-ytBorder rounded-xl p-6 flex flex-col h-1/2 overflow-hidden">
-                <h3 class="text-[15px] font-medium text-ytText mb-4">Latest Updates</h3>
-                <div class="w-full flex-1 bg-gradient-to-br from-blue-900 to-purple-900 rounded-lg flex flex-col items-center justify-center p-4 text-center">
-                    <h4 class="font-bold text-white mb-2">EnsoFlow Beta V1</h4>
-                    <p class="text-xs text-gray-300">Welcome to the new Studio Dashboard layout designed specifically for you.</p>
-                    <button class="mt-4 text-[13px] font-medium bg-ytCard border border-ytBorder text-white px-4 py-1.5 rounded-full-full hover:bg-ytHover">Read release notes</button>
-                </div>
+
+            <div class="mt-6 pt-4 border-t border-ytBorder/50 flex items-center justify-between">
+                <a href="/admin/budgeting" class="text-[13px] font-medium text-green-400 hover:text-green-300 flex items-center gap-1">
+                    <span>Manage Monthly Bills</span>
+                    <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+                </a>
+                <a href="/admin/projects" class="text-[13px] font-medium text-ytMuted hover:text-ytText">
+                    View Projects &rarr;
+                </a>
             </div>
         </div>
         

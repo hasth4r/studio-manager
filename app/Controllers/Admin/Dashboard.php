@@ -72,18 +72,54 @@ class Dashboard extends BaseController
                 ->orderBy('r.created_at', 'DESC')
                 ->limit(1)
                 ->get()->getRow();
+            // Budget & Pipeline Economics
+            $settingsModel = new \App\Models\SettingsModel();
+            $studioCurrency = $settingsModel->getSetting('studio_currency', '₹');
+            $opsHourlyRate = (float)$settingsModel->getSetting('studio_ops_hourly_rate', 100.00);
+            $commissionPct = (float)$settingsModel->getSetting('studio_commission_pct', 30.0);
+            $defaultArtistRate = (float)$settingsModel->getSetting('default_artist_rate', 500.00);
+
+            $userModel = new \App\Models\UserModel();
+            $users = $userModel->findAll();
+            $userRateMap = [];
+            foreach ($users as $u) {
+                $userRateMap[$u->id] = (float)($u->hourly_rate ?? $defaultArtistRate);
+            }
+
+            $allProjects = $db->table('projects')->where('status !=', 'completed')->get()->getResult();
+            $totalPipelineBudget = 0.0;
+            $totalLockedBudget = 0.0;
+            $totalPipelineHours = 0.0;
+
+            foreach ($allProjects as $p) {
+                if (!empty($p->agreed_budget) && (float)$p->agreed_budget > 0) {
+                    $totalLockedBudget += (float)$p->agreed_budget;
+                }
+                $tasks = $db->table('tasks')->where('project_id', $p->id)->get()->getResult();
+                foreach ($tasks as $t) {
+                    $h = (float)($t->estimated_hours ?? 0);
+                    $r = !empty($t->assigned_to) && isset($userRateMap[$t->assigned_to]) ? $userRateMap[$t->assigned_to] : $defaultArtistRate;
+                    $b = ($h * $r + $h * $opsHourlyRate) * (1 + ($commissionPct / 100.0));
+                    $totalPipelineBudget += $b;
+                    $totalPipelineHours += $h;
+                }
+            }
         }
 
         $data = [
-            'userRole' => $userRole,
-            'userName' => session()->get('userName'),
-            'pageTitle' => 'Dashboard',
-            'myTasks'   => $myTasks,
-            'activeProjectsCount' => $activeProjectsCount,
-            'completedTasksCount' => $completedTasksCount,
-            'pendingReviewsCount' => $pendingReviewsCount,
-            'topProjects' => $topProjects,
-            'latestReview' => $latestReview,
+            'userRole'              => $userRole,
+            'userName'              => session()->get('userName'),
+            'pageTitle'             => 'Dashboard',
+            'myTasks'               => $myTasks,
+            'activeProjectsCount'   => $activeProjectsCount,
+            'completedTasksCount'   => $completedTasksCount,
+            'pendingReviewsCount'   => $pendingReviewsCount,
+            'topProjects'           => $topProjects,
+            'latestReview'          => $latestReview,
+            'totalPipelineBudget'   => round($totalPipelineBudget, 0),
+            'totalLockedBudget'     => round($totalLockedBudget, 0),
+            'totalPipelineHours'    => round($totalPipelineHours, 1),
+            'studioCurrency'        => $studioCurrency ?? '₹',
         ];
 
         return view('dashboard/index', $data);

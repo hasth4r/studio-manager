@@ -37,6 +37,7 @@
                     <th class="px-6 py-3 font-medium">Project Name</th>
                     <th class="px-6 py-3 font-medium">Client</th>
                     <th class="px-6 py-3 font-medium">Type</th>
+                    <th class="px-6 py-3 font-medium">Budget &amp; Hours</th>
                     <th class="px-6 py-3 font-medium">FPS</th>
                     <th class="px-6 py-3 font-medium">Status</th>
                     <th class="px-6 py-3 font-medium">Priority</th>
@@ -46,7 +47,7 @@
             <tbody class="text-[14px] divide-y divide-ytBorder/50 text-ytText">
                 <?php if(empty($projects)): ?>
                     <tr>
-                        <td colspan="7" class="px-6 py-8 text-center text-ytMuted text-[13px]">No projects found. Click "New Project" to get started.</td>
+                        <td colspan="8" class="px-6 py-8 text-center text-ytMuted text-[13px]">No projects found. Click "New Project" to get started.</td>
                     </tr>
                 <?php else: ?>
                     <?php foreach($projects as $project): ?>
@@ -54,6 +55,21 @@
                             <td class="px-6 py-4 font-medium text-ytBlue" onclick="window.location.href='/admin/projects/<?= $project->id ?>'"><?= esc($project->name) ?></td>
                             <td class="px-6 py-4 text-ytMuted" onclick="window.location.href='/admin/projects/<?= $project->id ?>'"><?= esc($project->client_name ?: 'Unknown Client') ?></td>
                             <td class="px-6 py-4 text-ytMuted capitalize" onclick="window.location.href='/admin/projects/<?= $project->id ?>'"><?= esc($project->project_type_name ?: 'Unknown') ?></td>
+                            <td class="px-6 py-4 font-mono text-[12px]">
+                                <div class="flex flex-col gap-0.5">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-ytBlue font-bold"><?= $project->total_hours ?>h</span>
+                                        <span class="text-ytMuted">&bull;</span>
+                                        <span class="text-ytText font-semibold"><?= esc($studioCurrency) ?><?= number_format($project->ideal_budget, 0) ?></span>
+                                    </div>
+                                    <?php if(!empty($project->agreed_budget) && (float)$project->agreed_budget > 0): ?>
+                                        <div class="flex items-center gap-1 text-[10px]">
+                                            <span class="text-green-400 font-bold">Locked: <?= esc($studioCurrency) ?><?= number_format($project->agreed_budget, 0) ?></span>
+                                            <span class="bg-green-950/80 border border-green-700/50 text-green-300 px-1 rounded font-bold">(<?= $project->scale_percent ?>%)</span>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            </td>
                             <td class="px-6 py-4 text-ytMuted">
                                 <form action="/admin/projects/updateSettings/<?= $project->id ?>" method="POST" class="m-0 p-0 inline">
                                     <?= csrf_field() ?>
@@ -98,9 +114,14 @@
                                 </form>
                             </td>
                             <td class="px-6 py-4 text-right">
-                                <button class="text-ytMuted hover:text-ytText transition-colors p-1" title="View Project">
-                                    <span class="material-symbols-outlined text-[20px]">chevron_right</span>
-                                </button>
+                                <div class="flex items-center justify-end gap-1.5" onclick="event.stopPropagation()">
+                                    <a href="/admin/projects/<?= $project->id ?>/breakdown" class="bg-ytCard border border-ytBorder hover:border-ytBlue text-ytText hover:text-ytBlue px-2.5 py-1 rounded text-[11px] font-medium transition-colors" title="Open Shot Breakdown Matrix">
+                                        Matrix
+                                    </a>
+                                    <a href="/admin/projects/<?= $project->id ?>" class="text-ytMuted hover:text-ytText transition-colors p-1" title="View Project Cards">
+                                        <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>
