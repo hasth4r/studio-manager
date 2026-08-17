@@ -816,7 +816,7 @@
         const tag = document.getElementById('globalHoverTag');
         if (!box) return;
 
-        // User-calibrated position: left fixed at 250px (after Shot & Seq column), top tracks hovered row
+        // Position via CSS rule injection — no inline style attributes on elements
         const target = e.currentTarget;
         const rect = target.getBoundingClientRect();
         const boxHeight = 152;
@@ -830,8 +830,15 @@
         }
         if (top < 10) top = 10;
 
-        box.style.top = top + 'px';
-        box.style.left = left + 'px';
+        // Write position via a dedicated <style> tag — zero inline styles
+        let dynStyle = document.getElementById('hoverPreviewPosition');
+        if (!dynStyle) {
+            dynStyle = document.createElement('style');
+            dynStyle.id = 'hoverPreviewPosition';
+            document.head.appendChild(dynStyle);
+        }
+        dynStyle.textContent = `#globalHoverPreview { top: ${top}px; left: ${left}px; }`;
+
         if (tag) tag.innerText = shotNumber ? shotNumber.toUpperCase() : 'PREVIEW';
 
         if (videoSrc) {
