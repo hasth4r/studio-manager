@@ -177,6 +177,7 @@
                         <td class="py-1.5 px-2 text-center align-middle">
                             <div class="w-14 h-9 bg-[#111] rounded border border-ytBorder/60 overflow-hidden relative group/thumb cursor-pointer shrink-0 inline-block align-middle"
                                  onmouseenter="showFloatingPreview(event, '<?= !empty($shot->preview_video_path) ? base_url(esc($shot->preview_video_path)) : '' ?>', '<?= !empty($shot->thumbnail_path) ? base_url(esc($shot->thumbnail_path)) : '' ?>', '<?= esc($shot->shot_number) ?>')"
+                                 onmousemove="moveFloatingPreview(event)"
                                  onmouseleave="hideFloatingPreview()"
                                  onclick="openVideoModal('<?= !empty($shot->preview_video_path) ? base_url(esc($shot->preview_video_path)) : '' ?>', '<?= esc($shot->shot_number) ?>')"
                                  title="Click to open full player">
@@ -804,8 +805,35 @@
             video.src = videoUrl;
         });
     }
-    // Smart Floating Hover Video Preview Engine with Buffer Loader & Viewport Clamping
+    // Direct Cursor-Anchored Floating Hover Video Preview Engine
     let hoverTimeout = null;
+
+    function moveFloatingPreview(e) {
+        if (!e) return;
+        const box = document.getElementById('globalHoverPreview');
+        if (!box) return;
+
+        const boxWidth = 280;
+        const boxHeight = 158;
+
+        // Position directly next to the cursor/touch point
+        let left = e.clientX + 16;
+        let top = e.clientY - 30;
+
+        // If too far right, flip to left of cursor
+        if (left + boxWidth > window.innerWidth - 12) {
+            left = Math.max(12, e.clientX - boxWidth - 16);
+        }
+
+        // If too low, clamp to viewport bottom
+        if (top + boxHeight > window.innerHeight - 12) {
+            top = Math.max(12, window.innerHeight - boxHeight - 12);
+        }
+        if (top < 12) top = 12;
+
+        box.style.top = top + 'px';
+        box.style.left = left + 'px';
+    }
 
     function showFloatingPreview(e, videoSrc, thumbSrc, shotNumber) {
         clearTimeout(hoverTimeout);
@@ -816,25 +844,7 @@
         const tag = document.getElementById('globalHoverTag');
         if (!box) return;
 
-        const rect = e.currentTarget.getBoundingClientRect();
-        const boxWidth = 288;
-        const boxHeight = 162;
-
-        // Position: Prefer floating to the right of thumbnail with clean margin
-        let left = rect.right + 16;
-        if (left + boxWidth > window.innerWidth - 16) {
-            left = Math.max(16, rect.left - boxWidth - 16);
-        }
-
-        // Align vertically centered to the thumbnail, but clamp cleanly within viewport
-        let top = rect.top + (rect.height / 2) - (boxHeight / 2);
-        if (top + boxHeight > window.innerHeight - 16) {
-            top = window.innerHeight - boxHeight - 16;
-        }
-        if (top < 16) top = 16;
-
-        box.style.top = top + 'px';
-        box.style.left = left + 'px';
+        moveFloatingPreview(e);
         if (tag) tag.innerText = shotNumber ? shotNumber.toUpperCase() : 'PREVIEW';
 
         if (videoSrc) {
