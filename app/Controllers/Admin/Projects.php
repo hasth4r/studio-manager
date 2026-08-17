@@ -1403,8 +1403,25 @@ class Projects extends BaseController
         $taskBuilder->orderBy('tasks.id', 'ASC');
         $allTasks = $taskBuilder->get()->getResult();
 
+        // Load Studio Rate Settings
+        $settingsModel = new \App\Models\SettingsModel();
+        $studioCurrency = $settingsModel->getSetting('studio_currency', '₹');
+        $opsHourlyRate = (float)$settingsModel->getSetting('studio_ops_hourly_rate', 100.00);
+        $commissionPct = (float)$settingsModel->getSetting('studio_commission_pct', 30.0);
+        $defaultArtistRate = (float)$settingsModel->getSetting('default_artist_rate', 500.00);
+
+        // Map users by ID for quick rate lookup
+        $userRateMap = [];
+        foreach ($users as $u) {
+            $userRateMap[$u->id] = (float)($u->hourly_rate ?? $defaultArtistRate);
+        }
+
         $tasksByShot = [];
         $totalProjectHours = 0.0;
+        $totalArtistCost   = 0.0;
+        $totalOpsCost      = 0.0;
+        $totalClientBudget = 0.0;
+        $shotTotalBudgets  = [];
         $taskModel = new \App\Models\TaskModel();
 
         foreach ($allTasks as $t) {
@@ -1419,13 +1436,28 @@ class Projects extends BaseController
                     $t->estimated_hours = $refreshed->estimated_hours;
                 }
             }
-            $tasksByShot[$t->shot_id][] = $t;
-            $totalProjectHours += (float)($t->estimated_hours ?? 0);
-        }
 
-        // Shot Task Types & Users
-        $taskTypes = $taskTypeModel->where('category', 'shot')->findAll();
-        $users = $userModel->orderBy('name', 'ASC')->findAll();
+            $hrs = (float)($t->estimated_hours ?? 0);
+            $rate = !empty($t->assigned_to) && isset($userRateMap[$t->assigned_to]) ? $userRateMap[$t->assigned_to] : $defaultArtistRate;
+            
+            $artistCost = $hrs * $rate;
+            $opsCost = $hrs * $opsHourlyRate;
+            $margin = ($artistCost + $opsCost) * ($commissionPct / 100.0);
+            $clientCost = $artistCost + $opsCost + $margin;
+
+            $t->artist_rate  = $rate;
+            $t->artist_cost  = $artistCost;
+            $t->ops_cost     = $opsCost;
+            $t->client_cost  = $clientCost;
+
+            $totalArtistCost   += $artistCost;
+            $totalOpsCost      += $opsCost;
+            $totalClientBudget += $clientCost;
+            $shotTotalBudgets[$t->shot_id] = ($shotTotalBudgets[$t->shot_id] ?? 0.0) + $clientCost;
+
+            $tasksByShot[$t->shot_id][] = $t;
+            $totalProjectHours += $hrs;
+        }
 
         // Benchmarks
         $bmRaw = $db->table('task_benchmarks')->where('project_id', $projectId)->get()->getResult();
@@ -1435,15 +1467,24 @@ class Projects extends BaseController
         }
 
         $data = [
-            'pageTitle'         => 'Shot Breakdown: ' . $project->name,
-            'project'           => $project,
-            'sequences'         => $sequences,
-            'shots'             => $shots,
-            'tasksByShot'       => $tasksByShot,
-            'taskTypes'         => $taskTypes,
-            'users'             => $users,
-            'benchmarks'        => $benchmarks,
-            'totalProjectHours' => $totalProjectHours,
+            'pageTitle'          => 'Shot Breakdown: ' . $project->name,
+            'project'            => $project,
+            'sequences'          => $sequences,
+            'shots'              => $shots,
+            'tasksByShot'        => $tasksByShot,
+            'taskTypes'          => $taskTypes,
+            'users'              => $users,
+            'benchmarks'         => $benchmarks,
+            'totalProjectHours'  => $totalProjectHours,
+            'totalArtistCost'    => $totalArtistCost,
+            'totalOpsCost'       => $totalOpsCost,
+            'totalProfitMargin'  => $totalClientBudget - ($totalArtistCost + $totalOpsCost),
+            'totalClientBudget'  => $totalClientBudget,
+            'shotTotalBudgets'   => $shotTotalBudgets,
+            'studioCurrency'     => $studioCurrency,
+            'opsHourlyRate'      => $opsHourlyRate,
+            'commissionPct'      => $commissionPct,
+            'defaultArtistRate'  => $defaultArtistRate,
         ];
 
         return view('projects/breakdown', $data);
@@ -1559,28 +1600,60 @@ class Projects extends BaseController
         // Fetch refreshed task
         $refreshed = $taskModel->find($taskId);
 
-        // Calculate shot total hours
-        $db = \Config\Database::connect();
-        $shotTasks = $taskModel->where('shot_id', $task->shot_id)->findAll();
-        $shotTotalHours = 0.0;
-        foreach ($shotTasks as $st) {
-            $shotTotalHours += (float)($st->estimated_hours ?? 0);
+        // Load Rate Settings
+        $settingsModel = new \App\Models\SettingsModel();
+        $studioCurrency = $settingsModel->getSetting('studio_currency', '₹');
+        $opsHourlyRate = (float)$settingsModel->getSetting('studio_ops_hourly_rate', 100.00);
+        $commissionPct = (float)$settingsModel->getSetting('studio_commission_pct', 30.0);
+        $defaultArtistRate = (float)$settingsModel->getSetting('default_artist_rate', 500.00);
+
+        $userModel = new \App\Models\UserModel();
+        $users = $userModel->findAll();
+        $userRateMap = [];
+        foreach ($users as $u) {
+            $userRateMap[$u->id] = (float)($u->hourly_rate ?? $defaultArtistRate);
         }
 
-        // Calculate project total hours
+        // Calculate shot totals
+        $shotTasks = $taskModel->where('shot_id', $task->shot_id)->findAll();
+        $shotTotalHours = 0.0;
+        $shotTotalBudget = 0.0;
+        foreach ($shotTasks as $st) {
+            $h = (float)($st->estimated_hours ?? 0);
+            $r = !empty($st->assigned_to) && isset($userRateMap[$st->assigned_to]) ? $userRateMap[$st->assigned_to] : $defaultArtistRate;
+            $b = ($h * $r + $h * $opsHourlyRate) * (1 + ($commissionPct / 100.0));
+            $shotTotalHours += $h;
+            $shotTotalBudget += $b;
+        }
+
+        // Refreshed task budget
+        $refHrs = (float)($refreshed->estimated_hours ?? 0);
+        $refRate = !empty($refreshed->assigned_to) && isset($userRateMap[$refreshed->assigned_to]) ? $userRateMap[$refreshed->assigned_to] : $defaultArtistRate;
+        $refTaskBudget = ($refHrs * $refRate + $refHrs * $opsHourlyRate) * (1 + ($commissionPct / 100.0));
+
+        // Calculate project totals
         $projTasks = $taskModel->where('project_id', $task->project_id)->findAll();
         $projTotalHours = 0.0;
+        $projTotalBudget = 0.0;
         foreach ($projTasks as $pt) {
-            $projTotalHours += (float)($pt->estimated_hours ?? 0);
+            $h = (float)($pt->estimated_hours ?? 0);
+            $r = !empty($pt->assigned_to) && isset($userRateMap[$pt->assigned_to]) ? $userRateMap[$pt->assigned_to] : $defaultArtistRate;
+            $b = ($h * $r + $h * $opsHourlyRate) * (1 + ($commissionPct / 100.0));
+            $projTotalHours += $h;
+            $projTotalBudget += $b;
         }
 
         return $this->response->setJSON([
-            'success'          => true,
-            'task_id'          => $taskId,
-            'estimated_hours'  => $refreshed->estimated_hours ? round($refreshed->estimated_hours, 1) : 0,
-            'shot_id'          => $task->shot_id,
-            'shot_total_hours' => round($shotTotalHours, 1),
-            'proj_total_hours' => round($projTotalHours, 1),
+            'success'           => true,
+            'task_id'           => $taskId,
+            'estimated_hours'   => $refreshed->estimated_hours ? round($refreshed->estimated_hours, 1) : 0,
+            'task_budget'       => round($refTaskBudget, 0),
+            'shot_id'           => $task->shot_id,
+            'shot_total_hours'  => round($shotTotalHours, 1),
+            'shot_total_budget' => round($shotTotalBudget, 0),
+            'proj_total_hours'  => round($projTotalHours, 1),
+            'proj_total_budget' => round($projTotalBudget, 0),
+            'currency'          => $studioCurrency,
         ]);
     }
 

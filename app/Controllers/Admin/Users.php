@@ -48,12 +48,14 @@ class Users extends BaseController
             return redirect()->back()->withInput()->with('error', 'Validation failed. Please check the fields or ensure the email is unique.');
         }
 
+        $hourlyRate = $this->request->getPost('hourly_rate');
         $data = [
             'name'             => $this->request->getPost('name'),
             'email'            => $this->request->getPost('email'),
             'password_hash'    => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT),
             'global_role'      => $this->request->getPost('global_role'),
             'experience_level' => $this->request->getPost('experience_level') ?: 'Mid',
+            'hourly_rate'      => $hourlyRate !== '' && $hourlyRate !== null ? (float)$hourlyRate : 500.00,
             'status'           => 'active',
         ];
 
@@ -87,11 +89,13 @@ class Users extends BaseController
             return redirect()->back()->withInput()->with('error', 'Validation failed. Please check the fields.');
         }
 
+        $hourlyRate = $this->request->getPost('hourly_rate');
         $data = [
             'name'             => $this->request->getPost('name'),
             'email'            => $this->request->getPost('email'),
             'global_role'      => $this->request->getPost('global_role'),
             'experience_level' => $this->request->getPost('experience_level') ?: 'Mid',
+            'hourly_rate'      => $hourlyRate !== '' && $hourlyRate !== null ? (float)$hourlyRate : 500.00,
             'status'           => $this->request->getPost('status'),
         ];
 

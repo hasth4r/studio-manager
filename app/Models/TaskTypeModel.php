@@ -14,7 +14,8 @@ class TaskTypeModel extends Model
     protected $protectFields    = true;
     protected $allowedFields    = [
         'name',
-        'category'
+        'category',
+        'default_hourly_rate'
     ];
 
     protected $useTimestamps = true;

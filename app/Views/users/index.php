@@ -41,6 +41,7 @@
                     <th class="px-6 py-4">Email</th>
                     <th class="px-6 py-4">Role</th>
                     <th class="px-6 py-4">Experience</th>
+                    <th class="px-6 py-4">Freelance Rate</th>
                     <th class="px-6 py-4">Status</th>
                     <th class="px-6 py-4 text-right">Actions</th>
                 </tr>
@@ -48,7 +49,7 @@
             <tbody class="text-[14px] text-ytText divide-y divide-ytBorder/50">
                 <?php if (empty($users)): ?>
                     <tr>
-                        <td colspan="6" class="px-6 py-8 text-center text-ytMuted text-[13px]">No users found.</td>
+                        <td colspan="7" class="px-6 py-8 text-center text-ytMuted text-[13px]">No users found.</td>
                     </tr>
                 <?php else: ?>
                     <?php foreach($users as $user): ?>
@@ -73,6 +74,9 @@
                             </td>
                             <td class="px-6 py-4">
                                 <span class="bg-[#1a1a1a] text-ytText border border-ytBorder px-2 py-0.5 rounded text-[11px] tracking-wider font-medium"><?= esc($user->experience_level ?? 'Mid') ?></span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="font-mono text-green-400 font-bold text-[13px]">₹<?= number_format((float)($user->hourly_rate ?? 500), 0) ?><span class="text-[10px] text-ytMuted font-normal">/hr</span></span>
                             </td>
                             <td class="px-6 py-4">
                                 <?php if($user->status === 'active'): ?>
@@ -120,25 +124,30 @@
                 <input type="text" name="password" required class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-4 py-2 focus:outline-none focus:border-ytBlue" placeholder="Must be at least 5 characters">
             </div>
 
-            <div class="mb-4">
-                <label class="block text-[13px] font-medium text-ytText mb-2">Global Role <span class="text-ytRed">*</span></label>
-                <select name="global_role" required class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-4 py-2 focus:outline-none focus:border-ytBlue">
-                    <option value="artist">Artist</option>
-                    <option value="project_manager">Project Manager</option>
-                    <option value="client">Client</option>
-                    <option value="admin">Administrator</option>
-                </select>
-                <p class="text-[11px] text-ytMuted mt-1">Artists have limited dashboard views. Admins have full access.</p>
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-[13px] font-medium text-ytText mb-2">Global Role <span class="text-ytRed">*</span></label>
+                    <select name="global_role" required class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-4 py-2 focus:outline-none focus:border-ytBlue">
+                        <option value="artist">Artist</option>
+                        <option value="project_manager">Project Manager</option>
+                        <option value="client">Client</option>
+                        <option value="admin">Administrator</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[13px] font-medium text-ytText mb-2">Experience Level</label>
+                    <select name="experience_level" class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-4 py-2 focus:outline-none focus:border-ytBlue">
+                        <option value="Junior">Junior (1.5x)</option>
+                        <option value="Mid" selected>Mid (1.0x)</option>
+                        <option value="Senior">Senior (0.8x)</option>
+                    </select>
+                </div>
             </div>
 
             <div class="mb-6">
-                <label class="block text-[13px] font-medium text-ytText mb-2">Experience Level</label>
-                <select name="experience_level" class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-4 py-2 focus:outline-none focus:border-ytBlue">
-                    <option value="Junior">Junior (1.5x Task Time)</option>
-                    <option value="Mid" selected>Mid (1.0x Task Time)</option>
-                    <option value="Senior">Senior (0.8x Task Time)</option>
-                </select>
-                <p class="text-[11px] text-ytMuted mt-1">Used to multiply project task benchmarks for estimated completion time.</p>
+                <label class="block text-[13px] font-medium text-ytText mb-2">Freelance Payout Rate (₹ / hr)</label>
+                <input type="number" step="1" min="0" name="hourly_rate" value="500" required class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-4 py-2 focus:outline-none focus:border-ytBlue font-mono" placeholder="500">
+                <p class="text-[11px] text-ytMuted mt-1">Hourly payout paid to this freelancer upon task delivery.</p>
             </div>
             
             <div class="flex justify-end space-x-3">
@@ -168,7 +177,8 @@
         document.getElementById('edit_name').value = user.name;
         document.getElementById('edit_email').value = user.email;
         document.getElementById('edit_global_role').value = user.global_role;
-        document.getElementById('edit_experience_level').value = user.experience_level;
+        document.getElementById('edit_experience_level').value = user.experience_level || 'Mid';
+        document.getElementById('edit_hourly_rate').value = user.hourly_rate || 500;
         document.getElementById('edit_status').value = user.status;
         
         // Clear password field
@@ -222,13 +232,19 @@
                 </div>
             </div>
 
-            <div class="mb-6">
-                <label class="block text-[13px] font-medium text-ytText mb-2">Experience Level</label>
-                <select name="experience_level" id="edit_experience_level" class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-4 py-2 focus:outline-none focus:border-ytBlue">
-                    <option value="Junior">Junior (1.5x Task Time)</option>
-                    <option value="Mid">Mid (1.0x Task Time)</option>
-                    <option value="Senior">Senior (0.8x Task Time)</option>
-                </select>
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label class="block text-[13px] font-medium text-ytText mb-2">Experience Level</label>
+                    <select name="experience_level" id="edit_experience_level" class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-4 py-2 focus:outline-none focus:border-ytBlue">
+                        <option value="Junior">Junior (1.5x)</option>
+                        <option value="Mid">Mid (1.0x)</option>
+                        <option value="Senior">Senior (0.8x)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[13px] font-medium text-ytText mb-2">Payout Rate (₹ / hr)</label>
+                    <input type="number" step="1" min="0" name="hourly_rate" id="edit_hourly_rate" required class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-4 py-2 focus:outline-none focus:border-ytBlue font-mono" placeholder="500">
+                </div>
             </div>
             
             <div class="flex justify-end space-x-3">

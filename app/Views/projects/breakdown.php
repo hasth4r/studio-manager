@@ -14,12 +14,22 @@
                     <h2 class="text-[20px] font-semibold text-ytText leading-tight"><?= esc($project->name) ?></h2>
                     <span class="bg-ytCard border border-ytBorder text-ytBlue px-2.5 py-0.5 rounded-full text-[11px] font-mono font-medium">Shot Breakdown Matrix</span>
                 </div>
-                <div class="flex items-center gap-3 text-[12px] text-ytMuted mt-0.5 font-mono">
+                <div class="flex flex-wrap items-center gap-2.5 text-[12px] text-ytMuted mt-0.5 font-mono">
                     <span>Shots: <b class="text-ytText"><?= count($shots) ?></b></span>
                     <span>&bull;</span>
                     <span>Sequences: <b class="text-ytText"><?= count($sequences) ?></b></span>
                     <span>&bull;</span>
                     <span>Total Est: <b class="text-ytBlue font-bold" id="headerProjTotalHours"><?= round($totalProjectHours, 1) ?></b> hrs</span>
+                    <span>&bull;</span>
+                    <span class="bg-green-950/60 border border-green-700/50 text-green-300 px-2 py-0.5 rounded font-bold flex items-center gap-1 shadow-sm" title="Auto-calculated Project Client Budget (Freelancers: <?= esc($studioCurrency) ?><?= number_format($totalArtistCost, 0) ?> | AI & Ops: <?= esc($studioCurrency) ?><?= number_format($totalOpsCost, 0) ?> | Margin: <?= esc($studioCurrency) ?><?= number_format($totalProfitMargin, 0) ?>)">
+                        <span>Budget:</span>
+                        <b id="headerProjTotalBudget"><?= esc($studioCurrency) ?><?= number_format($totalClientBudget, 0) ?></b>
+                    </span>
+                    <span class="text-[10px] text-ytMuted hidden md:inline-flex items-center gap-1">
+                        (Artist: <span class="text-ytText font-bold"><?= esc($studioCurrency) ?><?= number_format($totalArtistCost, 0) ?></span> &bull; 
+                        Ops/AI: <span class="text-purple-300 font-bold"><?= esc($studioCurrency) ?><?= number_format($totalOpsCost, 0) ?></span> &bull; 
+                        Margin: <span class="text-amber-300 font-bold"><?= esc($studioCurrency) ?><?= number_format($totalProfitMargin, 0) ?></span>)
+                    </span>
                 </div>
             </div>
         </div>
@@ -329,9 +339,10 @@
                                                 <option value="approved" <?= $task->status === 'approved' ? 'selected' : '' ?>>Approved</option>
                                             </select>
 
-                                            <!-- Auto-calculated Hours Badge -->
-                                            <span class="bg-[#1f2937] border border-blue-500/30 text-blue-300 px-1.5 py-0.5 rounded font-mono font-bold text-[10px]" id="task-hours-<?= $task->id ?>" title="Estimated hours based on project benchmarks">
-                                                <?= round($task->estimated_hours ?? 0, 1) ?>h
+                                            <!-- Auto-calculated Hours & Budget Badge -->
+                                            <span class="bg-[#1f2937] border border-blue-500/30 text-blue-300 px-1.5 py-0.5 rounded font-mono font-bold text-[10px] inline-flex items-center gap-1" id="task-hours-<?= $task->id ?>" title="Est: <?= round($task->estimated_hours ?? 0, 1) ?>h | Freelancer: <?= esc($studioCurrency) ?><?= number_format($task->artist_cost ?? 0, 0) ?> | Ops: <?= esc($studioCurrency) ?><?= number_format($task->ops_cost ?? 0, 0) ?> | Client Quote: <?= esc($studioCurrency) ?><?= number_format($task->client_cost ?? 0, 0) ?>">
+                                                <span><?= round($task->estimated_hours ?? 0, 1) ?>h</span>
+                                                <span class="text-green-400 font-medium text-[9px]">(<?= esc($studioCurrency) ?><?= number_format($task->client_cost ?? 0, 0) ?>)</span>
                                             </span>
 
                                             <!-- Delete Task Button -->
@@ -354,11 +365,16 @@
                             </div>
                         </td>
 
-                        <!-- 12. Shot Total Hours Sum -->
-                        <td class="py-1.5 px-3 text-right align-middle">
-                            <span class="text-[12px] font-bold font-mono text-ytText bg-[#111] px-2 py-0.5 rounded border border-ytBorder/40 inline-block" id="shot-total-hours-<?= $shot->id ?>">
-                                <?= round($shotTotal, 1) ?>h
-                            </span>
+                        <!-- 12. Shot Total Hours & Budget Sum -->
+                        <td class="py-1.5 px-3 text-right align-middle shrink-0">
+                            <div class="flex flex-col items-end">
+                                <span class="text-[12px] font-bold font-mono text-ytText bg-[#111] px-2 py-0.5 rounded border border-ytBorder/40 inline-block" id="shot-total-hours-<?= $shot->id ?>">
+                                    <?= round($shotTotal, 1) ?>h
+                                </span>
+                                <span class="text-[10px] font-mono text-green-400 font-bold mt-0.5" id="shot-total-budget-<?= $shot->id ?>" title="Shot Client Budget Quote">
+                                    <?= esc($studioCurrency) ?><?= number_format($shotTotalBudgets[$shot->id] ?? 0, 0) ?>
+                                </span>
+                            </div>
                         </td>
                     </tr>
                     <?php endforeach; ?>
@@ -524,19 +540,34 @@
             });
             const data = await res.json();
             if (data.success) {
-                // Update hours badge
-                const hoursBadge = document.getElementById(`task-hours-${taskId}`);
-                if (hoursBadge) hoursBadge.textContent = `${data.estimated_hours}h`;
+                const currency = data.currency || '<?= esc($studioCurrency) ?>';
 
-                // Update shot total
+                // Update hours & budget badge
+                const hoursBadge = document.getElementById(`task-hours-${taskId}`);
+                if (hoursBadge) {
+                    const budgetFormatted = data.task_budget ? Number(data.task_budget).toLocaleString() : '0';
+                    hoursBadge.innerHTML = `<span>${data.estimated_hours}h</span> <span class="text-green-400 font-medium text-[9px]">(${currency}${budgetFormatted})</span>`;
+                }
+
+                // Update shot totals (hours + budget)
                 const shotTotalBadge = document.getElementById(`shot-total-hours-${shotId}`);
                 if (shotTotalBadge) shotTotalBadge.textContent = `${data.shot_total_hours}h`;
 
-                // Update header total
+                const shotBudgetBadge = document.getElementById(`shot-total-budget-${shotId}`);
+                if (shotBudgetBadge && data.shot_total_budget !== undefined) {
+                    shotBudgetBadge.textContent = `${currency}${Number(data.shot_total_budget).toLocaleString()}`;
+                }
+
+                // Update header project totals (hours + budget)
                 const projTotalHeader = document.getElementById('headerProjTotalHours');
                 if (projTotalHeader) projTotalHeader.textContent = data.proj_total_hours;
 
-                showToast(`Task ${field} updated & recalculated!`);
+                const projBudgetHeader = document.getElementById('headerProjTotalBudget');
+                if (projBudgetHeader && data.proj_total_budget !== undefined) {
+                    projBudgetHeader.textContent = `${currency}${Number(data.proj_total_budget).toLocaleString()}`;
+                }
+
+                showToast(`Task ${field} updated & budget recalculated!`);
             }
         } catch (err) {
             console.error('Inline task update error:', err);

@@ -103,10 +103,56 @@ try {
             echo "[i] Column `client_notes` already exists in `{$shotsTable}`\n";
         }
     } else {
-        echo "[!] No table matching 'shots' was found in `{$dbConfig['database']}`.\n";
+        echo "[!] No table matching 'shots' was found.\n";
     }
 
-    // 3. Ensure uploads/references directory exists
+    // 3. Check & Add 'hourly_rate' to 'users' table
+    $usersTable = in_array('users', $tables) ? 'users' : (!empty($dbConfig['prefix']) && in_array($dbConfig['prefix'] . 'users', $tables) ? $dbConfig['prefix'] . 'users' : null);
+    if ($usersTable) {
+        $stmt = $pdo->query("SHOW COLUMNS FROM `{$usersTable}` LIKE 'hourly_rate'");
+        if (!$stmt->fetch()) {
+            $pdo->exec("ALTER TABLE `{$usersTable}` ADD COLUMN `hourly_rate` DECIMAL(10,2) NOT NULL DEFAULT 500.00 AFTER `experience_level`");
+            echo "[+] Added column `hourly_rate` (DECIMAL 10,2 DEFAULT 500.00) to table `{$usersTable}`\n";
+        } else {
+            echo "[i] Column `hourly_rate` already exists in `{$usersTable}`\n";
+        }
+    }
+
+    // 4. Check & Add 'default_hourly_rate' to 'task_types' table
+    $taskTypesTable = in_array('task_types', $tables) ? 'task_types' : (!empty($dbConfig['prefix']) && in_array($dbConfig['prefix'] . 'task_types', $tables) ? $dbConfig['prefix'] . 'task_types' : null);
+    if ($taskTypesTable) {
+        $stmt = $pdo->query("SHOW COLUMNS FROM `{$taskTypesTable}` LIKE 'default_hourly_rate'");
+        if (!$stmt->fetch()) {
+            $pdo->exec("ALTER TABLE `{$taskTypesTable}` ADD COLUMN `default_hourly_rate` DECIMAL(10,2) NOT NULL DEFAULT 500.00 AFTER `category`");
+            echo "[+] Added column `default_hourly_rate` (DECIMAL 10,2 DEFAULT 500.00) to table `{$taskTypesTable}`\n";
+        } else {
+            echo "[i] Column `default_hourly_rate` already exists in `{$taskTypesTable}`\n";
+        }
+    }
+
+    // 5. Seed default Studio Economics settings if missing
+    $settingsTable = in_array('settings', $tables) ? 'settings' : (!empty($dbConfig['prefix']) && in_array($dbConfig['prefix'] . 'settings', $tables) ? $dbConfig['prefix'] . 'settings' : null);
+    if ($settingsTable) {
+        $defaultSettings = [
+            'studio_currency'        => '₹',
+            'studio_ops_hourly_rate' => '100.00',
+            'studio_commission_pct'  => '30',
+            'default_artist_rate'    => '500.00',
+        ];
+        foreach ($defaultSettings as $k => $v) {
+            $stmt = $pdo->prepare("SELECT id FROM `{$settingsTable}` WHERE `setting_key` = ?");
+            $stmt->execute([$k]);
+            if (!$stmt->fetch()) {
+                $ins = $pdo->prepare("INSERT INTO `{$settingsTable}` (`setting_key`, `setting_value`, `created_at`, `updated_at`) VALUES (?, ?, NOW(), NOW())");
+                $ins->execute([$k, $v]);
+                echo "[+] Seeded default setting: `{$k}` = '{$v}'\n";
+            } else {
+                echo "[i] Setting `{$k}` already exists\n";
+            }
+        }
+    }
+
+    // 6. Ensure uploads/references directory exists
     $targetDir = dirname(__DIR__) . '/public/uploads/references';
     if (!is_dir($targetDir)) {
         @mkdir($targetDir, 0777, true);
@@ -115,7 +161,7 @@ try {
         echo "[i] Upload directory exists: public/uploads/references\n";
     }
 
-    echo "\n=== Script execution finished. ===\n";
+    echo "\n=== Database & Rate Economics Update Complete! ===\n";
 
 } catch (\Throwable $e) {
     echo "\n[!] Database Error: " . $e->getMessage() . "\n";

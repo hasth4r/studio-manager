@@ -19,6 +19,7 @@ class UserModel extends Model
         'global_role',
         'status',
         'experience_level',
+        'hourly_rate',
         'client_id'
     ];
 
