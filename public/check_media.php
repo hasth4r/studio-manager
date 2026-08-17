@@ -93,16 +93,34 @@ if (file_exists($envFile)) {
     echo "<p style='color:#aaa;'>No .env found for R2 check.</p>";
 }
 
-// 2. Check Database Shots Table & Auto-Linker
-echo "<h3>2. Database Status &amp; Auto-Linker</h3>";
-
 $envPath = dirname(__DIR__) . '/.env';
 $sqlitePath = dirname(__DIR__) . '/writable/database.db';
 
 $pdo = null;
 
-// 1. Connect via .env (MySQL/Postgres) first
-if (file_exists($envPath)) {
+// Helper to check if a PDO connection actually contains the projects table
+function hasProjectsTable($conn) {
+    if (!$conn) return false;
+    try {
+        $r = $conn->query("SELECT 1 FROM projects LIMIT 1");
+        return $r !== false;
+    } catch (\Throwable $e) {
+        return false;
+    }
+}
+
+// 1. Try SQLite first (if database.db exists and has tables)
+if (file_exists($sqlitePath)) {
+    try {
+        $testSqlite = new PDO('sqlite:' . $sqlitePath);
+        if (hasProjectsTable($testSqlite)) {
+            $pdo = $testSqlite;
+        }
+    } catch (\Throwable $e) {}
+}
+
+// 2. Try MySQL from .env if SQLite didn't have projects table
+if (!$pdo && file_exists($envPath)) {
     $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     $dbHost = 'localhost'; $dbName = 'enso8_manager'; $dbUser = 'root'; $dbPass = ''; $dbPort = 3306;
     foreach ($lines as $line) {
@@ -120,11 +138,16 @@ if (file_exists($envPath)) {
         }
     }
     try {
-        $pdo = new PDO("mysql:host={$dbHost};port={$dbPort};dbname={$dbName};charset=utf8mb4", $dbUser, $dbPass);
+        $testMysql = new PDO("mysql:host={$dbHost};port={$dbPort};dbname={$dbName};charset=utf8mb4", $dbUser, $dbPass);
+        if (hasProjectsTable($testMysql)) {
+            $pdo = $testMysql;
+        } elseif (!$pdo) {
+            $pdo = $testMysql; // Fallback to show MySQL error if neither had table
+        }
     } catch (\Throwable $e) {}
 }
 
-// 2. Fallback to SQLite only if MySQL failed
+// 3. Last fallback to SQLite if available
 if (!$pdo && file_exists($sqlitePath)) {
     try {
         $pdo = new PDO('sqlite:' . $sqlitePath);
