@@ -175,8 +175,8 @@
 
                         <!-- 2. Thumbnail & Video Preview -->
                         <td class="py-2 px-2 text-center align-top">
-                            <div class="w-14 h-9 bg-[#111] rounded border border-ytBorder/60 overflow-hidden relative group/thumb cursor-pointer"
-                                 onmouseenter="showFloatingPreview(event, '<?= !empty($shot->preview_video_path) ? base_url(esc($shot->preview_video_path)) : '' ?>', '<?= !empty($shot->thumbnail_path) ? base_url(esc($shot->thumbnail_path)) : '' ?>')"
+                            <div class="w-14 h-9 bg-[#111] rounded border border-ytBorder/60 overflow-hidden relative group/thumb cursor-pointer shrink-0"
+                                 onmouseenter="showFloatingPreview(event, '<?= !empty($shot->preview_video_path) ? base_url(esc($shot->preview_video_path)) : '' ?>', '<?= !empty($shot->thumbnail_path) ? base_url(esc($shot->thumbnail_path)) : '' ?>', '<?= esc($shot->shot_number) ?>')"
                                  onmouseleave="hideFloatingPreview()"
                                  <?php if(!empty($shot->preview_video_path)): ?>
                                      onclick="openVideoModal('<?= base_url(esc($shot->preview_video_path)) ?>', '<?= esc($shot->shot_number) ?>')"
@@ -642,14 +642,33 @@
         }, 2200);
     }
 
-    // 10. Quick Video Player Modal
+    // 10. Quick Video Player Modal with Loading Buffer Indicator
     function openVideoModal(videoUrl, shotTitle) {
         const modal = document.getElementById('quickVideoModal');
         const video = document.getElementById('quickVideoPlayer');
         const title = document.getElementById('quickVideoTitle');
+        const loader = document.getElementById('quickVideoLoader');
         if (!modal || !video) return;
 
         title.textContent = `Preview: Shot ${shotTitle}`;
+        if (loader) {
+            loader.classList.remove('opacity-0', 'pointer-events-none');
+            loader.classList.add('opacity-100');
+        }
+
+        video.onplaying = () => {
+            if (loader) {
+                loader.classList.remove('opacity-100');
+                loader.classList.add('opacity-0', 'pointer-events-none');
+            }
+        };
+        video.onwaiting = () => {
+            if (loader) {
+                loader.classList.remove('opacity-0', 'pointer-events-none');
+                loader.classList.add('opacity-100');
+            }
+        };
+
         video.src = videoUrl;
         modal.classList.remove('hidden');
         video.play().catch(() => {});
@@ -658,11 +677,18 @@
     function closeVideoModal() {
         const modal = document.getElementById('quickVideoModal');
         const video = document.getElementById('quickVideoPlayer');
+        const loader = document.getElementById('quickVideoLoader');
         if (!modal || !video) return;
 
         video.pause();
         video.currentTime = 0;
         video.src = '';
+        video.onplaying = null;
+        video.onwaiting = null;
+        if (loader) {
+            loader.classList.remove('opacity-100');
+            loader.classList.add('opacity-0', 'pointer-events-none');
+        }
         modal.classList.add('hidden');
     }
 
@@ -778,53 +804,113 @@
             video.src = videoUrl;
         });
     }
-    // Single Lightweight Floating Hover Preview
-    function showFloatingPreview(e, videoSrc, thumbSrc) {
+    // Single Lightweight Floating Hover Preview with Smart Positioning & Loading Spinner
+    let hoverTimeout = null;
+
+    function showFloatingPreview(e, videoSrc, thumbSrc, shotNumber) {
+        clearTimeout(hoverTimeout);
         const box = document.getElementById('globalHoverPreview');
         const vid = document.getElementById('globalHoverVideo');
         const img = document.getElementById('globalHoverImg');
+        const loader = document.getElementById('globalHoverLoader');
+        const tag = document.getElementById('globalHoverTag');
         if (!box) return;
 
+        // Smart Positioning: Anchor beside thumbnail without obstructing row content
         const rect = e.currentTarget.getBoundingClientRect();
-        const top = Math.min(window.innerHeight - 180, Math.max(10, rect.top - 40));
-        const left = Math.min(window.innerWidth - 280, rect.right + 12);
+        const boxWidth = 280;
+        const boxHeight = 165;
+
+        // Position: Prefer right of thumbnail, flip to left if near right edge
+        let left = rect.right + 14;
+        if (left + boxWidth > window.innerWidth - 15) {
+            left = Math.max(15, rect.left - boxWidth - 14);
+        }
+
+        // Align vertically centered to the thumbnail, stay within viewport
+        let top = rect.top + (rect.height / 2) - (boxHeight / 2);
+        if (top + boxHeight > window.innerHeight - 15) {
+            top = window.innerHeight - boxHeight - 15;
+        }
+        if (top < 15) top = 15;
+
         box.style.top = top + 'px';
         box.style.left = left + 'px';
+        if (tag) tag.innerText = shotNumber ? shotNumber.toUpperCase() : 'PREVIEW';
 
         if (videoSrc) {
-            vid.src = videoSrc;
-            vid.classList.remove('hidden');
+            // Show loading animation while video buffers
+            if (loader) {
+                loader.classList.remove('opacity-0', 'pointer-events-none');
+                loader.classList.add('opacity-100');
+            }
             img.classList.add('hidden');
+            vid.classList.remove('hidden');
             box.classList.remove('hidden');
+
+            vid.onplaying = () => {
+                if (loader) {
+                    loader.classList.remove('opacity-100');
+                    loader.classList.add('opacity-0', 'pointer-events-none');
+                }
+            };
+            vid.onwaiting = () => {
+                if (loader) {
+                    loader.classList.remove('opacity-0', 'pointer-events-none');
+                    loader.classList.add('opacity-100');
+                }
+            };
+
+            vid.src = videoSrc;
             vid.play().catch(() => {});
         } else if (thumbSrc) {
+            if (loader) loader.classList.add('opacity-0', 'pointer-events-none');
+            vid.classList.add('hidden');
             img.src = thumbSrc;
             img.classList.remove('hidden');
-            vid.classList.add('hidden');
             box.classList.remove('hidden');
         }
     }
 
     function hideFloatingPreview() {
-        const box = document.getElementById('globalHoverPreview');
-        const vid = document.getElementById('globalHoverVideo');
-        if (box) box.classList.add('hidden');
-        if (vid) {
-            vid.pause();
-            vid.currentTime = 0;
-            vid.src = '';
-        }
+        hoverTimeout = setTimeout(() => {
+            const box = document.getElementById('globalHoverPreview');
+            const vid = document.getElementById('globalHoverVideo');
+            const loader = document.getElementById('globalHoverLoader');
+            if (box) box.classList.add('hidden');
+            if (vid) {
+                vid.pause();
+                vid.currentTime = 0;
+                vid.src = '';
+                vid.onplaying = null;
+                vid.onwaiting = null;
+            }
+            if (loader) {
+                loader.classList.remove('opacity-100');
+                loader.classList.add('opacity-0', 'pointer-events-none');
+            }
+        }, 80);
     }
 </script>
 
-<!-- Single Global Floating Hover Preview (Consumes 0 RAM when idle) -->
-<div id="globalHoverPreview" class="fixed hidden z-50 pointer-events-none shadow-2xl rounded-xl overflow-hidden border border-blue-500/60 bg-black w-64 aspect-video">
+<!-- Single Global Floating Hover Preview with Premium Glassmorphism & Glowing Loader -->
+<div id="globalHoverPreview" class="fixed hidden z-50 pointer-events-none shadow-[0_10px_30px_rgba(0,0,0,0.8)] rounded-xl overflow-hidden border border-blue-500/50 bg-[#080808] w-72 aspect-video backdrop-blur-md transition-opacity duration-200">
+    <!-- Sleek Glowing Loading Spinner -->
+    <div id="globalHoverLoader" class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/75 backdrop-blur-xs transition-opacity duration-300">
+        <div class="relative w-8 h-8 flex items-center justify-center">
+            <div class="absolute inset-0 rounded-full border-2 border-blue-500/20"></div>
+            <div class="absolute inset-0 rounded-full border-2 border-t-blue-400 border-r-transparent border-b-transparent border-l-transparent animate-spin"></div>
+            <span class="material-symbols-outlined text-[13px] text-blue-400 animate-pulse">play_arrow</span>
+        </div>
+        <span class="text-[9px] text-blue-300/80 font-mono mt-1.5 uppercase tracking-widest font-semibold">Buffering...</span>
+    </div>
     <video id="globalHoverVideo" class="w-full h-full object-cover hidden" muted loop playsinline></video>
     <img id="globalHoverImg" class="w-full h-full object-cover hidden" src="">
+    <div id="globalHoverTag" class="absolute bottom-1.5 left-2 bg-black/85 backdrop-blur-md text-blue-300 font-bold text-[10px] font-mono px-2 py-0.5 rounded border border-blue-500/30 z-30 shadow-lg"></div>
 </div>
 
-<!-- Quick Video Player Modal -->
-<div id="quickVideoModal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-md flex items-center justify-center p-4" onclick="if(event.target===this) closeVideoModal()">
+<!-- Quick Video Player Modal with Loading Animation -->
+<div id="quickVideoModal" class="fixed inset-0 z-50 hidden bg-black/85 backdrop-blur-md flex items-center justify-center p-4" onclick="if(event.target===this) closeVideoModal()">
     <div class="bg-ytCard border border-ytBorder rounded-2xl overflow-hidden shadow-2xl max-w-3xl w-full">
         <div class="px-5 py-3.5 border-b border-ytBorder/60 flex items-center justify-between bg-[#111]">
             <div class="flex items-center gap-2">
@@ -835,7 +921,16 @@
                 <span class="material-symbols-outlined text-[20px]">close</span>
             </button>
         </div>
-        <div class="aspect-video bg-black flex items-center justify-center">
+        <div class="aspect-video bg-black relative flex items-center justify-center">
+            <!-- Modal Loading Buffer Indicator -->
+            <div id="quickVideoLoader" class="absolute inset-0 flex flex-col items-center justify-center bg-black/60 z-10 transition-opacity duration-300 pointer-events-none">
+                <div class="relative w-10 h-10 flex items-center justify-center">
+                    <div class="absolute inset-0 rounded-full border-2 border-blue-500/20"></div>
+                    <div class="absolute inset-0 rounded-full border-2 border-t-blue-400 border-r-transparent border-b-transparent border-l-transparent animate-spin"></div>
+                    <span class="material-symbols-outlined text-[16px] text-blue-400">smart_display</span>
+                </div>
+                <span class="text-[11px] text-blue-300 font-mono mt-2 tracking-wider">Loading Video Stream...</span>
+            </div>
             <video id="quickVideoPlayer" controls playsinline class="w-full h-full object-contain"></video>
         </div>
     </div>

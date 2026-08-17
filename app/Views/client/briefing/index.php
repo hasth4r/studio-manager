@@ -210,7 +210,16 @@
                 <span class="material-symbols-outlined text-[20px]">close</span>
             </button>
         </div>
-        <div class="aspect-video bg-black flex items-center justify-center">
+        <div class="aspect-video bg-black relative flex items-center justify-center">
+            <!-- Modal Loading Buffer Indicator -->
+            <div id="quickVideoLoader" class="absolute inset-0 flex flex-col items-center justify-center bg-black/60 z-10 transition-opacity duration-300 pointer-events-none">
+                <div class="relative w-10 h-10 flex items-center justify-center">
+                    <div class="absolute inset-0 rounded-full border-2 border-blue-500/20"></div>
+                    <div class="absolute inset-0 rounded-full border-2 border-t-blue-400 border-r-transparent border-b-transparent border-l-transparent animate-spin"></div>
+                    <span class="material-symbols-outlined text-[16px] text-blue-400">smart_display</span>
+                </div>
+                <span class="text-[11px] text-blue-300 font-mono mt-2 tracking-wider">Loading Video Stream...</span>
+            </div>
             <video id="quickVideoPlayer" controls playsinline class="w-full h-full object-contain"></video>
         </div>
     </div>
@@ -384,14 +393,33 @@
         });
     }
 
-    // 5. Video Player Modal
+    // 5. Video Player Modal with Loading Animation
     function openVideoModal(videoUrl, shotTitle) {
         const modal = document.getElementById('quickVideoModal');
         const video = document.getElementById('quickVideoPlayer');
         const title = document.getElementById('quickVideoTitle');
+        const loader = document.getElementById('quickVideoLoader');
         if (!modal || !video) return;
 
         title.textContent = `Preview: Shot ${shotTitle}`;
+        if (loader) {
+            loader.classList.remove('opacity-0', 'pointer-events-none');
+            loader.classList.add('opacity-100');
+        }
+
+        video.onplaying = () => {
+            if (loader) {
+                loader.classList.remove('opacity-100');
+                loader.classList.add('opacity-0', 'pointer-events-none');
+            }
+        };
+        video.onwaiting = () => {
+            if (loader) {
+                loader.classList.remove('opacity-0', 'pointer-events-none');
+                loader.classList.add('opacity-100');
+            }
+        };
+
         video.src = videoUrl;
         modal.classList.remove('hidden');
         video.play().catch(() => {});
@@ -400,11 +428,18 @@
     function closeVideoModal() {
         const modal = document.getElementById('quickVideoModal');
         const video = document.getElementById('quickVideoPlayer');
+        const loader = document.getElementById('quickVideoLoader');
         if (!modal || !video) return;
 
         video.pause();
         video.currentTime = 0;
         video.src = '';
+        video.onplaying = null;
+        video.onwaiting = null;
+        if (loader) {
+            loader.classList.remove('opacity-100');
+            loader.classList.add('opacity-0', 'pointer-events-none');
+        }
         modal.classList.add('hidden');
     }
 
@@ -443,20 +478,46 @@
         }, 2200);
     }
 
-    // 8. Dynamic Zero-Lag Hover Video Preview Engine
+    // 8. Dynamic Zero-Lag Hover Video Preview Engine with Loading Animation
     function playHoverVideo(container, videoSrc) {
         if (!videoSrc || container.querySelector('video')) return;
+
+        // Add glowing loader spinner
+        const loader = document.createElement('div');
+        loader.className = 'hover-video-loader absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-xs z-20 pointer-events-none transition-opacity duration-300';
+        loader.innerHTML = `
+            <div class="relative w-8 h-8 flex items-center justify-center">
+                <div class="absolute inset-0 rounded-full border-2 border-blue-500/20"></div>
+                <div class="absolute inset-0 rounded-full border-2 border-t-blue-400 border-r-transparent border-b-transparent border-l-transparent animate-spin"></div>
+                <span class="material-symbols-outlined text-[13px] text-blue-400 animate-pulse">play_arrow</span>
+            </div>
+            <span class="text-[9px] text-blue-300 font-mono mt-1 uppercase tracking-widest font-semibold">Buffering...</span>
+        `;
+        container.appendChild(loader);
+
         const vid = document.createElement('video');
         vid.src = videoSrc;
         vid.muted = true;
         vid.loop = true;
         vid.playsInline = true;
-        vid.className = 'w-full h-full object-cover absolute inset-0 z-10 animate-fadeIn pointer-events-none';
+        vid.className = 'w-full h-full object-cover absolute inset-0 z-10 opacity-0 transition-opacity duration-300 pointer-events-none';
+
+        vid.onplaying = () => {
+            vid.classList.remove('opacity-0');
+            loader.classList.add('opacity-0');
+            setTimeout(() => loader.remove(), 300);
+        };
+        vid.onwaiting = () => {
+            loader.classList.remove('opacity-0');
+        };
+
         container.appendChild(vid);
         vid.play().catch(() => {});
     }
 
     function stopHoverVideo(container) {
+        const loader = container.querySelector('.hover-video-loader');
+        if (loader) loader.remove();
         const vid = container.querySelector('video');
         if (vid) {
             vid.pause();
