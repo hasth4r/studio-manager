@@ -17,22 +17,26 @@ echo "<h2>&#x1F3AC; EnsoFlow Media &amp; Video Diagnostic Tool</h2>";
 
 // 1. Check Files on Server Disk
 $videoDir = __DIR__ . '/uploads/shots/videos';
+if (!is_dir($videoDir)) {
+    @mkdir($videoDir, 0777, true);
+}
+
 echo "<h3>1. Files on Server Disk: <code>public/uploads/shots/videos</code></h3>";
 if (!is_dir($videoDir)) {
-    echo "<p class='badge-no'>&#x274C; Directory not found: $videoDir</p>";
+    echo "<p class='badge-no'>&#x274C; Directory not found and could not be created automatically: $videoDir</p>";
 } else {
     $files = scandir($videoDir);
     $videoFiles = array_filter($files, fn($f) => !in_array($f, ['.', '..']));
-    echo "<p>Total files on disk: <b>" . count($videoFiles) . "</b></p>";
+    echo "<p>Total video files on disk: <b>" . count($videoFiles) . "</b></p>";
     if (!empty($videoFiles)) {
         echo "<ul>";
         foreach ($videoFiles as $vf) {
             $fsize = round(filesize($videoDir . '/' . $vf) / (1024 * 1024), 2);
-            echo "<li><b>$vf</b> ($fsize MB) &mdash; <a href='/uploads/shots/videos/$vf' target='_blank' style='color:#3ea6ff;'>Direct Link</a></li>";
+            echo "<li>&#x2705; <b>$vf</b> ($fsize MB) &mdash; <a href='/uploads/shots/videos/$vf' target='_blank' style='color:#3ea6ff;'>Direct Link</a></li>";
         }
         echo "</ul>";
     } else {
-        echo "<p class='badge-no'>No video files found in uploads/shots/videos yet.</p>";
+        echo "<p style='color:#fbbf24;'>&#x26A0; Directory is ready, but no video files have been uploaded yet.</p>";
     }
 }
 
