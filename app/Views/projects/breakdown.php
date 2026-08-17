@@ -805,35 +805,8 @@
             video.src = videoUrl;
         });
     }
-    // Direct Cursor-Anchored Floating Hover Video Preview Engine
+    // Thumbnail-Anchored Floating Hover Video Preview Engine
     let hoverTimeout = null;
-
-    function moveFloatingPreview(e) {
-        if (!e) return;
-        const box = document.getElementById('globalHoverPreview');
-        if (!box) return;
-
-        const boxWidth = 280;
-        const boxHeight = 158;
-
-        // Position directly next to the cursor/touch point
-        let left = e.clientX + 16;
-        let top = e.clientY - 30;
-
-        // If too far right, flip to left of cursor
-        if (left + boxWidth > window.innerWidth - 12) {
-            left = Math.max(12, e.clientX - boxWidth - 16);
-        }
-
-        // If too low, clamp to viewport bottom
-        if (top + boxHeight > window.innerHeight - 12) {
-            top = Math.max(12, window.innerHeight - boxHeight - 12);
-        }
-        if (top < 12) top = 12;
-
-        box.style.top = top + 'px';
-        box.style.left = left + 'px';
-    }
 
     function showFloatingPreview(e, videoSrc, thumbSrc, shotNumber) {
         clearTimeout(hoverTimeout);
@@ -844,7 +817,22 @@
         const tag = document.getElementById('globalHoverTag');
         if (!box) return;
 
-        moveFloatingPreview(e);
+        // Anchor directly over the thumbnail and shot & seq area (X = rect.left)
+        const target = e.currentTarget;
+        const rect = target.getBoundingClientRect();
+        const boxWidth = 270;
+        const boxHeight = 152;
+
+        let left = Math.max(10, rect.left);
+        let top = rect.top - 10;
+
+        if (top + boxHeight > window.innerHeight - 10) {
+            top = Math.max(10, window.innerHeight - boxHeight - 10);
+        }
+        if (top < 10) top = 10;
+
+        box.style.top = top + 'px';
+        box.style.left = left + 'px';
         if (tag) tag.innerText = shotNumber ? shotNumber.toUpperCase() : 'PREVIEW';
 
         if (videoSrc) {
