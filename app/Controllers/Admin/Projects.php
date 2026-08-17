@@ -1405,7 +1405,20 @@ class Projects extends BaseController
 
         $tasksByShot = [];
         $totalProjectHours = 0.0;
+        $taskModel = new \App\Models\TaskModel();
+
         foreach ($allTasks as $t) {
+            if ($t->estimated_hours === null || (float)$t->estimated_hours <= 0) {
+                // Auto-calculate on load so it never shows 0h
+                $taskModel->update($t->id, [
+                    'complexity' => $t->complexity ?: 'Medium',
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+                $refreshed = $taskModel->find($t->id);
+                if ($refreshed && $refreshed->estimated_hours) {
+                    $t->estimated_hours = $refreshed->estimated_hours;
+                }
+            }
             $tasksByShot[$t->shot_id][] = $t;
             $totalProjectHours += (float)($t->estimated_hours ?? 0);
         }
