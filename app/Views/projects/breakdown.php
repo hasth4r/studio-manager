@@ -21,15 +21,23 @@
                     <span>&bull;</span>
                     <span>Total Est: <b class="text-ytBlue font-bold" id="headerProjTotalHours"><?= round($totalProjectHours, 1) ?></b> hrs</span>
                     <span>&bull;</span>
-                    <span class="bg-green-950/60 border border-green-700/50 text-green-300 px-2 py-0.5 rounded font-bold flex items-center gap-1 shadow-sm" title="Auto-calculated Project Client Budget (Freelancers: <?= esc($studioCurrency) ?><?= number_format($totalArtistCost, 0) ?> | AI & Ops: <?= esc($studioCurrency) ?><?= number_format($totalOpsCost, 0) ?> | Margin: <?= esc($studioCurrency) ?><?= number_format($totalProfitMargin, 0) ?>)">
-                        <span>Budget:</span>
-                        <b id="headerProjTotalBudget"><?= esc($studioCurrency) ?><?= number_format($totalClientBudget, 0) ?></b>
+                    <span class="bg-[#141414] border border-ytBorder text-ytText px-2 py-0.5 rounded font-mono text-[11px] flex items-center gap-1 shadow-sm" title="Standard Benchmark Project Quote (Artist: <?= esc($studioCurrency) ?><?= number_format($totalArtistCost, 0) ?> | Ops: <?= esc($studioCurrency) ?><?= number_format($totalOpsCost, 0) ?> | Margin: <?= esc($studioCurrency) ?><?= number_format($totalProfitMargin, 0) ?>)">
+                        <span class="text-ytMuted">Benchmark:</span>
+                        <b id="headerProjTotalBudget" class="text-ytBlue font-bold"><?= esc($studioCurrency) ?><?= number_format($totalClientBudget, 0) ?></b>
                     </span>
-                    <span class="text-[10px] text-ytMuted hidden md:inline-flex items-center gap-1">
-                        (Artist: <span class="text-ytText font-bold"><?= esc($studioCurrency) ?><?= number_format($totalArtistCost, 0) ?></span> &bull; 
-                        Ops/AI: <span class="text-purple-300 font-bold"><?= esc($studioCurrency) ?><?= number_format($totalOpsCost, 0) ?></span> &bull; 
-                        Margin: <span class="text-amber-300 font-bold"><?= esc($studioCurrency) ?><?= number_format($totalProfitMargin, 0) ?></span>)
-                    </span>
+                    <span>&bull;</span>
+                    <!-- Agreed / Locked Client Budget Input Box -->
+                    <div class="flex items-center gap-1.5 bg-green-950/40 border border-green-700/60 rounded-lg px-2.5 py-0.5 shadow-sm" title="Client Locked / Agreed Fixed Budget for this project. System scales shot allocations proportionally.">
+                        <span class="material-symbols-outlined text-[15px] text-green-400">lock</span>
+                        <span class="text-[11px] text-green-400 uppercase font-bold">Locked:</span>
+                        <span class="text-[12px] font-bold text-green-300 font-mono"><?= esc($studioCurrency) ?></span>
+                        <input type="number" step="1000" min="0" id="projectAgreedBudgetInput" value="<?= esc($agreedBudget > 0 ? $agreedBudget : '') ?>" placeholder="e.g. 40000"
+                               onchange="saveProjectAgreedBudget(this.value, <?= $project->id ?>)"
+                               class="w-24 bg-transparent border-b border-dashed border-green-500/60 focus:border-green-300 text-green-200 font-mono font-bold text-[12px] focus:outline-none px-1 py-0.2">
+                        <span class="text-[10px] font-mono bg-green-900/80 border border-green-600/50 text-green-300 px-1.5 py-0.2 rounded font-bold" id="scalePercentBadge" title="Proportional share of benchmark quote">
+                            <?= round($scaleFactor * 100, 1) ?>%
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -148,7 +156,7 @@
 
                         <!-- Task Pipeline Matrix (Takes all remaining width) -->
                         <th class="py-2.5 px-3 min-w-[320px]">Assigned Tasks &amp; Benchmark Estimates</th>
-                        <th class="py-2.5 px-3 w-16 text-right shrink-0">Shot Total</th>
+                        <th class="py-2.5 px-3 w-32 text-right shrink-0">Hours &amp; Budget</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-ytBorder/30 text-[12px]">
@@ -340,9 +348,11 @@
                                             </select>
 
                                             <!-- Auto-calculated Hours & Budget Badge -->
-                                            <span class="bg-[#1f2937] border border-blue-500/30 text-blue-300 px-1.5 py-0.5 rounded font-mono font-bold text-[10px] inline-flex items-center gap-1" id="task-hours-<?= $task->id ?>" title="Est: <?= round($task->estimated_hours ?? 0, 1) ?>h | Freelancer: <?= esc($studioCurrency) ?><?= number_format($task->artist_cost ?? 0, 0) ?> | Ops: <?= esc($studioCurrency) ?><?= number_format($task->ops_cost ?? 0, 0) ?> | Client Quote: <?= esc($studioCurrency) ?><?= number_format($task->client_cost ?? 0, 0) ?>">
+                                            <span class="bg-[#1f2937] border border-blue-500/30 text-blue-300 px-1.5 py-0.5 rounded font-mono font-bold text-[10px] inline-flex items-center gap-1" id="task-hours-<?= $task->id ?>" title="Est: <?= round($task->estimated_hours ?? 0, 1) ?>h | Benchmark: <?= esc($studioCurrency) ?><?= number_format($task->client_cost ?? 0, 0) ?><?= $agreedBudget > 0 ? ' | Allocated Cap: ' . esc($studioCurrency) . number_format($task->allocated_client_cost ?? 0, 0) : '' ?>">
                                                 <span><?= round($task->estimated_hours ?? 0, 1) ?>h</span>
-                                                <span class="text-green-400 font-medium text-[9px]">(<?= esc($studioCurrency) ?><?= number_format($task->client_cost ?? 0, 0) ?>)</span>
+                                                <span class="text-green-400 font-medium text-[9px]" id="task-budget-span-<?= $task->id ?>">
+                                                    (<?= esc($studioCurrency) ?><?= number_format($agreedBudget > 0 ? ($task->allocated_client_cost ?? $task->client_cost) : ($task->client_cost ?? 0), 0) ?>)
+                                                </span>
                                             </span>
 
                                             <!-- Delete Task Button -->
@@ -365,15 +375,20 @@
                             </div>
                         </td>
 
-                        <!-- 12. Shot Total Hours & Budget Sum -->
+                        <!-- 12. Shot Total Hours & Proportional Budget Sum -->
                         <td class="py-1.5 px-3 text-right align-middle shrink-0">
-                            <div class="flex flex-col items-end">
-                                <span class="text-[12px] font-bold font-mono text-ytText bg-[#111] px-2 py-0.5 rounded border border-ytBorder/40 inline-block" id="shot-total-hours-<?= $shot->id ?>">
+                            <div class="flex flex-col items-end gap-0.5">
+                                <span class="text-[11px] font-bold font-mono text-ytText bg-[#111] px-2 py-0.5 rounded border border-ytBorder/40 inline-block" id="shot-total-hours-<?= $shot->id ?>">
                                     <?= round($shotTotal, 1) ?>h
                                 </span>
-                                <span class="text-[10px] font-mono text-green-400 font-bold mt-0.5" id="shot-total-budget-<?= $shot->id ?>" title="Shot Client Budget Quote">
-                                    <?= esc($studioCurrency) ?><?= number_format($shotTotalBudgets[$shot->id] ?? 0, 0) ?>
-                                </span>
+                                <div class="flex items-center gap-1 text-[10px] font-mono">
+                                    <span class="text-ytMuted" id="shot-ideal-budget-<?= $shot->id ?>" title="Standard benchmark quote">
+                                        <?= esc($studioCurrency) ?><?= number_format($shotTotalBudgets[$shot->id] ?? 0, 0) ?>
+                                    </span>
+                                    <span class="text-green-400 font-bold bg-green-950/70 border border-green-700/40 px-1 rounded <?= $agreedBudget > 0 ? '' : 'hidden' ?>" id="shot-allocated-budget-<?= $shot->id ?>" title="Proportional allocated share of locked budget (<?= round($scaleFactor * 100, 1) ?>%)">
+                                        <?= esc($studioCurrency) ?><?= number_format($shotAllocatedBudgets[$shot->id] ?? 0, 0) ?>
+                                    </span>
+                                </div>
                             </div>
                         </td>
                     </tr>
@@ -571,6 +586,66 @@
             }
         } catch (err) {
             console.error('Inline task update error:', err);
+        }
+    }
+
+    // 5b. Save Agreed / Locked Project Budget (Live Proportional Scaling)
+    async function saveProjectAgreedBudget(val, projectId) {
+        const formData = new FormData();
+        formData.append('project_id', projectId);
+        formData.append('agreed_budget', val);
+        formData.append('<?= csrf_token() ?>', '<?= csrf_hash() ?>');
+
+        try {
+            const res = await fetch('/admin/projects/updateAgreedBudget', {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            const data = await res.json();
+            if (data.success) {
+                const currency = data.currency || '₹';
+
+                // Update scale badge
+                const scaleBadge = document.getElementById('scalePercentBadge');
+                if (scaleBadge) {
+                    scaleBadge.textContent = `${data.scale_percent}%`;
+                }
+
+                // Update shot allocated budgets
+                if (data.shot_allocated) {
+                    Object.entries(data.shot_allocated).forEach(([shotId, allocVal]) => {
+                        const badge = document.getElementById(`shot-allocated-budget-${shotId}`);
+                        if (badge) {
+                            if (data.agreed_budget) {
+                                badge.textContent = `${currency}${Number(allocVal).toLocaleString()}`;
+                                badge.classList.remove('hidden');
+                            } else {
+                                badge.classList.add('hidden');
+                            }
+                        }
+                    });
+                }
+
+                // Update task pill budget badges
+                if (data.task_allocated) {
+                    Object.entries(data.task_allocated).forEach(([taskId, taskData]) => {
+                        const span = document.getElementById(`task-budget-span-${taskId}`);
+                        if (span) {
+                            const valToShow = data.agreed_budget ? taskData.allocated : taskData.ideal;
+                            span.textContent = `(${currency}${Number(valToShow).toLocaleString()})`;
+                        }
+                    });
+                }
+
+                if (data.agreed_budget) {
+                    showToast(`Locked budget ${currency}${Number(data.agreed_budget).toLocaleString()} applied! (${data.scale_percent}% of quote)`);
+                } else {
+                    showToast(`Locked budget cleared. Reverted to standard benchmark quotes.`);
+                }
+            }
+        } catch (err) {
+            console.error('Error saving agreed budget:', err);
         }
     }
 

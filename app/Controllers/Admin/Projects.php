@@ -1463,6 +1463,22 @@ class Projects extends BaseController
             $totalProjectHours += $hrs;
         }
 
+        // Proportional Locked Budget Calculations (e.g. ₹40,000 allocated cap)
+        $agreedBudget = !empty($project->agreed_budget) ? (float)$project->agreed_budget : 0.0;
+        $scaleFactor  = ($agreedBudget > 0 && $totalClientBudget > 0) ? ($agreedBudget / $totalClientBudget) : 1.0;
+
+        $shotAllocatedBudgets = [];
+        foreach ($shotTotalBudgets as $sId => $idealCost) {
+            $shotAllocatedBudgets[$sId] = $idealCost * $scaleFactor;
+        }
+
+        // Apply scale factor to tasks
+        foreach ($allTasks as $t) {
+            $t->allocated_client_cost = $t->client_cost * $scaleFactor;
+            $t->allocated_artist_cost = $t->artist_cost * $scaleFactor;
+            $t->allocated_ops_cost    = $t->ops_cost * $scaleFactor;
+        }
+
         // Benchmarks
         $bmRaw = $db->table('task_benchmarks')->where('project_id', $projectId)->get()->getResult();
         $benchmarks = [];
@@ -1471,27 +1487,113 @@ class Projects extends BaseController
         }
 
         $data = [
-            'pageTitle'          => 'Shot Breakdown: ' . $project->name,
-            'project'            => $project,
-            'sequences'          => $sequences,
-            'shots'              => $shots,
-            'tasksByShot'        => $tasksByShot,
-            'taskTypes'          => $taskTypes,
-            'users'              => $users,
-            'benchmarks'         => $benchmarks,
-            'totalProjectHours'  => $totalProjectHours,
-            'totalArtistCost'    => $totalArtistCost,
-            'totalOpsCost'       => $totalOpsCost,
-            'totalProfitMargin'  => $totalClientBudget - ($totalArtistCost + $totalOpsCost),
-            'totalClientBudget'  => $totalClientBudget,
-            'shotTotalBudgets'   => $shotTotalBudgets,
-            'studioCurrency'     => $studioCurrency,
-            'opsHourlyRate'      => $opsHourlyRate,
-            'commissionPct'      => $commissionPct,
-            'defaultArtistRate'  => $defaultArtistRate,
+            'pageTitle'             => 'Shot Breakdown: ' . $project->name,
+            'project'               => $project,
+            'sequences'             => $sequences,
+            'shots'                 => $shots,
+            'tasksByShot'           => $tasksByShot,
+            'taskTypes'             => $taskTypes,
+            'users'                 => $users,
+            'benchmarks'            => $benchmarks,
+            'totalProjectHours'     => $totalProjectHours,
+            'totalArtistCost'       => $totalArtistCost,
+            'totalOpsCost'          => $totalOpsCost,
+            'totalProfitMargin'     => $totalClientBudget - ($totalArtistCost + $totalOpsCost),
+            'totalClientBudget'     => $totalClientBudget,
+            'agreedBudget'          => $agreedBudget,
+            'scaleFactor'           => $scaleFactor,
+            'shotTotalBudgets'      => $shotTotalBudgets,
+            'shotAllocatedBudgets'  => $shotAllocatedBudgets,
+            'studioCurrency'        => $studioCurrency,
+            'opsHourlyRate'         => $opsHourlyRate,
+            'commissionPct'         => $commissionPct,
+            'defaultArtistRate'     => $defaultArtistRate,
         ];
 
         return view('projects/breakdown', $data);
+    }
+
+    /**
+     * Update project agreed / locked budget and return live scaled budget allocations.
+     */
+    public function updateAgreedBudget()
+    {
+        if (!session()->get('isLoggedIn')) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Unauthorized']);
+        }
+
+        $projectId = (int)$this->request->getPost('project_id');
+        $rawBudget = $this->request->getPost('agreed_budget');
+
+        $agreedBudget = ($rawBudget !== '' && $rawBudget !== null) ? (float)$rawBudget : null;
+
+        $projectModel = new \App\Models\ProjectModel();
+        $project = $projectModel->find($projectId);
+        if (!$project) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Project not found.']);
+        }
+
+        $projectModel->update($projectId, ['agreed_budget' => $agreedBudget]);
+
+        // Recalculate all shot and project totals
+        $db = \Config\Database::connect();
+        $settingsModel = new \App\Models\SettingsModel();
+        $studioCurrency = $settingsModel->getSetting('studio_currency', '₹');
+        $opsHourlyRate = (float)$settingsModel->getSetting('studio_ops_hourly_rate', 100.00);
+        $commissionPct = (float)$settingsModel->getSetting('studio_commission_pct', 30.0);
+        $defaultArtistRate = (float)$settingsModel->getSetting('default_artist_rate', 500.00);
+
+        $userModel = new \App\Models\UserModel();
+        $users = $userModel->findAll();
+        $userRateMap = [];
+        foreach ($users as $u) {
+            $userRateMap[$u->id] = (float)($u->hourly_rate ?? $defaultArtistRate);
+        }
+
+        $taskModel = new \App\Models\TaskModel();
+        $allTasks = $taskModel->where('project_id', $projectId)->findAll();
+        $totalClientBudget = 0.0;
+        $shotTotals = [];
+
+        foreach ($allTasks as $t) {
+            $h = (float)($t->estimated_hours ?? 0);
+            $r = !empty($t->assigned_to) && isset($userRateMap[$t->assigned_to]) ? $userRateMap[$t->assigned_to] : $defaultArtistRate;
+            $b = ($h * $r + $h * $opsHourlyRate) * (1 + ($commissionPct / 100.0));
+            $totalClientBudget += $b;
+            if (!empty($t->shot_id)) {
+                $shotTotals[$t->shot_id] = ($shotTotals[$t->shot_id] ?? 0.0) + $b;
+            }
+        }
+
+        $scale = ($agreedBudget > 0 && $totalClientBudget > 0) ? ($agreedBudget / $totalClientBudget) : 1.0;
+
+        $shotAllocated = [];
+        foreach ($shotTotals as $sId => $ideal) {
+            $shotAllocated[$sId] = round($ideal * $scale, 0);
+        }
+
+        $taskAllocated = [];
+        foreach ($allTasks as $t) {
+            $h = (float)($t->estimated_hours ?? 0);
+            $r = !empty($t->assigned_to) && isset($userRateMap[$t->assigned_to]) ? $userRateMap[$t->assigned_to] : $defaultArtistRate;
+            $b = ($h * $r + $h * $opsHourlyRate) * (1 + ($commissionPct / 100.0));
+            $taskAllocated[$t->id] = [
+                'ideal'     => round($b, 0),
+                'allocated' => round($b * $scale, 0),
+            ];
+        }
+
+        return $this->response->setJSON([
+            'success'             => true,
+            'agreed_budget'       => $agreedBudget ? round($agreedBudget, 0) : null,
+            'total_ideal_budget'  => round($totalClientBudget, 0),
+            'scale_factor'        => $scale,
+            'scale_percent'       => round($scale * 100, 1),
+            'shot_totals'         => $shotTotals,
+            'shot_allocated'      => $shotAllocated,
+            'task_allocated'      => $taskAllocated,
+            'currency'            => $studioCurrency,
+        ]);
     }
 
     /**

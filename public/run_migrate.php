@@ -106,6 +106,18 @@ try {
         echo "[!] No table matching 'shots' was found.\n";
     }
 
+    // 2b. Check & Add 'agreed_budget' to 'projects' table
+    $projectsTable = in_array('projects', $tables) ? 'projects' : (!empty($dbConfig['prefix']) && in_array($dbConfig['prefix'] . 'projects', $tables) ? $dbConfig['prefix'] . 'projects' : null);
+    if ($projectsTable) {
+        $stmt = $pdo->query("SHOW COLUMNS FROM `{$projectsTable}` LIKE 'agreed_budget'");
+        if (!$stmt->fetch()) {
+            $pdo->exec("ALTER TABLE `{$projectsTable}` ADD COLUMN `agreed_budget` DECIMAL(12,2) NULL AFTER `fps`");
+            echo "[+] Added column `agreed_budget` (DECIMAL 12,2) to table `{$projectsTable}`\n";
+        } else {
+            echo "[i] Column `agreed_budget` already exists in `{$projectsTable}`\n";
+        }
+    }
+
     // 3. Check & Add 'hourly_rate' to 'users' table
     $usersTable = in_array('users', $tables) ? 'users' : (!empty($dbConfig['prefix']) && in_array($dbConfig['prefix'] . 'users', $tables) ? $dbConfig['prefix'] . 'users' : null);
     if ($usersTable) {

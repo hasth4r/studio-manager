@@ -22,7 +22,8 @@ class ProjectModel extends Model
         'start_date',
         'deadline',
         'priority',
-        'fps'
+        'fps',
+        'agreed_budget'
     ];
 
     // Dates
