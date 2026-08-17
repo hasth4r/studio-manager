@@ -760,10 +760,8 @@ class Projects extends BaseController
         }
 
         if (($handle = fopen($filePath, 'r')) !== false) {
-            // Read header row
             $header = fgetcsv($handle, 4096, ',');
             if ($header) {
-                // Strip UTF-8 BOM if present
                 $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', $header[0]);
                 $header = array_map('trim', $header);
 
@@ -782,5 +780,370 @@ class Projects extends BaseController
         }
         return $rows;
     }
+
+    /**
+     * Dedicated Excel-style Shot Breakdown & Bulk Task Matrix view.
+     */
+    public function breakdown($projectId)
+    {
+        if (!session()->get('isLoggedIn')) {
+            return redirect()->to('/login');
+        }
+
+        $db = \Config\Database::connect();
+        $projectModel = new \App\Models\ProjectModel();
+        $project = $projectModel->find($projectId);
+
+        if (!$project) {
+            return redirect()->to('/admin/projects')->with('error', 'Project not found.');
+        }
+
+        $sequenceModel = new \App\Models\SequenceModel();
+        $shotModel = new \App\Models\ShotModel();
+        $taskTypeModel = new \App\Models\TaskTypeModel();
+        $userModel = new \App\Models\UserModel();
+
+        // Sequences & Shots
+        $sequences = $sequenceModel->where('project_id', $projectId)->orderBy('name', 'ASC')->findAll();
+        $shots = $shotModel->where('project_id', $projectId)->orderBy('sequence_id', 'ASC')->orderBy('shot_number', 'ASC')->findAll();
+
+        // Tasks assigned to shots
+        $taskBuilder = $db->table('tasks');
+        $taskBuilder->select('tasks.*, task_types.name as task_type_name, users.name as assigned_user_name, users.experience_level');
+        $taskBuilder->join('task_types', 'task_types.id = tasks.task_type_id', 'left');
+        $taskBuilder->join('users', 'users.id = tasks.assigned_to', 'left');
+        $taskBuilder->where('tasks.project_id', $projectId);
+        $taskBuilder->where('tasks.shot_id IS NOT NULL');
+        $taskBuilder->orderBy('tasks.id', 'ASC');
+        $allTasks = $taskBuilder->get()->getResult();
+
+        $tasksByShot = [];
+        $totalProjectHours = 0.0;
+        foreach ($allTasks as $t) {
+            $tasksByShot[$t->shot_id][] = $t;
+            $totalProjectHours += (float)($t->estimated_hours ?? 0);
+        }
+
+        // Shot Task Types & Users
+        $taskTypes = $taskTypeModel->where('category', 'shot')->findAll();
+        $users = $userModel->orderBy('name', 'ASC')->findAll();
+
+        // Benchmarks
+        $bmRaw = $db->table('task_benchmarks')->where('project_id', $projectId)->get()->getResult();
+        $benchmarks = [];
+        foreach ($bmRaw as $bm) {
+            $benchmarks[$bm->task_type_id] = $bm;
+        }
+
+        $data = [
+            'pageTitle'         => 'Shot Breakdown: ' . $project->name,
+            'project'           => $project,
+            'sequences'         => $sequences,
+            'shots'             => $shots,
+            'tasksByShot'       => $tasksByShot,
+            'taskTypes'         => $taskTypes,
+            'users'             => $users,
+            'benchmarks'        => $benchmarks,
+            'totalProjectHours' => $totalProjectHours,
+        ];
+
+        return view('projects/breakdown', $data);
+    }
+
+    /**
+     * Bulk assign tasks across multiple shots in one click.
+     */
+    public function bulkAssignTasks()
+    {
+        if (!session()->get('isLoggedIn')) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Unauthorized']);
+        }
+
+        $projectId = (int)$this->request->getPost('project_id');
+        $shotIds = $this->request->getPost('shot_ids');
+        $taskTypeId = (int)$this->request->getPost('task_type_id');
+        $assignedTo = $this->request->getPost('assigned_to');
+        $complexity = $this->request->getPost('complexity') ?: 'Medium';
+        $status = $this->request->getPost('status') ?: 'pending';
+
+        if (empty($projectId) || empty($shotIds) || empty($taskTypeId)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Missing required fields.']);
+        }
+
+        if (!is_array($shotIds)) {
+            $shotIds = explode(',', $shotIds);
+        }
+
+        $taskModel = new \App\Models\TaskModel();
+        $shotModel = new \App\Models\ShotModel();
+        $db = \Config\Database::connect();
+
+        $created = 0;
+        $updated = 0;
+
+        foreach ($shotIds as $shotId) {
+            $shotId = (int)trim($shotId);
+            if (empty($shotId)) continue;
+
+            $shot = $shotModel->find($shotId);
+            if (!$shot) continue;
+
+            // Check if this task type already exists for this shot
+            $existing = $taskModel->where('shot_id', $shotId)->where('task_type_id', $taskTypeId)->first();
+
+            $taskData = [
+                'project_id'   => $projectId,
+                'shot_id'      => $shotId,
+                'task_type_id' => $taskTypeId,
+                'assigned_to'  => !empty($assignedTo) ? (int)$assignedTo : null,
+                'complexity'   => $complexity,
+                'status'       => $status,
+                'fps'          => $shot->fps,
+                'frame_count'  => $shot->frame_count,
+            ];
+
+            if ($existing) {
+                $taskModel->update($existing->id, $taskData);
+                $updated++;
+            } else {
+                $taskModel->insert($taskData);
+                $created++;
+            }
+
+            \App\Libraries\FolderManager::createTaskFolders($projectId, $taskTypeId, $shotId, null);
+        }
+
+        if ($this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => "Bulk task assignment complete: {$created} created, {$updated} updated."
+            ]);
+        }
+
+        return redirect()->back()->with('message', "Bulk task assignment complete: {$created} created, {$updated} updated.");
+    }
+
+    /**
+     * Inline AJAX Task updates (Assignee, Complexity, Status).
+     */
+    public function inlineUpdateTask()
+    {
+        if (!session()->get('isLoggedIn')) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Unauthorized']);
+        }
+
+        $taskId = (int)$this->request->getPost('task_id');
+        $field  = $this->request->getPost('field');
+        $value  = $this->request->getPost('value');
+
+        if (empty($taskId) || empty($field)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Invalid parameters.']);
+        }
+
+        $allowed = ['assigned_to', 'complexity', 'status', 'notes', 'fps', 'frame_count'];
+        if (!in_array($field, $allowed)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Field not allowed.']);
+        }
+
+        $taskModel = new \App\Models\TaskModel();
+        $task = $taskModel->find($taskId);
+        if (!$task) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Task not found.']);
+        }
+
+        $updateData = [
+            $field => ($value === '' || $value === null) ? null : ($field === 'assigned_to' || $field === 'fps' || $field === 'frame_count' ? (int)$value : $value)
+        ];
+
+        $taskModel->update($taskId, $updateData);
+
+        // Fetch refreshed task
+        $refreshed = $taskModel->find($taskId);
+
+        // Calculate shot total hours
+        $db = \Config\Database::connect();
+        $shotTasks = $taskModel->where('shot_id', $task->shot_id)->findAll();
+        $shotTotalHours = 0.0;
+        foreach ($shotTasks as $st) {
+            $shotTotalHours += (float)($st->estimated_hours ?? 0);
+        }
+
+        // Calculate project total hours
+        $projTasks = $taskModel->where('project_id', $task->project_id)->findAll();
+        $projTotalHours = 0.0;
+        foreach ($projTasks as $pt) {
+            $projTotalHours += (float)($pt->estimated_hours ?? 0);
+        }
+
+        return $this->response->setJSON([
+            'success'          => true,
+            'task_id'          => $taskId,
+            'estimated_hours'  => $refreshed->estimated_hours ? round($refreshed->estimated_hours, 1) : 0,
+            'shot_id'          => $task->shot_id,
+            'shot_total_hours' => round($shotTotalHours, 1),
+            'proj_total_hours' => round($projTotalHours, 1),
+        ]);
+    }
+
+    /**
+     * Inline AJAX Shot updates (frame_count, fps, frame_in, frame_out, comp_name, description).
+     */
+    public function inlineUpdateShot()
+    {
+        if (!session()->get('isLoggedIn')) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Unauthorized']);
+        }
+
+        $shotId = (int)$this->request->getPost('shot_id');
+        $field  = $this->request->getPost('field');
+        $value  = $this->request->getPost('value');
+
+        if (empty($shotId) || empty($field)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Invalid parameters.']);
+        }
+
+        $allowed = ['shot_number', 'sequence_id', 'frame_count', 'fps', 'frame_in', 'frame_out', 'comp_name', 'timecode_in', 'timecode_out', 'width', 'height', 'description'];
+        if (!in_array($field, $allowed)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Field not allowed.']);
+        }
+
+        $shotModel = new \App\Models\ShotModel();
+        $shot = $shotModel->find($shotId);
+        if (!$shot) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Shot not found.']);
+        }
+
+        $intFields = ['sequence_id', 'frame_count', 'fps', 'frame_in', 'frame_out', 'width', 'height'];
+        $valToSave = ($value === '' || $value === null) ? null : (in_array($field, $intFields) ? (int)$value : $value);
+
+        $shotModel->update($shotId, [$field => $valToSave]);
+
+        // If frame_count or fps was updated, recalculate all tasks under this shot
+        $updatedTasks = [];
+        $shotTotalHours = 0.0;
+        if ($field === 'frame_count' || $field === 'fps') {
+            $taskModel = new \App\Models\TaskModel();
+            $tasks = $taskModel->where('shot_id', $shotId)->findAll();
+            foreach ($tasks as $t) {
+                $taskModel->update($t->id, ['updated_at' => date('Y-m-d H:i:s')]);
+                $recalc = $taskModel->find($t->id);
+                $updatedTasks[] = [
+                    'id'    => $recalc->id,
+                    'hours' => $recalc->estimated_hours ? round($recalc->estimated_hours, 1) : 0
+                ];
+                $shotTotalHours += (float)($recalc->estimated_hours ?? 0);
+            }
+        }
+
+        return $this->response->setJSON([
+            'success'          => true,
+            'shot_id'          => $shotId,
+            'updated_tasks'    => $updatedTasks,
+            'shot_total_hours' => round($shotTotalHours, 1),
+        ]);
+    }
+
+    /**
+     * Inline AJAX Add Single Task to a Shot.
+     */
+    public function inlineAddTask()
+    {
+        if (!session()->get('isLoggedIn')) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Unauthorized']);
+        }
+
+        $projectId  = (int)$this->request->getPost('project_id');
+        $shotId     = (int)$this->request->getPost('shot_id');
+        $taskTypeId = (int)$this->request->getPost('task_type_id');
+        $assignedTo = $this->request->getPost('assigned_to');
+        $complexity = $this->request->getPost('complexity') ?: 'Medium';
+
+        if (empty($projectId) || empty($shotId) || empty($taskTypeId)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Missing parameters.']);
+        }
+
+        $shotModel = new \App\Models\ShotModel();
+        $shot = $shotModel->find($shotId);
+        if (!$shot) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Shot not found.']);
+        }
+
+        $taskModel = new \App\Models\TaskModel();
+        $newId = $taskModel->insert([
+            'project_id'   => $projectId,
+            'shot_id'      => $shotId,
+            'task_type_id' => $taskTypeId,
+            'assigned_to'  => !empty($assignedTo) ? (int)$assignedTo : null,
+            'complexity'   => $complexity,
+            'status'       => 'pending',
+            'fps'          => $shot->fps,
+            'frame_count'  => $shot->frame_count,
+        ]);
+
+        \App\Libraries\FolderManager::createTaskFolders($projectId, $taskTypeId, $shotId, null);
+
+        $db = \Config\Database::connect();
+        $task = $db->table('tasks t')
+            ->select('t.*, tt.name as task_type_name, u.name as assigned_user_name, u.experience_level')
+            ->join('task_types tt', 'tt.id = t.task_type_id', 'left')
+            ->join('users u', 'u.id = t.assigned_to', 'left')
+            ->where('t.id', $newId)
+            ->get()->getRow();
+
+        // Calculate shot total
+        $shotTasks = $taskModel->where('shot_id', $shotId)->findAll();
+        $shotTotalHours = 0.0;
+        foreach ($shotTasks as $st) {
+            $shotTotalHours += (float)($st->estimated_hours ?? 0);
+        }
+
+        return $this->response->setJSON([
+            'success'          => true,
+            'task'             => $task,
+            'shot_id'          => $shotId,
+            'shot_total_hours' => round($shotTotalHours, 1),
+        ]);
+    }
+
+    /**
+     * Inline AJAX Delete Task.
+     */
+    public function deleteTaskAjax()
+    {
+        if (!session()->get('isLoggedIn')) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Unauthorized']);
+        }
+
+        $taskId = (int)$this->request->getPost('task_id');
+        if (empty($taskId)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Invalid task ID.']);
+        }
+
+        $taskModel = new \App\Models\TaskModel();
+        $task = $taskModel->find($taskId);
+        if (!$task) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Task not found.']);
+        }
+
+        $shotId = $task->shot_id;
+        $projectId = $task->project_id;
+        $taskModel->delete($taskId);
+
+        $shotTotalHours = 0.0;
+        if ($shotId) {
+            $shotTasks = $taskModel->where('shot_id', $shotId)->findAll();
+            foreach ($shotTasks as $st) {
+                $shotTotalHours += (float)($st->estimated_hours ?? 0);
+            }
+        }
+
+        return $this->response->setJSON([
+            'success'          => true,
+            'task_id'          => $taskId,
+            'shot_id'          => $shotId,
+            'shot_total_hours' => round($shotTotalHours, 1),
+        ]);
+    }
 }
+
 

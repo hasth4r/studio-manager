@@ -59,11 +59,16 @@ $routes->group('admin', ['filter' => 'auth', 'namespace' => 'App\Controllers\Adm
     $routes->post('projects/importShots/(:num)', 'Projects::importShots/$1');
     $routes->post('projects/storeAsset', 'Projects::storeAsset');
     $routes->post('projects/storeBenchmarks', 'Projects::storeBenchmarks');
-    $routes->post('projects/updateSettings/(:num)', 'Projects::updateSettings/$1');
     $routes->post('projects/updateSequence/(:num)', 'Projects::updateSequence/$1');
     $routes->post('projects/deleteSequence/(:num)', 'Projects::deleteSequence/$1');
     $routes->post('projects/updateShot/(:num)', 'Projects::updateShot/$1');
     $routes->post('projects/deleteShot/(:num)', 'Projects::deleteShot/$1');
+    $routes->get('projects/(:num)/breakdown', 'Projects::breakdown/$1');
+    $routes->post('projects/bulkAssignTasks', 'Projects::bulkAssignTasks');
+    $routes->post('projects/inlineUpdateTask', 'Projects::inlineUpdateTask');
+    $routes->post('projects/inlineUpdateShot', 'Projects::inlineUpdateShot');
+    $routes->post('projects/inlineAddTask', 'Projects::inlineAddTask');
+    $routes->post('projects/deleteTaskAjax', 'Projects::deleteTaskAjax');
 
     // VFX Entities
     $routes->get('shots/(:num)', 'Shots::show/$1');

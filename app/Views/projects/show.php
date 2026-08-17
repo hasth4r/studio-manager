@@ -93,6 +93,10 @@
     <div class="flex justify-between items-center mb-4">
         <h3 class="text-[16px] font-medium text-ytText">Production Sequences</h3>
         <div class="flex items-center space-x-2">
+            <a href="/admin/projects/<?= $project->id ?>/breakdown" class="bg-[#181818] border border-ytBlue/50 hover:border-ytBlue text-ytText px-4 py-2 rounded-full font-medium text-[13px] hover:bg-ytHover transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(23,123,207,0.15)]">
+                <span class="material-symbols-outlined text-[16px] text-ytBlue">table_chart</span>
+                Shot Breakdown &amp; Task Matrix
+            </a>
             <button onclick="openModal('importShotsModal')" class="bg-ytCard border border-ytBorder text-ytText px-4 py-2 rounded-full font-medium text-[13px] hover:bg-ytHover transition-colors flex items-center gap-1.5">
                 <span class="material-symbols-outlined text-[16px] text-ytBlue">upload_file</span>
                 Import Shots (AE / CSV)
@@ -112,6 +116,9 @@
             <p class="text-ytText font-medium">No sequences or shots yet</p>
             <p class="text-ytMuted text-[13px] mt-1 mb-4">Break down your project into manageable sequences and shots, or import directly from After Effects.</p>
             <div class="flex justify-center gap-3">
+                <a href="/admin/projects/<?= $project->id ?>/breakdown" class="bg-ytCard border border-ytBorder text-ytText px-5 py-2.5 rounded-full font-medium text-[13px] hover:bg-ytHover transition-colors flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[18px] text-ytBlue">table_chart</span> Shot Breakdown Matrix
+                </a>
                 <button onclick="openModal('importShotsModal')" class="bg-ytCard border border-ytBorder text-ytText px-5 py-2.5 rounded-full font-medium text-[13px] hover:bg-ytHover transition-colors flex items-center gap-2">
                     <span class="material-symbols-outlined text-[18px] text-ytBlue">upload_file</span> Import from AE / CSV
                 </button>
