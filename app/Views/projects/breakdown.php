@@ -118,30 +118,30 @@
             <table class="w-full text-left border-collapse" id="breakdownTable">
                 <thead class="sticky top-0 z-30 bg-[#141414] border-b border-ytBorder/80 text-[11px] uppercase tracking-wider text-ytMuted font-semibold select-none">
                     <tr>
-                        <th class="py-3 px-3 w-10 text-center">
+                        <th class="py-2.5 px-2 w-8 text-center">
                             <input type="checkbox" id="selectAllShotsCheckbox" onchange="toggleSelectAllShots(this.checked)" class="rounded border-ytBorder bg-ytBg text-ytBlue focus:ring-0 cursor-pointer">
                         </th>
-                        <th class="py-3 px-2 w-16 text-center">Thumb</th>
-                        <th class="py-3 px-3 w-28">Shot &amp; Seq</th>
+                        <th class="py-2.5 px-2 w-16 text-center">Thumb</th>
+                        <th class="py-2.5 px-2.5 w-28">Shot &amp; Seq</th>
                         
                         <!-- Metadata Columns (Collapsible) -->
-                        <th class="py-3 px-2 w-20 meta-col">Frame In</th>
-                        <th class="py-3 px-2 w-20 meta-col">Frame Out</th>
-                        <th class="py-3 px-2 w-20 meta-col">Frames</th>
-                        <th class="py-3 px-2 w-16 meta-col">FPS</th>
-                        <th class="py-3 px-2 w-28 meta-col">Timecode</th>
-                        <th class="py-3 px-2 w-24 meta-col">Resolution</th>
-                        <th class="py-3 px-3 w-40 meta-col">AE Comp Name</th>
+                        <th class="py-2.5 px-1.5 w-16 text-center meta-col">Frame In</th>
+                        <th class="py-2.5 px-1.5 w-16 text-center meta-col">Frame Out</th>
+                        <th class="py-2.5 px-1.5 w-14 text-center meta-col">Frames</th>
+                        <th class="py-2.5 px-1.5 w-12 text-center meta-col">FPS</th>
+                        <th class="py-2.5 px-2 w-28 meta-col">Timecode</th>
+                        <th class="py-2.5 px-2 w-20 meta-col">Resolution</th>
+                        <th class="py-2.5 px-2 w-32 meta-col">AE Comp Name</th>
                         
                         <!-- Compact Meta summary (Shows when columns hidden) -->
-                        <th class="py-3 px-3 w-48 meta-summary-col hidden">Timing &amp; Specs</th>
+                        <th class="py-2.5 px-3 w-40 meta-summary-col hidden">Timing &amp; Specs</th>
 
                         <!-- Task Pipeline Matrix -->
-                        <th class="py-3 px-4 min-w-[380px]">Assigned Tasks &amp; Benchmark Estimates</th>
-                        <th class="py-3 px-3 w-24 text-right">Shot Total</th>
+                        <th class="py-2.5 px-3 min-w-[320px]">Assigned Tasks &amp; Benchmark Estimates</th>
+                        <th class="py-2.5 px-3 w-20 text-right">Shot Total</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-ytBorder/40 text-[12px]">
+                <tbody class="divide-y divide-ytBorder/30 text-[12px]">
                     <?php if(empty($shots)): ?>
                         <tr>
                             <td colspan="12" class="py-12 text-center text-ytMuted">
@@ -159,7 +159,7 @@
                             $shotTotal += (float)($st->estimated_hours ?? 0);
                         }
                     ?>
-                    <tr class="shot-row hover:bg-[#1a1a1a]/80 transition-colors group" 
+                    <tr class="shot-row hover:bg-[#181818] transition-colors group" 
                         id="shot-row-<?= $shot->id ?>"
                         data-shot-id="<?= $shot->id ?>"
                         data-shot-number="<?= strtolower(esc($shot->shot_number)) ?>"
@@ -169,19 +169,17 @@
                         data-has-unassigned="<?= !empty(array_filter($shotTasks, fn($t) => empty($t->assigned_to))) ? '1' : '0' ?>">
                         
                         <!-- 1. Selection Checkbox -->
-                        <td class="py-2.5 px-3 text-center align-top pt-3.5">
+                        <td class="py-1.5 px-2 text-center align-middle">
                             <input type="checkbox" value="<?= $shot->id ?>" onchange="updateSelectionState()" class="shot-checkbox rounded border-ytBorder bg-ytBg text-ytBlue focus:ring-0 cursor-pointer">
                         </td>
 
-                        <!-- 2. Thumbnail & Video Preview -->
-                        <td class="py-2 px-2 text-center align-top">
-                            <div class="w-14 h-9 bg-[#111] rounded border border-ytBorder/60 overflow-hidden relative group/thumb cursor-pointer shrink-0"
-                                 onmouseenter="showFloatingPreview(event, '<?= !empty($shot->preview_video_path) ? base_url(esc($shot->preview_video_path)) : '' ?>', '<?= !empty($shot->thumbnail_path) ? base_url(esc($shot->thumbnail_path)) : '' ?>', '<?= esc($shot->shot_number) ?>')"
-                                 onmouseleave="hideFloatingPreview()"
-                                 <?php if(!empty($shot->preview_video_path)): ?>
-                                     onclick="openVideoModal('<?= base_url(esc($shot->preview_video_path)) ?>', '<?= esc($shot->shot_number) ?>')"
-                                     title="Click to play video preview"
-                                 <?php endif; ?>>
+                        <!-- 2. Thumbnail & Inline Video Preview -->
+                        <td class="py-1.5 px-2 text-center align-middle">
+                            <div class="w-14 h-9 bg-[#111] rounded border border-ytBorder/60 overflow-hidden relative group/thumb cursor-pointer shrink-0 inline-block align-middle"
+                                 onmouseenter="playInlineThumbVideo(this, '<?= !empty($shot->preview_video_path) ? base_url(esc($shot->preview_video_path)) : '' ?>')"
+                                 onmouseleave="stopInlineThumbVideo(this)"
+                                 onclick="openVideoModal('<?= !empty($shot->preview_video_path) ? base_url(esc($shot->preview_video_path)) : '' ?>', '<?= esc($shot->shot_number) ?>')"
+                                 title="Click to play video preview">
                                 <?php if($shot->thumbnail_path): ?>
                                     <img src="<?= base_url(esc($shot->thumbnail_path)) ?>" loading="lazy" class="shot-thumb-img-<?= $shot->id ?> w-full h-full object-cover">
                                 <?php else: ?>
@@ -191,68 +189,70 @@
                                 <?php endif; ?>
 
                                 <?php if(!empty($shot->preview_video_path)): ?>
-                                    <span class="absolute bottom-0.5 right-0.5 bg-blue-600 hover:bg-blue-500 text-white text-[8px] font-bold px-1 rounded flex items-center shadow-md">
-                                        ▶ Play
+                                    <span class="thumb-play-tag absolute bottom-0.5 right-0.5 bg-blue-600 hover:bg-blue-500 text-white text-[8px] font-bold px-1 rounded flex items-center shadow-md">
+                                        ▶
                                     </span>
                                 <?php endif; ?>
                             </div>
                         </td>
 
-                        <!-- 3. Shot Number & Sequence -->
-                        <td class="py-2.5 px-3 align-top">
-                            <input type="text" value="<?= esc($shot->shot_number) ?>" 
-                                   onchange="inlineUpdateShot(<?= $shot->id ?>, 'shot_number', this.value)"
-                                   class="bg-transparent border-b border-transparent hover:border-ytBorder focus:border-ytBlue text-ytText font-bold text-[13px] px-1 py-0.5 rounded focus:bg-ytBg w-24 focus:outline-none transition-all font-mono">
-                            <div class="text-[11px] text-ytMuted font-mono px-1 flex items-center gap-1 mt-0.5">
-                                <span class="material-symbols-outlined text-[13px] text-ytMuted">folder</span>
-                                <span><?= esc($shot->sequence_name ?? 'Independent') ?></span>
+                        <!-- 3. Shot Number & Sequence (Compact Stack) -->
+                        <td class="py-1.5 px-2.5 align-middle">
+                            <div class="flex flex-col justify-center">
+                                <input type="text" value="<?= esc($shot->shot_number) ?>" 
+                                       onchange="inlineUpdateShot(<?= $shot->id ?>, 'shot_number', this.value)"
+                                       class="bg-transparent border-b border-transparent hover:border-ytBorder focus:border-ytBlue text-ytText font-bold text-[12px] px-1 py-0 rounded focus:bg-ytBg w-22 focus:outline-none transition-all font-mono leading-tight">
+                                <span class="text-[10px] text-ytMuted font-mono px-1 truncate max-w-[120px] inline-flex items-center gap-1 mt-0.5" title="<?= esc($shot->sequence_name ?? 'Independent') ?>">
+                                    <span class="material-symbols-outlined text-[12px] text-ytMuted shrink-0">folder</span>
+                                    <span><?= esc($shot->sequence_name ?? 'Independent') ?></span>
+                                </span>
                             </div>
                         </td>
 
                         <!-- 4. Frame In (Meta) -->
-                        <td class="py-2.5 px-2 align-top meta-col">
+                        <td class="py-1.5 px-1.5 align-middle meta-col text-center">
                             <input type="number" value="<?= esc($shot->frame_in ?? '') ?>" 
                                    placeholder="1001"
                                    onchange="inlineUpdateShot(<?= $shot->id ?>, 'frame_in', this.value)"
-                                   class="bg-ytBg/60 border border-ytBorder/40 hover:border-ytBorder focus:border-ytBlue text-ytText text-[11px] font-mono px-2 py-1 rounded w-16 focus:outline-none text-center">
+                                   class="bg-ytBg/60 border border-ytBorder/40 hover:border-ytBorder focus:border-ytBlue text-ytText text-[11px] font-mono px-1 py-0.5 rounded w-14 focus:outline-none text-center">
                         </td>
 
                         <!-- 5. Frame Out (Meta) -->
-                        <td class="py-2.5 px-2 align-top meta-col">
+                        <td class="py-1.5 px-1.5 align-middle meta-col text-center">
                             <input type="number" value="<?= esc($shot->frame_out ?? '') ?>" 
                                    placeholder="1075"
                                    onchange="inlineUpdateShot(<?= $shot->id ?>, 'frame_out', this.value)"
-                                   class="bg-ytBg/60 border border-ytBorder/40 hover:border-ytBorder focus:border-ytBlue text-ytText text-[11px] font-mono px-2 py-1 rounded w-16 focus:outline-none text-center">
+                                   class="bg-ytBg/60 border border-ytBorder/40 hover:border-ytBorder focus:border-ytBlue text-ytText text-[11px] font-mono px-1 py-0.5 rounded w-14 focus:outline-none text-center">
                         </td>
 
                         <!-- 6. Frames Count (Meta) -->
-                        <td class="py-2.5 px-2 align-top meta-col">
+                        <td class="py-1.5 px-1.5 align-middle meta-col text-center">
                             <input type="number" value="<?= esc($shot->frame_count ?? '') ?>" 
                                    placeholder="75"
                                    onchange="inlineUpdateShot(<?= $shot->id ?>, 'frame_count', this.value)"
-                                   class="bg-ytBg border border-ytBorder/60 hover:border-ytBlue focus:border-ytBlue text-ytText font-semibold text-[11px] font-mono px-2 py-1 rounded w-16 focus:outline-none text-center">
+                                   class="bg-ytBg border border-ytBorder/60 hover:border-ytBlue focus:border-ytBlue text-ytText font-semibold text-[11px] font-mono px-1 py-0.5 rounded w-12 focus:outline-none text-center">
                         </td>
 
                         <!-- 7. FPS (Meta) -->
-                        <td class="py-2.5 px-2 align-top meta-col">
+                        <td class="py-1.5 px-1.5 align-middle meta-col text-center">
                             <input type="number" value="<?= esc($shot->fps ?? $project->fps ?? 24) ?>" 
                                    placeholder="25"
                                    onchange="inlineUpdateShot(<?= $shot->id ?>, 'fps', this.value)"
-                                   class="bg-ytBg/60 border border-ytBorder/40 hover:border-ytBorder focus:border-ytBlue text-ytText text-[11px] font-mono px-1.5 py-1 rounded w-14 focus:outline-none text-center">
+                                   class="bg-ytBg/60 border border-ytBorder/40 hover:border-ytBorder focus:border-ytBlue text-ytText text-[11px] font-mono px-1 py-0.5 rounded w-11 focus:outline-none text-center">
                         </td>
 
                         <!-- 8. Timecode In/Out (Meta) -->
-                        <td class="py-2.5 px-2 align-top meta-col text-[11px] font-mono text-ytMuted space-y-1">
+                        <td class="py-1.5 px-1.5 align-middle meta-col text-[10px] font-mono text-ytMuted space-y-0.5">
                             <input type="text" value="<?= esc($shot->timecode_in ?? '') ?>" placeholder="00:00:00:00"
                                    onchange="inlineUpdateShot(<?= $shot->id ?>, 'timecode_in', this.value)"
-                                   class="bg-transparent border-b border-transparent hover:border-ytBorder focus:border-ytBlue text-ytText text-[10px] font-mono px-1 py-0.5 w-24 focus:bg-ytBg focus:outline-none">
+                                   class="bg-transparent border-b border-transparent hover:border-ytBorder focus:border-ytBlue text-ytText text-[10px] font-mono px-1 py-0 w-22 focus:bg-ytBg focus:outline-none block">
                             <input type="text" value="<?= esc($shot->timecode_out ?? '') ?>" placeholder="00:00:03:00"
                                    onchange="inlineUpdateShot(<?= $shot->id ?>, 'timecode_out', this.value)"
-                                   class="bg-transparent border-b border-transparent hover:border-ytBorder focus:border-ytBlue text-ytText text-[10px] font-mono px-1 py-0.5 w-24 focus:bg-ytBg focus:outline-none">
+                                   class="bg-transparent border-b border-transparent hover:border-ytBorder focus:border-ytBlue text-ytText text-[10px] font-mono px-1 py-0 w-22 focus:bg-ytBg focus:outline-none block">
                         </td>
 
                         <!-- 9. Resolution (Meta) -->
-                        <td class="py-2.5 px-2 align-top meta-col text-[11px] font-mono text-ytText">
+                        <td class="py-1.5 px-2 align-middle meta-col text-[11px] font-mono text-ytText text-center">
                             <?php if(!empty($shot->width) && !empty($shot->height)): ?>
                                 <span><?= esc($shot->width) ?>&times;<?= esc($shot->height) ?></span>
                             <?php else: ?>
@@ -261,12 +261,12 @@
                         </td>
 
                         <!-- 10. AE Comp Name (Meta) -->
-                        <td class="py-2.5 px-3 align-top meta-col text-[11px] font-mono text-ytMuted truncate max-w-[160px]" title="<?= esc($shot->comp_name ?? '') ?>">
+                        <td class="py-1.5 px-2 align-middle meta-col text-[11px] font-mono text-ytMuted truncate max-w-[140px]" title="<?= esc($shot->comp_name ?? '') ?>">
                             <?= esc($shot->comp_name ?: '-') ?>
                         </td>
 
                         <!-- Compact Meta Summary (Shown when columns collapsed) -->
-                        <td class="py-2.5 px-3 align-top meta-summary-col hidden text-[11px] font-mono space-y-1">
+                        <td class="py-1.5 px-3 align-middle meta-summary-col hidden text-[11px] font-mono space-y-1">
                             <div class="text-ytText font-medium">
                                 <?= !empty($shot->frame_in) && !empty($shot->frame_out) ? esc($shot->frame_in) . '–' . esc($shot->frame_out) : '' ?>
                                 <span class="text-ytBlue">(<?= esc($shot->frame_count ?? '-') ?> fr)</span>
@@ -277,21 +277,21 @@
                         </td>
 
                         <!-- 11. Assigned Tasks Matrix Column -->
-                        <td class="py-2.5 px-4 align-top">
-                            <div class="space-y-1.5" id="shot-tasks-container-<?= $shot->id ?>">
+                        <td class="py-1.5 px-3 align-middle">
+                            <div class="space-y-1" id="shot-tasks-container-<?= $shot->id ?>">
                                 <?php if(empty($shotTasks)): ?>
-                                    <span class="text-[11px] text-ytMuted italic no-tasks-label">No tasks assigned yet.</span>
+                                    <span class="text-[10px] text-ytMuted italic no-tasks-label">No tasks assigned.</span>
                                 <?php else: ?>
                                     <?php foreach($shotTasks as $task): ?>
-                                        <div class="flex flex-wrap items-center gap-2 bg-[#121212] border border-ytBorder/50 rounded-lg px-2.5 py-1 text-[11px] group/task hover:border-ytBorder transition-all" id="task-item-<?= $task->id ?>">
+                                        <div class="flex flex-wrap items-center gap-1.5 bg-[#121212] border border-ytBorder/50 rounded px-2 py-0.5 text-[11px] group/task hover:border-ytBorder transition-all" id="task-item-<?= $task->id ?>">
                                             
                                             <!-- Task Type Badge -->
-                                            <span class="font-semibold text-[11px] text-ytBlue w-20 truncate" title="<?= esc($task->task_type_name) ?>">
+                                            <span class="font-semibold text-[10px] text-ytBlue w-18 truncate" title="<?= esc($task->task_type_name) ?>">
                                                 <?= esc($task->task_type_name) ?>
                                             </span>
 
                                             <!-- Assignee Inline Dropdown -->
-                                            <select onchange="inlineUpdateTask(<?= $task->id ?>, 'assigned_to', this.value, <?= $shot->id ?>)" class="bg-ytBg border border-ytBorder/40 hover:border-ytBorder text-ytText rounded px-2 py-0.5 text-[11px] focus:outline-none focus:border-ytBlue">
+                                            <select onchange="inlineUpdateTask(<?= $task->id ?>, 'assigned_to', this.value, <?= $shot->id ?>)" class="bg-ytBg border border-ytBorder/40 hover:border-ytBorder text-ytText rounded px-1.5 py-0.5 text-[10px] focus:outline-none focus:border-ytBlue">
                                                 <option value="">(Unassigned)</option>
                                                 <?php foreach($users as $u): ?>
                                                     <option value="<?= $u->id ?>" <?= $task->assigned_to == $u->id ? 'selected' : '' ?>>
@@ -301,14 +301,14 @@
                                             </select>
 
                                             <!-- Complexity Inline Dropdown -->
-                                            <select onchange="inlineUpdateTask(<?= $task->id ?>, 'complexity', this.value, <?= $shot->id ?>)" class="bg-ytBg border border-ytBorder/40 hover:border-ytBorder text-ytText rounded px-1.5 py-0.5 text-[11px] font-medium focus:outline-none focus:border-ytBlue">
+                                            <select onchange="inlineUpdateTask(<?= $task->id ?>, 'complexity', this.value, <?= $shot->id ?>)" class="bg-ytBg border border-ytBorder/40 hover:border-ytBorder text-ytText rounded px-1 py-0.5 text-[10px] font-medium focus:outline-none focus:border-ytBlue">
                                                 <option value="Simple" <?= $task->complexity === 'Simple' ? 'selected' : '' ?>>🟢 Simple</option>
                                                 <option value="Medium" <?= ($task->complexity === 'Medium' || empty($task->complexity)) ? 'selected' : '' ?>>🟡 Medium</option>
                                                 <option value="Complex" <?= $task->complexity === 'Complex' ? 'selected' : '' ?>>🔴 Complex</option>
                                             </select>
 
                                             <!-- Status Inline Dropdown -->
-                                            <select onchange="inlineUpdateTask(<?= $task->id ?>, 'status', this.value, <?= $shot->id ?>)" class="bg-ytBg border border-ytBorder/40 hover:border-ytBorder text-ytText rounded px-1.5 py-0.5 text-[11px] focus:outline-none focus:border-ytBlue">
+                                            <select onchange="inlineUpdateTask(<?= $task->id ?>, 'status', this.value, <?= $shot->id ?>)" class="bg-ytBg border border-ytBorder/40 hover:border-ytBorder text-ytText rounded px-1 py-0.5 text-[10px] focus:outline-none focus:border-ytBlue">
                                                 <option value="pending" <?= $task->status === 'pending' ? 'selected' : '' ?>>Pending</option>
                                                 <option value="in_progress" <?= $task->status === 'in_progress' ? 'selected' : '' ?>>In Progress</option>
                                                 <option value="review" <?= $task->status === 'review' ? 'selected' : '' ?>>Review</option>
@@ -316,13 +316,13 @@
                                             </select>
 
                                             <!-- Auto-calculated Hours Badge -->
-                                            <span class="bg-[#1f2937] border border-blue-500/30 text-blue-300 px-2 py-0.5 rounded font-mono font-bold text-[11px]" id="task-hours-<?= $task->id ?>" title="Estimated hours based on project benchmarks">
+                                            <span class="bg-[#1f2937] border border-blue-500/30 text-blue-300 px-1.5 py-0.5 rounded font-mono font-bold text-[10px]" id="task-hours-<?= $task->id ?>" title="Estimated hours based on project benchmarks">
                                                 <?= round($task->estimated_hours ?? 0, 1) ?>h
                                             </span>
 
                                             <!-- Delete Task Button -->
                                             <button type="button" onclick="deleteTaskAjax(<?= $task->id ?>, <?= $shot->id ?>)" class="text-ytMuted hover:text-red-400 p-0.5 opacity-0 group-hover/task:opacity-100 transition-opacity ml-auto" title="Delete task">
-                                                <span class="material-symbols-outlined text-[14px]">delete</span>
+                                                <span class="material-symbols-outlined text-[13px]">delete</span>
                                             </button>
                                         </div>
                                     <?php endforeach; ?>
@@ -330,9 +330,9 @@
                             </div>
 
                             <!-- Row-Level Add Task Quick Dropdown -->
-                            <div class="mt-1.5 flex items-center gap-1.5">
-                                <select onchange="handleRowQuickAddTask(this, <?= $shot->id ?>, <?= $project->id ?>)" class="bg-transparent border border-dashed border-ytBorder/60 hover:border-ytBlue text-ytMuted hover:text-ytText rounded px-2 py-0.5 text-[10px] focus:outline-none focus:bg-ytBg transition-colors cursor-pointer">
-                                    <option value="" selected>+ Add task to <?= esc($shot->shot_number) ?>...</option>
+                            <div class="mt-1 flex items-center gap-1">
+                                <select onchange="handleRowQuickAddTask(this, <?= $shot->id ?>, <?= $project->id ?>)" class="bg-transparent border border-dashed border-ytBorder/60 hover:border-ytBlue text-ytMuted hover:text-ytText rounded px-1.5 py-0.5 text-[9px] focus:outline-none focus:bg-ytBg transition-colors cursor-pointer">
+                                    <option value="" selected>+ Add task...</option>
                                     <?php foreach($taskTypes as $tt): ?>
                                         <option value="<?= $tt->id ?>"><?= esc($tt->name) ?></option>
                                     <?php endforeach; ?>
@@ -341,15 +341,15 @@
                         </td>
 
                         <!-- 12. Shot Total Hours Sum -->
-                        <td class="py-2.5 px-3 text-right align-top">
-                            <span class="text-[13px] font-bold font-mono text-ytText bg-[#111] px-2.5 py-1 rounded border border-ytBorder/40 inline-block" id="shot-total-hours-<?= $shot->id ?>">
+                        <td class="py-1.5 px-3 text-right align-middle">
+                            <span class="text-[12px] font-bold font-mono text-ytText bg-[#111] px-2 py-0.5 rounded border border-ytBorder/40 inline-block" id="shot-total-hours-<?= $shot->id ?>">
                                 <?= round($shotTotal, 1) ?>h
                             </span>
                         </td>
                     </tr>
                     <?php endforeach; ?>
                 </tbody>
-            </table>
+            </table>     </table>
         </div>
     </div>
 </div>
@@ -804,110 +804,47 @@
             video.src = videoUrl;
         });
     }
-    // Single Lightweight Floating Hover Preview with Smart Positioning & Loading Spinner
-    let hoverTimeout = null;
+    // Zero-Overlay Inline Thumbnail Hover Video Engine with Loading Buffer
+    function playInlineThumbVideo(container, videoSrc) {
+        if (!videoSrc || container.querySelector('video')) return;
 
-    function showFloatingPreview(e, videoSrc, thumbSrc, shotNumber) {
-        clearTimeout(hoverTimeout);
-        const box = document.getElementById('globalHoverPreview');
-        const vid = document.getElementById('globalHoverVideo');
-        const img = document.getElementById('globalHoverImg');
-        const loader = document.getElementById('globalHoverLoader');
-        const tag = document.getElementById('globalHoverTag');
-        if (!box) return;
+        // Add subtle loading spinner inside the thumbnail
+        const loader = document.createElement('div');
+        loader.className = 'inline-thumb-loader absolute inset-0 flex items-center justify-center bg-black/60 z-20 pointer-events-none transition-opacity duration-200';
+        loader.innerHTML = `
+            <div class="w-4 h-4 rounded-full border-2 border-blue-500/20 border-t-blue-400 animate-spin"></div>
+        `;
+        container.appendChild(loader);
 
-        // Smart Positioning: Anchor beside thumbnail without obstructing row content
-        const rect = e.currentTarget.getBoundingClientRect();
-        const boxWidth = 280;
-        const boxHeight = 165;
+        const vid = document.createElement('video');
+        vid.src = videoSrc;
+        vid.muted = true;
+        vid.loop = true;
+        vid.playsInline = true;
+        vid.className = 'w-full h-full object-cover absolute inset-0 z-10 opacity-0 transition-opacity duration-200 pointer-events-none';
 
-        // Position: Prefer right of thumbnail, flip to left if near right edge
-        let left = rect.right + 14;
-        if (left + boxWidth > window.innerWidth - 15) {
-            left = Math.max(15, rect.left - boxWidth - 14);
-        }
+        vid.onplaying = () => {
+            vid.classList.remove('opacity-0');
+            loader.classList.add('opacity-0');
+            setTimeout(() => loader.remove(), 200);
+        };
 
-        // Align vertically centered to the thumbnail, stay within viewport
-        let top = rect.top + (rect.height / 2) - (boxHeight / 2);
-        if (top + boxHeight > window.innerHeight - 15) {
-            top = window.innerHeight - boxHeight - 15;
-        }
-        if (top < 15) top = 15;
-
-        box.style.top = top + 'px';
-        box.style.left = left + 'px';
-        if (tag) tag.innerText = shotNumber ? shotNumber.toUpperCase() : 'PREVIEW';
-
-        if (videoSrc) {
-            // Show loading animation while video buffers
-            if (loader) {
-                loader.classList.remove('opacity-0', 'pointer-events-none');
-                loader.classList.add('opacity-100');
-            }
-            img.classList.add('hidden');
-            vid.classList.remove('hidden');
-            box.classList.remove('hidden');
-
-            vid.onplaying = () => {
-                if (loader) {
-                    loader.classList.remove('opacity-100');
-                    loader.classList.add('opacity-0', 'pointer-events-none');
-                }
-            };
-            vid.onwaiting = () => {
-                if (loader) {
-                    loader.classList.remove('opacity-0', 'pointer-events-none');
-                    loader.classList.add('opacity-100');
-                }
-            };
-
-            vid.src = videoSrc;
-            vid.play().catch(() => {});
-        } else if (thumbSrc) {
-            if (loader) loader.classList.add('opacity-0', 'pointer-events-none');
-            vid.classList.add('hidden');
-            img.src = thumbSrc;
-            img.classList.remove('hidden');
-            box.classList.remove('hidden');
-        }
+        container.appendChild(vid);
+        vid.play().catch(() => {});
     }
 
-    function hideFloatingPreview() {
-        hoverTimeout = setTimeout(() => {
-            const box = document.getElementById('globalHoverPreview');
-            const vid = document.getElementById('globalHoverVideo');
-            const loader = document.getElementById('globalHoverLoader');
-            if (box) box.classList.add('hidden');
-            if (vid) {
-                vid.pause();
-                vid.currentTime = 0;
-                vid.src = '';
-                vid.onplaying = null;
-                vid.onwaiting = null;
-            }
-            if (loader) {
-                loader.classList.remove('opacity-100');
-                loader.classList.add('opacity-0', 'pointer-events-none');
-            }
-        }, 80);
+    function stopInlineThumbVideo(container) {
+        const loader = container.querySelector('.inline-thumb-loader');
+        if (loader) loader.remove();
+        const vid = container.querySelector('video');
+        if (vid) {
+            vid.pause();
+            vid.currentTime = 0;
+            vid.src = '';
+            vid.remove();
+        }
     }
 </script>
-
-<!-- Single Global Floating Hover Preview with Premium Glassmorphism & Glowing Loader -->
-<div id="globalHoverPreview" class="fixed hidden z-50 pointer-events-none shadow-[0_10px_30px_rgba(0,0,0,0.8)] rounded-xl overflow-hidden border border-blue-500/50 bg-[#080808] w-72 aspect-video backdrop-blur-md transition-opacity duration-200">
-    <!-- Sleek Glowing Loading Spinner -->
-    <div id="globalHoverLoader" class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/75 backdrop-blur-xs transition-opacity duration-300">
-        <div class="relative w-8 h-8 flex items-center justify-center">
-            <div class="absolute inset-0 rounded-full border-2 border-blue-500/20"></div>
-            <div class="absolute inset-0 rounded-full border-2 border-t-blue-400 border-r-transparent border-b-transparent border-l-transparent animate-spin"></div>
-            <span class="material-symbols-outlined text-[13px] text-blue-400 animate-pulse">play_arrow</span>
-        </div>
-        <span class="text-[9px] text-blue-300/80 font-mono mt-1.5 uppercase tracking-widest font-semibold">Buffering...</span>
-    </div>
-    <video id="globalHoverVideo" class="w-full h-full object-cover hidden" muted loop playsinline></video>
-    <img id="globalHoverImg" class="w-full h-full object-cover hidden" src="">
-    <div id="globalHoverTag" class="absolute bottom-1.5 left-2 bg-black/85 backdrop-blur-md text-blue-300 font-bold text-[10px] font-mono px-2 py-0.5 rounded border border-blue-500/30 z-30 shadow-lg"></div>
-</div>
 
 <!-- Quick Video Player Modal with Loading Animation -->
 <div id="quickVideoModal" class="fixed inset-0 z-50 hidden bg-black/85 backdrop-blur-md flex items-center justify-center p-4" onclick="if(event.target===this) closeVideoModal()">
