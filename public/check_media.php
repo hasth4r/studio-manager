@@ -252,32 +252,56 @@ if ($pdo) {
 
             $now = date('Y-m-d H:i:s');
             
-            $countStmt = $pdo->query("SELECT count(s.id) FROM shots s WHERE (s.preview_video_path LIKE '%uploads/shots/videos/%' OR (s.thumbnail_path IS NOT NULL AND s.thumbnail_path NOT LIKE '%/thumbnails/%'))");
-            $totalRemaining = (int)$countStmt->fetchColumn();
+            // Get all shots with project name, project code, and sequence name
+            $allQuery = "SELECT s.id, s.project_id, s.shot_number, s.preview_video_path, s.thumbnail_path, p.name as project_name, p.project_code, seq.name as seq_name 
+                         FROM shots s 
+                         LEFT JOIN projects p ON p.id = s.project_id 
+                         LEFT JOIN sequences seq ON seq.id = s.sequence_id
+                         ORDER BY s.id ASC";
+            $allRows = $pdo->query($allQuery)->fetchAll(PDO::FETCH_ASSOC);
 
-            $stmt = $pdo->prepare("SELECT s.id, s.project_id, s.shot_number, s.preview_video_path, s.thumbnail_path, p.project_code, seq.name as seq_name 
-                                   FROM shots s 
-                                   LEFT JOIN projects p ON p.id = s.project_id 
-                                   LEFT JOIN sequences seq ON seq.id = s.sequence_id
-                                   WHERE (s.preview_video_path LIKE '%uploads/shots/videos/%' OR (s.thumbnail_path IS NOT NULL AND s.thumbnail_path NOT LIKE '%/thumbnails/%'))
-                                   LIMIT :limit");
-            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-            $stmt->execute();
-            $shotsToMove = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            // Filter rows that are NOT yet in standard uploads/{pCode}/{sName}/{sCode}/ folder
+            $shotsToMove = [];
+            foreach ($allRows as $r) {
+                $pCode = !empty($r['project_code']) ? $r['project_code'] : (!empty($r['project_name']) ? $r['project_name'] : 'Project_' . $r['project_id']);
+                $pCode = preg_replace('/[^a-zA-Z0-9_-]/', '_', trim($pCode));
+
+                $sName = !empty($r['seq_name']) ? $r['seq_name'] : 'WAR';
+                $sName = preg_replace('/[^a-zA-Z0-9_-]/', '_', trim($sName));
+
+                $sCode = preg_replace('/[^a-zA-Z0-9_-]/', '_', trim($r['shot_number']));
+
+                $expectedVidPrefix = "uploads/{$pCode}/{$sName}/{$sCode}/edit/";
+                $expectedThumbPrefix = "uploads/{$pCode}/{$sName}/{$sCode}/thumbnails/";
+
+                $vidNeedsMove = !empty($r['preview_video_path']) && strpos($r['preview_video_path'], $expectedVidPrefix) === false;
+                $thumbNeedsMove = !empty($r['thumbnail_path']) && strpos($r['thumbnail_path'], $expectedThumbPrefix) === false;
+
+                if ($vidNeedsMove || $thumbNeedsMove) {
+                    $r['target_pcode'] = $pCode;
+                    $r['target_sname'] = $sName;
+                    $r['target_scode'] = $sCode;
+                    $shotsToMove[] = $r;
+                }
+            }
+
+            $totalRemaining = count($shotsToMove);
+            $batch = array_slice($shotsToMove, 0, $limit);
 
             $movedVideos = 0;
             $movedThumbs = 0;
             $r2Cleaned = 0;
             $logs = [];
 
-            foreach ($shotsToMove as $shot) {
-                $pCode = !empty($shot['project_code']) ? preg_replace('/[^a-zA-Z0-9_-]/', '_', $shot['project_code']) : 'PROJECT_' . $shot['project_id'];
-                $sName = !empty($shot['seq_name']) ? preg_replace('/[^a-zA-Z0-9_-]/', '_', $shot['seq_name']) : 'WAR';
-                $sCode = preg_replace('/[^a-zA-Z0-9_-]/', '_', $shot['shot_number']);
+            foreach ($batch as $shot) {
+                $pCode = $shot['target_pcode'];
+                $sName = $shot['target_sname'];
+                $sCode = $shot['target_scode'];
 
                 // 1. Reorganize Video Previews into /edit/
                 $oldVid = $shot['preview_video_path'];
-                if (!empty($oldVid) && (strpos($oldVid, 'uploads/shots/videos/') !== false || strpos($oldVid, '/edit/') === false)) {
+                $expectedVidPrefix = "uploads/{$pCode}/{$sName}/{$sCode}/edit/";
+                if (!empty($oldVid) && strpos($oldVid, $expectedVidPrefix) === false) {
                     $ext = pathinfo($oldVid, PATHINFO_EXTENSION) ?: 'mp4';
                     $newRelVid = "uploads/{$pCode}/{$sName}/{$sCode}/edit/vid_{$sCode}.{$ext}";
                     $oldLocalVid = __DIR__ . '/' . ltrim($oldVid, '/');
@@ -324,7 +348,8 @@ if ($pdo) {
 
                 // 2. Reorganize Thumbnails into /thumbnails/
                 $oldThumb = $shot['thumbnail_path'];
-                if (!empty($oldThumb) && strpos($oldThumb, '/thumbnails/') === false) {
+                $expectedThumbPrefix = "uploads/{$pCode}/{$sName}/{$sCode}/thumbnails/";
+                if (!empty($oldThumb) && strpos($oldThumb, $expectedThumbPrefix) === false) {
                     $ext = pathinfo($oldThumb, PATHINFO_EXTENSION) ?: 'webp';
                     $newRelThumb = "uploads/{$pCode}/{$sName}/{$sCode}/thumbnails/shot_{$sCode}.{$ext}";
                     $oldLocalThumb = __DIR__ . '/' . ltrim($oldThumb, '/');
@@ -369,15 +394,18 @@ if ($pdo) {
                 }
             }
 
-            $newRemaining = max(0, $totalRemaining - count($shotsToMove));
+            $newRemaining = max(0, $totalRemaining - count($batch));
             if ($newRemaining === 0) {
-                $legacyDir = __DIR__ . '/uploads/shots/videos';
-                if (is_dir($legacyDir)) @rmdir($legacyDir);
+                // Clean up any legacy empty folders
+                @rmdir(__DIR__ . '/uploads/shots/videos');
+                @rmdir(__DIR__ . '/uploads/shots');
+                @rmdir(__DIR__ . '/uploads/PROJECT_2/SC01');
+                @rmdir(__DIR__ . '/uploads/PROJECT_2');
             }
 
             echo json_encode([
                 'success'      => true,
-                'processed'    => count($shotsToMove),
+                'processed'    => count($batch),
                 'remaining'    => $newRemaining,
                 'movedVideos'  => $movedVideos,
                 'movedThumbs'  => $movedThumbs,
