@@ -329,47 +329,108 @@ if ($pdo) {
                 $pCode = $shot['target_pcode'];
                 $sName = $shot['target_sname'];
                 $sCode = $shot['target_scode'];
+                $sCodeUpper = strtoupper($sCode);
+                $sCodeLower = strtolower($sCode);
 
                 // 1. Reorganize Video Previews into /edit/
                 $oldVid = $shot['preview_video_path'];
+                $newRelVid = "uploads/{$pCode}/{$sName}/{$sCode}/edit/vid_{$sCode}.mp4";
                 $expectedVidPrefix = "uploads/{$pCode}/{$sName}/{$sCode}/edit/";
+
                 if (!empty($oldVid) && strpos($oldVid, $expectedVidPrefix) === false) {
                     $ext = pathinfo($oldVid, PATHINFO_EXTENSION) ?: 'mp4';
                     $newRelVid = "uploads/{$pCode}/{$sName}/{$sCode}/edit/vid_{$sCode}.{$ext}";
-                    $oldLocalVid = __DIR__ . '/' . ltrim($oldVid, '/');
                     $newLocalVid = __DIR__ . '/' . ltrim($newRelVid, '/');
 
-                    if (file_exists($oldLocalVid)) {
-                        $newLocalDir = dirname($newLocalVid);
-                        if (!is_dir($newLocalDir)) @mkdir($newLocalDir, 0777, true);
-                        if ($oldLocalVid !== $newLocalVid) {
-                            @rename($oldLocalVid, $newLocalVid);
+                    // Potential local locations where the file might currently be
+                    $candidateLocalPaths = [
+                        __DIR__ . '/' . ltrim($oldVid, '/'),
+                        __DIR__ . "/uploads/PROJECT_2/SC01/{$sCode}/edit/vid_{$sCode}.{$ext}",
+                        __DIR__ . "/uploads/PROJECT_2/SC01/{$sCodeUpper}/edit/vid_{$sCodeUpper}.{$ext}",
+                        __DIR__ . "/uploads/PROJECT_2/SC01/{$sCodeLower}/edit/vid_{$sCodeLower}.{$ext}",
+                        __DIR__ . "/uploads/PROJECT_2/{$sCode}/edit/vid_{$sCode}.{$ext}",
+                        __DIR__ . "/uploads/shots/videos/vid_2_{$sCodeLower}_*.mp4",
+                    ];
+
+                    $foundLocal = null;
+                    foreach ($candidateLocalPaths as $cand) {
+                        if (strpos($cand, '*') !== false) {
+                            $matches = glob($cand);
+                            if (!empty($matches) && file_exists($matches[0])) {
+                                $foundLocal = $matches[0];
+                                break;
+                            }
+                        } elseif (file_exists($cand)) {
+                            $foundLocal = $cand;
+                            break;
                         }
                     }
 
+                    if ($foundLocal) {
+                        $newLocalDir = dirname($newLocalVid);
+                        if (!is_dir($newLocalDir)) @mkdir($newLocalDir, 0777, true);
+                        if ($foundLocal !== $newLocalVid) {
+                            @rename($foundLocal, $newLocalVid);
+                        }
+                    }
+
+                    // Cloudflare R2 Move & Clean
                     if ($r2Configured && $r2Client) {
-                        $oldR2Key = ltrim($oldVid, '/');
                         $newR2Key = ltrim($newRelVid, '/');
-                        try {
-                            if ($oldR2Key !== $newR2Key && $r2Client->doesObjectExist($r2Bucket, $oldR2Key)) {
+                        $candidateR2Keys = [
+                            ltrim($oldVid, '/'),
+                            "uploads/PROJECT_2/SC01/{$sCode}/edit/vid_{$sCode}.{$ext}",
+                            "uploads/PROJECT_2/SC01/{$sCodeUpper}/edit/vid_{$sCodeUpper}.{$ext}",
+                            "uploads/PROJECT_2/SC01/{$sCodeLower}/edit/vid_{$sCodeLower}.{$ext}",
+                            "uploads/PROJECT_2/{$sCode}/edit/vid_{$sCode}.{$ext}",
+                        ];
+
+                        $foundR2Key = null;
+                        foreach ($candidateR2Keys as $cKey) {
+                            try {
+                                if ($cKey !== $newR2Key && $r2Client->doesObjectExist($r2Bucket, $cKey)) {
+                                    $foundR2Key = $cKey;
+                                    break;
+                                }
+                            } catch (\Throwable $e) {}
+                        }
+
+                        if ($foundR2Key) {
+                            try {
                                 $r2Client->copyObject([
                                     'Bucket'     => $r2Bucket,
-                                    'CopySource' => "{$r2Bucket}/{$oldR2Key}",
+                                    'CopySource' => "{$r2Bucket}/{$foundR2Key}",
                                     'Key'        => $newR2Key,
                                 ]);
                                 $r2Client->deleteObject([
                                     'Bucket' => $r2Bucket,
-                                    'Key'    => $oldR2Key,
+                                    'Key'    => $foundR2Key,
                                 ]);
                                 $r2Cleaned++;
-                            } elseif (file_exists($newLocalVid) && !$r2Client->doesObjectExist($r2Bucket, $newR2Key)) {
-                                $r2Client->putObject([
-                                    'Bucket'     => $r2Bucket,
-                                    'Key'        => $newR2Key,
-                                    'SourceFile' => $newLocalVid,
-                                ]);
+                            } catch (\Throwable $e) {}
+                        } elseif (file_exists($newLocalVid)) {
+                            try {
+                                if (!$r2Client->doesObjectExist($r2Bucket, $newR2Key)) {
+                                    $r2Client->putObject([
+                                        'Bucket'     => $r2Bucket,
+                                        'Key'        => $newR2Key,
+                                        'SourceFile' => $newLocalVid,
+                                    ]);
+                                }
+                            } catch (\Throwable $e) {}
+                        }
+
+                        // Also clean any leftover PROJECT_2 keys for this shot
+                        foreach ($candidateR2Keys as $cKey) {
+                            if ($cKey !== $newR2Key && strpos($cKey, 'PROJECT_2') !== false) {
+                                try {
+                                    if ($r2Client->doesObjectExist($r2Bucket, $cKey)) {
+                                        $r2Client->deleteObject(['Bucket' => $r2Bucket, 'Key' => $cKey]);
+                                        $r2Cleaned++;
+                                    }
+                                } catch (\Throwable $e) {}
                             }
-                        } catch (\Throwable $e) {}
+                        }
                     }
 
                     $upStmt = $pdo->prepare("UPDATE {$prefix}shots SET preview_video_path = ?, updated_at = ? WHERE id = ?");
@@ -384,40 +445,75 @@ if ($pdo) {
                 if (!empty($oldThumb) && strpos($oldThumb, $expectedThumbPrefix) === false) {
                     $ext = pathinfo($oldThumb, PATHINFO_EXTENSION) ?: 'webp';
                     $newRelThumb = "uploads/{$pCode}/{$sName}/{$sCode}/thumbnails/shot_{$sCode}.{$ext}";
-                    $oldLocalThumb = __DIR__ . '/' . ltrim($oldThumb, '/');
                     $newLocalThumb = __DIR__ . '/' . ltrim($newRelThumb, '/');
 
-                    if (file_exists($oldLocalThumb)) {
+                    $candidateThumbPaths = [
+                        __DIR__ . '/' . ltrim($oldThumb, '/'),
+                        __DIR__ . "/uploads/PROJECT_2/SC01/{$sCode}/thumbnails/shot_{$sCode}.{$ext}",
+                        __DIR__ . "/uploads/PROJECT_2/SC01/{$sCodeUpper}/thumbnails/shot_{$sCodeUpper}.{$ext}",
+                        __DIR__ . "/uploads/PROJECT_2/SC01/{$sCodeLower}/thumbnails/shot_{$sCodeLower}.{$ext}",
+                        __DIR__ . "/uploads/PROJECT_2/{$sCode}/thumbnails/shot_{$sCode}.{$ext}",
+                    ];
+
+                    $foundThumb = null;
+                    foreach ($candidateThumbPaths as $cand) {
+                        if (file_exists($cand)) {
+                            $foundThumb = $cand;
+                            break;
+                        }
+                    }
+
+                    if ($foundThumb) {
                         $newThumbDir = dirname($newLocalThumb);
                         if (!is_dir($newThumbDir)) @mkdir($newThumbDir, 0777, true);
-                        if ($oldLocalThumb !== $newLocalThumb) {
-                            @rename($oldLocalThumb, $newLocalThumb);
+                        if ($foundThumb !== $newLocalThumb) {
+                            @rename($foundThumb, $newLocalThumb);
                         }
                     }
 
                     if ($r2Configured && $r2Client) {
-                        $oldR2Key = ltrim($oldThumb, '/');
-                        $newR2Key = ltrim($newRelThumb, '/');
-                        try {
-                            if ($oldR2Key !== $newR2Key && $r2Client->doesObjectExist($r2Bucket, $oldR2Key)) {
+                        $newR2ThumbKey = ltrim($newRelThumb, '/');
+                        $candidateR2ThumbKeys = [
+                            ltrim($oldThumb, '/'),
+                            "uploads/PROJECT_2/SC01/{$sCode}/thumbnails/shot_{$sCode}.{$ext}",
+                            "uploads/PROJECT_2/SC01/{$sCodeUpper}/thumbnails/shot_{$sCodeUpper}.{$ext}",
+                            "uploads/PROJECT_2/SC01/{$sCodeLower}/thumbnails/shot_{$sCodeLower}.{$ext}",
+                        ];
+
+                        $foundR2ThumbKey = null;
+                        foreach ($candidateR2ThumbKeys as $cKey) {
+                            try {
+                                if ($cKey !== $newR2ThumbKey && $r2Client->doesObjectExist($r2Bucket, $cKey)) {
+                                    $foundR2ThumbKey = $cKey;
+                                    break;
+                                }
+                            } catch (\Throwable $e) {}
+                        }
+
+                        if ($foundR2ThumbKey) {
+                            try {
                                 $r2Client->copyObject([
                                     'Bucket'     => $r2Bucket,
-                                    'CopySource' => "{$r2Bucket}/{$oldR2Key}",
-                                    'Key'        => $newR2Key,
+                                    'CopySource' => "{$r2Bucket}/{$foundR2ThumbKey}",
+                                    'Key'        => $newR2ThumbKey,
                                 ]);
                                 $r2Client->deleteObject([
                                     'Bucket' => $r2Bucket,
-                                    'Key'    => $oldR2Key,
+                                    'Key'    => $foundR2ThumbKey,
                                 ]);
                                 $r2Cleaned++;
-                            } elseif (file_exists($newLocalThumb) && !$r2Client->doesObjectExist($r2Bucket, $newR2Key)) {
-                                $r2Client->putObject([
-                                    'Bucket'     => $r2Bucket,
-                                    'Key'        => $newR2Key,
-                                    'SourceFile' => $newLocalThumb,
-                                ]);
-                            }
-                        } catch (\Throwable $e) {}
+                            } catch (\Throwable $e) {}
+                        } elseif (file_exists($newLocalThumb)) {
+                            try {
+                                if (!$r2Client->doesObjectExist($r2Bucket, $newR2ThumbKey)) {
+                                    $r2Client->putObject([
+                                        'Bucket'     => $r2Bucket,
+                                        'Key'        => $newR2ThumbKey,
+                                        'SourceFile' => $newLocalThumb,
+                                    ]);
+                                }
+                            } catch (\Throwable $e) {}
+                        }
                     }
 
                     $upStmt = $pdo->prepare("UPDATE {$prefix}shots SET thumbnail_path = ?, updated_at = ? WHERE id = ?");
