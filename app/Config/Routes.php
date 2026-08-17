@@ -56,6 +56,7 @@ $routes->group('admin', ['filter' => 'auth', 'namespace' => 'App\Controllers\Adm
     $routes->get('projects/(:num)', 'Projects::show/$1');
     $routes->post('projects/storeSequence', 'Projects::storeSequence');
     $routes->post('projects/storeShot', 'Projects::storeShot');
+    $routes->post('projects/importShots/(:num)', 'Projects::importShots/$1');
     $routes->post('projects/storeAsset', 'Projects::storeAsset');
     $routes->post('projects/storeBenchmarks', 'Projects::storeBenchmarks');
     $routes->post('projects/updateSettings/(:num)', 'Projects::updateSettings/$1');

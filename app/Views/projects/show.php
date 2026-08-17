@@ -92,7 +92,11 @@
 <div id="tab-sequences" class="block pt-4">
     <div class="flex justify-between items-center mb-4">
         <h3 class="text-[16px] font-medium text-ytText">Production Sequences</h3>
-        <div class="space-x-2">
+        <div class="flex items-center space-x-2">
+            <button onclick="openModal('importShotsModal')" class="bg-ytCard border border-ytBorder text-ytText px-4 py-2 rounded-full font-medium text-[13px] hover:bg-ytHover transition-colors flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[16px] text-ytBlue">upload_file</span>
+                Import Shots (AE / CSV)
+            </button>
             <button onclick="openModal('sequenceModal')" class="bg-ytCard border border-ytBorder text-ytText px-4 py-2 rounded-full font-medium text-[13px] hover:bg-ytHover transition-colors">
                 + Add Sequence
             </button>
@@ -106,8 +110,13 @@
         <div class="bg-ytCard border border-ytBorder border-dashed rounded-xl p-12 text-center">
             <span class="material-symbols-outlined text-[48px] text-ytMuted mb-3">movie</span>
             <p class="text-ytText font-medium">No sequences or shots yet</p>
-            <p class="text-ytMuted text-[13px] mt-1 mb-4">Break down your project into manageable sequences and shots.</p>
-            <button onclick="openModal('shotModal')" class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] text-white shadow-[0_0_15px_rgba(23,123,207,0.3)] border border-[#177bcf]/40 px-4 py-2 rounded-full font-medium text-[13px] hover:shadow-[0_0_25px_rgba(23,123,207,0.6)] hover:from-[#0d346e] hover:to-[#238bf2] transition-colors">Add First Shot</button>
+            <p class="text-ytMuted text-[13px] mt-1 mb-4">Break down your project into manageable sequences and shots, or import directly from After Effects.</p>
+            <div class="flex justify-center gap-3">
+                <button onclick="openModal('importShotsModal')" class="bg-ytCard border border-ytBorder text-ytText px-5 py-2.5 rounded-full font-medium text-[13px] hover:bg-ytHover transition-colors flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[18px] text-ytBlue">upload_file</span> Import from AE / CSV
+                </button>
+                <button onclick="openModal('shotModal')" class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] text-white shadow-[0_0_15px_rgba(23,123,207,0.3)] border border-[#177bcf]/40 px-5 py-2.5 rounded-full font-medium text-[13px] hover:shadow-[0_0_25px_rgba(23,123,207,0.6)] hover:from-[#0d346e] hover:to-[#238bf2] transition-colors">Add Single Shot</button>
+            </div>
         </div>
     <?php endif; ?>
 
@@ -523,7 +532,6 @@
                 <label class="block text-[13px] font-medium text-ytText mb-2">New Thumbnail (Optional)</label>
                 <input type="file" name="thumbnail" accept="image/*" class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-4 py-1.5 focus:outline-none focus:border-ytBlue text-[13px] file:mr-4 file:py-1 file:px-4 file:rounded file:border-0 file:text-[13px] file:font-medium file:bg-ytHover file:text-ytText hover:file:bg-[#3f3f3f]">
             </div>
-
             <div class="mb-6">
                 <label class="block text-[13px] font-medium text-ytText mb-2">Description</label>
                 <textarea id="edit_shot_description" name="description" rows="3" class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-4 py-2 focus:outline-none focus:border-ytBlue"></textarea>
@@ -543,6 +551,104 @@
     </div>
 </div>
 
+<!-- MODAL: Bulk Import Shots (AE Essentials & CSV) -->
+<div id="importShotsModal" class="fixed inset-0 z-50 hidden bg-black/75 flex items-center justify-center backdrop-blur-sm">
+    <div class="bg-ytCard border border-ytBorder rounded-2xl w-full max-w-xl mx-4 shadow-2xl overflow-hidden">
+        <div class="px-6 py-4 border-b border-ytBorder/50 flex justify-between items-center bg-[#181818]">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-[#9999ff]/20 to-[#6a11cb]/30 border border-[#9999ff]/30 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[#9999ff] text-[18px]">movie_edit</span>
+                </div>
+                <div>
+                    <h3 class="text-[17px] font-semibold text-ytText leading-tight">Bulk Import Shots</h3>
+                    <p class="text-[11px] text-ytMuted">Import from After Effects Essentials or CSV file</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeModal('importShotsModal')" class="text-ytMuted hover:text-ytText transition-colors">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+
+        <form action="/admin/projects/importShots/<?= $project->id ?>" method="POST" enctype="multipart/form-data" class="p-6">
+            <?= csrf_field() ?>
+
+            <!-- Method Switcher Tabs -->
+            <div class="flex bg-ytBg border border-ytBorder rounded-lg p-1 mb-5">
+                <button type="button" id="importTabBtn-folder" onclick="setImportMode('folder')" class="flex-1 py-1.5 px-3 rounded-md text-[13px] font-medium transition-all bg-ytCard text-ytText shadow-sm border border-ytBorder">
+                    <span class="flex items-center justify-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px] text-ytBlue">folder_open</span> AE Export Folder
+                    </span>
+                </button>
+                <button type="button" id="importTabBtn-upload" onclick="setImportMode('upload')" class="flex-1 py-1.5 px-3 rounded-md text-[13px] font-medium transition-all text-ytMuted hover:text-ytText">
+                    <span class="flex items-center justify-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px]">upload_file</span> CSV / ZIP Upload
+                    </span>
+                </button>
+            </div>
+
+            <!-- TAB 1: Local Folder (AE Essentials) -->
+            <div id="importMode-folder" class="space-y-4">
+                <div>
+                    <label class="block text-[13px] font-medium text-ytText mb-1.5">AE Export Folder Path <span class="text-ytRed">*</span></label>
+                    <input type="text" name="folder_path" id="import_folder_path" class="w-full bg-ytBg border border-ytBorder text-ytText rounded-lg px-3.5 py-2.5 text-[13px] focus:outline-none focus:border-ytBlue font-mono placeholder:text-ytMuted/50" placeholder="e.g. F:\STUDIO_PRODUCTION\PROJECTS\STUDIO_PROJECTS\MAHALAYA\post\war\lineup\project_file\export">
+                    <p class="text-[12px] text-ytMuted mt-1.5 flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[14px] text-ytBlue">auto_awesome</span>
+                        EnsoFlow will automatically read the shotlist CSV and link all images in the <code class="bg-ytBg px-1 py-0.5 rounded text-[11px] text-ytText">thumbnails/</code> folder.
+                    </p>
+                </div>
+            </div>
+
+            <!-- TAB 2: File Upload (CSV / ZIP) -->
+            <div id="importMode-upload" class="hidden space-y-4">
+                <div>
+                    <div class="flex justify-between items-center mb-1.5">
+                        <label class="block text-[13px] font-medium text-ytText">CSV or ZIP File <span class="text-ytRed">*</span></label>
+                        <a href="/templates/shots_import_template.csv" download class="text-[11px] text-ytBlue hover:underline flex items-center gap-0.5 font-medium">
+                            <span class="material-symbols-outlined text-[13px]">download</span> Sample CSV
+                        </a>
+                    </div>
+                    <input type="file" name="csv_file" accept=".csv,.txt,.zip" class="w-full bg-ytBg border border-ytBorder text-ytText rounded-lg px-3.5 py-2 text-[13px] focus:outline-none focus:border-ytBlue file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-[12px] file:font-medium file:bg-ytHover file:text-ytText hover:file:bg-[#3f3f3f]">
+                </div>
+
+                <div>
+                    <label class="block text-[13px] font-medium text-ytText mb-1.5">Thumbnails (Optional Multiple Images)</label>
+                    <input type="file" name="thumbnails[]" multiple accept="image/*" class="w-full bg-ytBg border border-ytBorder text-ytText rounded-lg px-3.5 py-2 text-[13px] focus:outline-none focus:border-ytBlue file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-[12px] file:font-medium file:bg-ytHover file:text-ytText hover:file:bg-[#3f3f3f]">
+                    <p class="text-[11px] text-ytMuted mt-1">Multi-select images matching shot names or filenames in CSV.</p>
+                </div>
+            </div>
+
+            <!-- Common Configuration Section -->
+            <div class="pt-4 mt-4 border-t border-ytBorder/40 space-y-3">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[12px] font-medium text-ytText mb-1">Import Range / Limit</label>
+                        <select name="limit" class="w-full bg-ytBg border border-ytBorder text-ytText rounded-lg px-3 py-2 text-[13px] focus:outline-none focus:border-ytBlue">
+                            <option value="5" selected>🧪 Test 5 Shots</option>
+                            <option value="10">Test 10 Shots</option>
+                            <option value="20">First 20 Shots</option>
+                            <option value="0">All Shots (Full Production)</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center pt-5">
+                        <label class="flex items-center gap-2 cursor-pointer text-[12px] text-ytText">
+                            <input type="checkbox" name="auto_create_folders" value="1" checked class="rounded border-ytBorder bg-ytBg text-ytBlue focus:ring-0">
+                            <span>Create disk pipeline folders</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end items-center space-x-3 pt-5 mt-5 border-t border-ytBorder/50">
+                <button type="button" onclick="closeModal('importShotsModal')" class="px-4 py-2 rounded-full text-[13px] text-ytText hover:bg-ytHover transition-colors">Cancel</button>
+                <button type="submit" class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] text-white shadow-[0_0_15px_rgba(23,123,207,0.3)] border border-[#177bcf]/40 px-5 py-2 rounded-full font-medium text-[13px] hover:shadow-[0_0_25px_rgba(23,123,207,0.6)] hover:from-[#0d346e] hover:to-[#238bf2] transition-all flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[16px]">bolt</span>
+                    Run Import
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const savedTab = localStorage.getItem('activeProjectTab');
@@ -550,6 +656,28 @@
             switchTab(savedTab, false);
         }
     });
+
+    function setImportMode(mode) {
+        const folderTab = document.getElementById('importMode-folder');
+        const uploadTab = document.getElementById('importMode-upload');
+        const btnFolder = document.getElementById('importTabBtn-folder');
+        const btnUpload = document.getElementById('importTabBtn-upload');
+
+        const activeBtnClass = "flex-1 py-1.5 px-3 rounded-md text-[13px] font-medium transition-all bg-ytCard text-ytText shadow-sm border border-ytBorder";
+        const inactiveBtnClass = "flex-1 py-1.5 px-3 rounded-md text-[13px] font-medium transition-all text-ytMuted hover:text-ytText";
+
+        if (mode === 'folder') {
+            folderTab.classList.remove('hidden');
+            uploadTab.classList.add('hidden');
+            btnFolder.className = activeBtnClass;
+            btnUpload.className = inactiveBtnClass;
+        } else {
+            folderTab.classList.add('hidden');
+            uploadTab.classList.remove('hidden');
+            btnFolder.className = inactiveBtnClass;
+            btnUpload.className = activeBtnClass;
+        }
+    }
 
     function switchTab(tabId, save = true) {
         if (save) {

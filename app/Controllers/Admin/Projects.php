@@ -430,4 +430,316 @@ class Projects extends BaseController
 
         return redirect()->back()->with('message', 'Project updated.');
     }
+
+    public function importShots($projectId)
+    {
+        if (!session()->get('isLoggedIn')) {
+            return redirect()->to('/login');
+        }
+
+        $projectModel = new \App\Models\ProjectModel();
+        $project = $projectModel->find($projectId);
+
+        if (!$project) {
+            return redirect()->back()->with('error', 'Project not found.');
+        }
+
+        $limit = (int)$this->request->getPost('limit');
+        $autoCreateFolders = (bool)$this->request->getPost('auto_create_folders');
+        $folderPath = trim($this->request->getPost('folder_path') ?? '');
+        $uploadedCsv = $this->request->getFile('csv_file');
+        $uploadedThumbs = $this->request->getFiles()['thumbnails'] ?? [];
+
+        $rows = [];
+        $localThumbDir = null;
+
+        // Ensure upload destination exists
+        $targetThumbDir = FCPATH . 'uploads' . DIRECTORY_SEPARATOR . 'shots';
+        if (!is_dir($targetThumbDir)) {
+            @mkdir($targetThumbDir, 0777, true);
+        }
+
+        // 1. Process from Local Folder Path (AE Export)
+        if (!empty($folderPath)) {
+            $folderPath = rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $folderPath), DIRECTORY_SEPARATOR);
+            if (!is_dir($folderPath)) {
+                return redirect()->back()->with('error', 'Export folder path not found: ' . esc($folderPath));
+            }
+
+            // Find CSV or JSON file in the export folder
+            $csvFiles = glob($folderPath . DIRECTORY_SEPARATOR . '*.csv');
+            $jsonFiles = glob($folderPath . DIRECTORY_SEPARATOR . '*.json');
+            $thumbDirCandidate = $folderPath . DIRECTORY_SEPARATOR . 'thumbnails';
+            if (is_dir($thumbDirCandidate)) {
+                $localThumbDir = $thumbDirCandidate;
+            } else {
+                $localThumbDir = $folderPath;
+            }
+
+            if (!empty($csvFiles)) {
+                // Prefer files with 'shotlist' or 'metadata' in name
+                $targetFile = $csvFiles[0];
+                foreach ($csvFiles as $f) {
+                    if (stripos($f, 'shotlist') !== false || stripos($f, 'metadata') !== false) {
+                        $targetFile = $f;
+                        break;
+                    }
+                }
+                $rows = $this->parseCsvFile($targetFile);
+            } elseif (!empty($jsonFiles)) {
+                $targetFile = $jsonFiles[0];
+                $jsonContent = @file_get_contents($targetFile);
+                $jsonData = json_decode($jsonContent, true);
+                if (is_array($jsonData)) {
+                    $rows = $jsonData;
+                }
+            } else {
+                return redirect()->back()->with('error', 'No .csv or .json metadata files found in ' . esc($folderPath));
+            }
+        }
+        // 2. Process from Uploaded CSV / ZIP
+        elseif ($uploadedCsv && $uploadedCsv->isValid() && !$uploadedCsv->hasMoved()) {
+            $ext = strtolower($uploadedCsv->getClientExtension());
+            if ($ext === 'csv' || $ext === 'txt') {
+                $rows = $this->parseCsvFile($uploadedCsv->getTempName());
+            } elseif ($ext === 'zip') {
+                if (!class_exists('ZipArchive')) {
+                    return redirect()->back()->with('error', 'PHP ZipArchive extension is not enabled on this server.');
+                }
+                $zip = new \ZipArchive();
+                $tempExtractPath = WRITEPATH . 'uploads' . DIRECTORY_SEPARATOR . 'temp_zip_' . uniqid();
+                if ($zip->open($uploadedCsv->getTempName()) === true) {
+                    $zip->extractTo($tempExtractPath);
+                    $zip->close();
+
+                    $csvFiles = glob($tempExtractPath . DIRECTORY_SEPARATOR . '*.csv');
+                    if (empty($csvFiles)) {
+                        $csvFiles = glob($tempExtractPath . DIRECTORY_SEPARATOR . '**' . DIRECTORY_SEPARATOR . '*.csv');
+                    }
+
+                    if (!empty($csvFiles)) {
+                        $rows = $this->parseCsvFile($csvFiles[0]);
+                        $localThumbDir = dirname($csvFiles[0]);
+                        if (is_dir($localThumbDir . DIRECTORY_SEPARATOR . 'thumbnails')) {
+                            $localThumbDir = $localThumbDir . DIRECTORY_SEPARATOR . 'thumbnails';
+                        }
+                    } else {
+                        return redirect()->back()->with('error', 'No CSV file found inside the uploaded ZIP archive.');
+                    }
+                } else {
+                    return redirect()->back()->with('error', 'Failed to extract uploaded ZIP file.');
+                }
+            } else {
+                return redirect()->back()->with('error', 'Unsupported file format. Please upload a .csv or .zip file.');
+            }
+        } else {
+            return redirect()->back()->with('error', 'Please provide an AE export folder path or upload a CSV file.');
+        }
+
+        if (empty($rows)) {
+            return redirect()->back()->with('error', 'No valid shot rows could be parsed from the import source.');
+        }
+
+        // Apply limit if specified (e.g. testing 5 shots)
+        if ($limit > 0 && count($rows) > $limit) {
+            $rows = array_slice($rows, 0, $limit);
+        }
+
+        // Prepare Models & Caches
+        $sequenceModel = new \App\Models\SequenceModel();
+        $shotModel = new \App\Models\ShotModel();
+        
+        $existingSequences = $sequenceModel->where('project_id', $projectId)->findAll();
+        $seqMap = [];
+        foreach ($existingSequences as $seq) {
+            $seqMap[strtolower(trim($seq->name))] = $seq->id;
+        }
+
+        // Build uploaded files index if any
+        $uploadedFileMap = [];
+        if (!empty($uploadedThumbs)) {
+            foreach ($uploadedThumbs as $file) {
+                if ($file && $file->isValid() && !$file->hasMoved()) {
+                    $clientName = strtolower(trim($file->getClientName()));
+                    $uploadedFileMap[$clientName] = $file;
+                    $uploadedFileMap[pathinfo($clientName, PATHINFO_FILENAME)] = $file;
+                }
+            }
+        }
+
+        $importedCount = 0;
+        $updatedCount  = 0;
+        $thumbCount    = 0;
+        $createdSeqs   = 0;
+
+        foreach ($rows as $row) {
+            // Normalize keys to lowercase trimmed
+            $cleanRow = [];
+            foreach ($row as $k => $v) {
+                $cleanRow[strtolower(trim($k))] = is_string($v) ? trim($v) : $v;
+            }
+
+            // Extract Shot Number / Identifier
+            $shotNumber = $cleanRow['shot'] ?? $cleanRow['shot_number'] ?? $cleanRow['shot_code'] ?? $cleanRow['name'] ?? null;
+            if (empty($shotNumber)) {
+                continue;
+            }
+
+            // Extract Sequence
+            $seqName = $cleanRow['sequence'] ?? $cleanRow['sequence_name'] ?? $cleanRow['seq'] ?? $cleanRow['seq_name'] ?? null;
+            $sequenceId = null;
+            if (!empty($seqName)) {
+                $seqKey = strtolower(trim($seqName));
+                if (isset($seqMap[$seqKey])) {
+                    $sequenceId = $seqMap[$seqKey];
+                } else {
+                    $sequenceId = $sequenceModel->insert([
+                        'project_id'  => $projectId,
+                        'name'        => $seqName,
+                        'description' => 'Imported via bulk shot import'
+                    ]);
+                    $seqMap[$seqKey] = $sequenceId;
+                    $createdSeqs++;
+                }
+            }
+
+            // Extract Frame Count & FPS
+            $frameCount = $cleanRow['duration_frames'] ?? $cleanRow['frame_count'] ?? $cleanRow['frames'] ?? $cleanRow['duration'] ?? null;
+            $fps = $cleanRow['fps'] ?? $cleanRow['frame_rate'] ?? ($project->fps ?? 24);
+            $description = $cleanRow['description'] ?? $cleanRow['comp_name'] ?? null;
+
+            // Resolve Thumbnail
+            $thumbFileRef = $cleanRow['thumbnail_file'] ?? $cleanRow['thumbnail'] ?? $cleanRow['thumb'] ?? null;
+            $savedThumbPath = null;
+
+            // A. Check local thumb directory
+            if (!empty($localThumbDir)) {
+                $candidateFiles = [];
+                if (!empty($thumbFileRef)) {
+                    $baseThumb = basename($thumbFileRef);
+                    $candidateFiles[] = $localThumbDir . DIRECTORY_SEPARATOR . $baseThumb;
+                    $candidateFiles[] = $localThumbDir . DIRECTORY_SEPARATOR . pathinfo($baseThumb, PATHINFO_FILENAME) . '.png';
+                    $candidateFiles[] = $localThumbDir . DIRECTORY_SEPARATOR . pathinfo($baseThumb, PATHINFO_FILENAME) . '.jpg';
+                    $candidateFiles[] = $localThumbDir . DIRECTORY_SEPARATOR . pathinfo($baseThumb, PATHINFO_FILENAME) . '.jpeg';
+                }
+                // Fallback: search by shot number or comp name
+                $candidateFiles[] = $localThumbDir . DIRECTORY_SEPARATOR . $shotNumber . '.png';
+                $candidateFiles[] = $localThumbDir . DIRECTORY_SEPARATOR . $shotNumber . '.jpg';
+                if (!empty($cleanRow['comp_name'])) {
+                    $candidateFiles[] = $localThumbDir . DIRECTORY_SEPARATOR . $cleanRow['comp_name'] . '.png';
+                    $candidateFiles[] = $localThumbDir . DIRECTORY_SEPARATOR . $cleanRow['comp_name'] . '.jpg';
+                }
+
+                foreach ($candidateFiles as $candidate) {
+                    if (file_exists($candidate) && is_file($candidate)) {
+                        $ext = pathinfo($candidate, PATHINFO_EXTENSION);
+                        $newFilename = 'shot_' . $projectId . '_' . preg_replace('/[^a-zA-Z0-9_-]/', '_', $shotNumber) . '_' . uniqid() . '.' . $ext;
+                        $destPath = $targetThumbDir . DIRECTORY_SEPARATOR . $newFilename;
+                        if (@copy($candidate, $destPath)) {
+                            $savedThumbPath = 'uploads/shots/' . $newFilename;
+                            $thumbCount++;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // B. Check uploaded files index
+            if (empty($savedThumbPath) && !empty($uploadedFileMap)) {
+                $checkKeys = [];
+                if (!empty($thumbFileRef)) {
+                    $base = strtolower(basename($thumbFileRef));
+                    $checkKeys[] = $base;
+                    $checkKeys[] = pathinfo($base, PATHINFO_FILENAME);
+                }
+                $checkKeys[] = strtolower($shotNumber);
+                if (!empty($cleanRow['comp_name'])) {
+                    $checkKeys[] = strtolower($cleanRow['comp_name']);
+                }
+
+                foreach ($checkKeys as $chk) {
+                    if (isset($uploadedFileMap[$chk])) {
+                        $upFile = $uploadedFileMap[$chk];
+                        $newFilename = $upFile->getRandomName();
+                        $upFile->move($targetThumbDir, $newFilename);
+                        $savedThumbPath = 'uploads/shots/' . $newFilename;
+                        $thumbCount++;
+                        break;
+                    }
+                }
+            }
+
+            // Check if Shot already exists in this project
+            $query = $shotModel->where('project_id', $projectId)->where('shot_number', $shotNumber);
+            if ($sequenceId) {
+                $query->where('sequence_id', $sequenceId);
+            }
+            $existingShot = $query->first();
+
+            $shotData = [
+                'project_id'  => $projectId,
+                'sequence_id' => $sequenceId,
+                'shot_number' => $shotNumber,
+                'fps'         => !empty($fps) ? (int)$fps : null,
+                'frame_count' => !empty($frameCount) ? (int)$frameCount : null,
+            ];
+            if (!empty($description)) {
+                $shotData['description'] = $description;
+            }
+            if (!empty($savedThumbPath)) {
+                $shotData['thumbnail_path'] = $savedThumbPath;
+            }
+
+            if ($existingShot) {
+                $shotModel->update($existingShot->id, $shotData);
+                $updatedCount++;
+            } else {
+                $shotModel->insert($shotData);
+                $importedCount++;
+            }
+
+            // Create folders on disk if enabled
+            if ($autoCreateFolders && !empty($seqName)) {
+                \App\Libraries\FolderManager::createShotFolders($project->project_code, $seqName, $shotNumber);
+            }
+        }
+
+        $summary = "Import completed: {$importedCount} new shots added, {$updatedCount} updated, {$createdSeqs} new sequences created, and {$thumbCount} thumbnails linked.";
+        return redirect()->to('/admin/projects/' . $projectId)->with('message', $summary);
+    }
+
+    /**
+     * Helper to parse CSV file into associative array.
+     */
+    private function parseCsvFile($filePath)
+    {
+        $rows = [];
+        if (!file_exists($filePath) || !is_readable($filePath)) {
+            return $rows;
+        }
+
+        if (($handle = fopen($filePath, 'r')) !== false) {
+            // Read header row
+            $header = fgetcsv($handle, 4096, ',');
+            if ($header) {
+                // Strip UTF-8 BOM if present
+                $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', $header[0]);
+                $header = array_map('trim', $header);
+
+                while (($data = fgetcsv($handle, 4096, ',')) !== false) {
+                    if (empty(array_filter($data, fn($val) => $val !== null && trim($val) !== ''))) {
+                        continue;
+                    }
+                    $row = [];
+                    foreach ($header as $i => $colName) {
+                        $row[$colName] = $data[$i] ?? null;
+                    }
+                    $rows[] = $row;
+                }
+            }
+            fclose($handle);
+        }
+        return $rows;
+    }
 }
+

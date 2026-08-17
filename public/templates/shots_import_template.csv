@@ -1,0 +1,6 @@
+shot_number,sequence_name,description,fps,frame_count,thumbnail_file
+SH_010,SQ_01,Opening establishing shot of the city,24,120,SH_010.jpg
+SH_020,SQ_01,Hero walking down the street,24,95,SH_020.jpg
+SH_030,SQ_01,Close-up dialogue,24,60,SH_030.jpg
+SH_040,SQ_02,Car chase sequence intro,24,150,SH_040.png
+SH_050,SQ_02,Drone aerial flyover,24,200,SH_050.png
