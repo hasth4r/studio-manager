@@ -2,46 +2,6 @@
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
-echo "<style>
-    body { font-family: monospace; background: #0f0f0f; color: #eee; padding: 20px; }
-    h2 { color: #3ea6ff; }
-    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-    th, td { border: 1px solid #333; padding: 8px 12px; text-align: left; }
-    th { background: #1a1a1a; color: #aaa; }
-    .badge-yes { color: #4ade80; font-weight: bold; }
-    .badge-no { color: #f87171; font-weight: bold; }
-    video { max-width: 260px; border-radius: 6px; background: #000; }
-</style>";
-
-echo "<h2>&#x1F3AC; EnsoFlow Media &amp; Video Diagnostic Tool</h2>";
-
-// 1. Check Files on Server Disk
-$videoDir = __DIR__ . '/uploads/shots/videos';
-if (!is_dir($videoDir)) {
-    @mkdir($videoDir, 0777, true);
-}
-
-echo "<h3>1. Files on Server Disk: <code>public/uploads/shots/videos</code></h3>";
-if (!is_dir($videoDir)) {
-    echo "<p class='badge-no'>&#x274C; Directory not found and could not be created automatically: $videoDir</p>";
-} else {
-    $files = scandir($videoDir);
-    $videoFiles = array_filter($files, fn($f) => !in_array($f, ['.', '..']));
-    echo "<p>Total video files on server disk: <b>" . count($videoFiles) . "</b></p>";
-    if (!empty($videoFiles)) {
-        echo "<ul>";
-        foreach ($videoFiles as $vf) {
-            $fsize = round(filesize($videoDir . '/' . $vf) / (1024 * 1024), 2);
-            echo "<li>&#x2705; <b>$vf</b> ($fsize MB) &mdash; <a href='/uploads/shots/videos/$vf' target='_blank' style='color:#3ea6ff;'>Direct Local Link</a></li>";
-        }
-        echo "</ul>";
-    } else {
-        echo "<p style='color:#fbbf24;'>&#x26A0; No video files found in local uploads/shots/videos folder yet.</p>";
-    }
-}
-
-// 1.5. Check Cloudflare R2 CDN Storage
-echo "<h3>1.5. Cloudflare R2 CDN Storage</h3>";
 $autoloadPath = dirname(__DIR__) . '/vendor/autoload.php';
 $r2Configured = false;
 $r2Client = null;
@@ -82,21 +42,9 @@ if (file_exists($envFile)) {
                 'use_path_style_endpoint' => true,
             ]);
             $r2Configured = true;
-            echo "<p class='badge-yes'>&#x2705; Cloudflare R2 is configured (Bucket: <code>$r2Bucket</code>" . ($r2CustomDomain ? ", Custom CDN: <code>$r2CustomDomain</code>" : "") . ")</p>";
-        } catch (\Throwable $e) {
-            echo "<p class='badge-no'>&#x274C; R2 Connection error: " . htmlspecialchars($e->getMessage()) . "</p>";
-        }
-    } else {
-        echo "<p style='color:#aaa;'>Cloudflare R2 is not configured in .env (Videos are stored directly on your web hosting server disk).</p>";
+        } catch (\Throwable $e) {}
     }
-} else {
-    echo "<p style='color:#aaa;'>No .env found for R2 check.</p>";
 }
-
-$envPath = dirname(__DIR__) . '/.env';
-$sqlitePath = dirname(__DIR__) . '/writable/database.db';
-
-$pdo = null;
 
 $envPath = dirname(__DIR__) . '/.env';
 $sqlitePath = dirname(__DIR__) . '/writable/database.db';
@@ -160,388 +108,335 @@ if (!$pdo && file_exists($sqlitePath)) {
     } catch (\Throwable $e) {}
 }
 
+// =========================================================================
+// 🚀 PURE JSON AJAX ENDPOINT (NO HTML PRE-OUTPUT)
+// =========================================================================
+if (isset($_GET['action']) && $_GET['action'] === 'batch_reorganize_step') {
+    header('Content-Type: application/json');
+    if (!$pdo) {
+        echo json_encode(['success' => false, 'error' => 'Database connection failed']);
+        exit;
+    }
+
+    $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 10;
+    if ($limit < 1) $limit = 10;
+    if ($limit > 25) $limit = 25;
+
+    $now = date('Y-m-d H:i:s');
+
+    // Get all shots with project name, project code, and sequence name
+    $allQuery = "SELECT s.id, s.project_id, s.shot_number, s.preview_video_path, s.thumbnail_path, p.name as project_name, p.project_code, seq.name as seq_name 
+                 FROM {$prefix}shots s 
+                 LEFT JOIN {$prefix}projects p ON p.id = s.project_id 
+                 LEFT JOIN {$prefix}sequences seq ON seq.id = s.sequence_id
+                 ORDER BY s.id ASC";
+    $allRows = $pdo->query($allQuery)->fetchAll(PDO::FETCH_ASSOC);
+
+    // Filter rows that are NOT yet in standard uploads/{pCode}/{sName}/{sCode}/ folder
+    $shotsToMove = [];
+    foreach ($allRows as $r) {
+        $pCode = !empty($r['project_code']) ? $r['project_code'] : (!empty($r['project_name']) ? $r['project_name'] : ($r['project_id'] == 2 ? 'MHLYA-1' : 'Project_' . $r['project_id']));
+        $pCode = preg_replace('/[^a-zA-Z0-9_-]/', '_', trim($pCode));
+
+        $sName = !empty($r['seq_name']) ? $r['seq_name'] : ($r['project_id'] == 2 ? 'War' : 'WAR');
+        $sName = preg_replace('/[^a-zA-Z0-9_-]/', '_', trim($sName));
+
+        $sCode = preg_replace('/[^a-zA-Z0-9_-]/', '_', trim($r['shot_number']));
+
+        $expectedVidPrefix = "uploads/{$pCode}/{$sName}/{$sCode}/edit/";
+        $expectedThumbPrefix = "uploads/{$pCode}/{$sName}/{$sCode}/thumbnails/";
+
+        $vidNeedsMove = !empty($r['preview_video_path']) && strpos($r['preview_video_path'], $expectedVidPrefix) === false;
+        $thumbNeedsMove = !empty($r['thumbnail_path']) && strpos($r['thumbnail_path'], $expectedThumbPrefix) === false;
+
+        if ($vidNeedsMove || $thumbNeedsMove) {
+            $r['target_pcode'] = $pCode;
+            $r['target_sname'] = $sName;
+            $r['target_scode'] = $sCode;
+            $shotsToMove[] = $r;
+        }
+    }
+
+    $totalRemaining = count($shotsToMove);
+    $batch = array_slice($shotsToMove, 0, $limit);
+
+    $movedVideos = 0;
+    $movedThumbs = 0;
+    $r2Cleaned = 0;
+    $logs = [];
+
+    foreach ($batch as $shot) {
+        $pCode = $shot['target_pcode'];
+        $sName = $shot['target_sname'];
+        $sCode = $shot['target_scode'];
+        $sCodeUpper = strtoupper($sCode);
+        $sCodeLower = strtolower($sCode);
+
+        // 1. Reorganize Video Previews into /edit/
+        $oldVid = $shot['preview_video_path'];
+        $newRelVid = "uploads/{$pCode}/{$sName}/{$sCode}/edit/vid_{$sCode}.mp4";
+        $expectedVidPrefix = "uploads/{$pCode}/{$sName}/{$sCode}/edit/";
+
+        if (!empty($oldVid) && strpos($oldVid, $expectedVidPrefix) === false) {
+            $ext = pathinfo($oldVid, PATHINFO_EXTENSION) ?: 'mp4';
+            $newRelVid = "uploads/{$pCode}/{$sName}/{$sCode}/edit/vid_{$sCode}.{$ext}";
+            $newLocalVid = __DIR__ . '/' . ltrim($newRelVid, '/');
+
+            // Potential local locations where the file might currently be
+            $candidateLocalPaths = [
+                __DIR__ . '/' . ltrim($oldVid, '/'),
+                __DIR__ . "/uploads/PROJECT_2/SC01/{$sCode}/edit/vid_{$sCode}.{$ext}",
+                __DIR__ . "/uploads/PROJECT_2/SC01/{$sCodeUpper}/edit/vid_{$sCodeUpper}.{$ext}",
+                __DIR__ . "/uploads/PROJECT_2/SC01/{$sCodeLower}/edit/vid_{$sCodeLower}.{$ext}",
+                __DIR__ . "/uploads/PROJECT_2/{$sCode}/edit/vid_{$sCode}.{$ext}",
+                __DIR__ . "/uploads/shots/videos/vid_2_{$sCodeLower}_*.mp4",
+            ];
+
+            $foundLocal = null;
+            foreach ($candidateLocalPaths as $cand) {
+                if (strpos($cand, '*') !== false) {
+                    $matches = glob($cand);
+                    if (!empty($matches) && file_exists($matches[0])) {
+                        $foundLocal = $matches[0];
+                        break;
+                    }
+                } elseif (file_exists($cand)) {
+                    $foundLocal = $cand;
+                    break;
+                }
+            }
+
+            if ($foundLocal) {
+                $newLocalDir = dirname($newLocalVid);
+                if (!is_dir($newLocalDir)) @mkdir($newLocalDir, 0777, true);
+                if ($foundLocal !== $newLocalVid) {
+                    @rename($foundLocal, $newLocalVid);
+                }
+            }
+
+            // Cloudflare R2 Move & Clean
+            if ($r2Configured && $r2Client) {
+                $newR2Key = ltrim($newRelVid, '/');
+                $candidateR2Keys = [
+                    ltrim($oldVid, '/'),
+                    "uploads/PROJECT_2/SC01/{$sCode}/edit/vid_{$sCode}.{$ext}",
+                    "uploads/PROJECT_2/SC01/{$sCodeUpper}/edit/vid_{$sCodeUpper}.{$ext}",
+                    "uploads/PROJECT_2/SC01/{$sCodeLower}/edit/vid_{$sCodeLower}.{$ext}",
+                    "uploads/PROJECT_2/{$sCode}/edit/vid_{$sCode}.{$ext}",
+                ];
+
+                $foundR2Key = null;
+                foreach ($candidateR2Keys as $cKey) {
+                    try {
+                        if ($cKey !== $newR2Key && $r2Client->doesObjectExist($r2Bucket, $cKey)) {
+                            $foundR2Key = $cKey;
+                            break;
+                        }
+                    } catch (\Throwable $e) {}
+                }
+
+                if ($foundR2Key) {
+                    try {
+                        $r2Client->copyObject([
+                            'Bucket'     => $r2Bucket,
+                            'CopySource' => "{$r2Bucket}/{$foundR2Key}",
+                            'Key'        => $newR2Key,
+                        ]);
+                        $r2Client->deleteObject([
+                            'Bucket' => $r2Bucket,
+                            'Key'    => $foundR2Key,
+                        ]);
+                        $r2Cleaned++;
+                    } catch (\Throwable $e) {}
+                } elseif (file_exists($newLocalVid)) {
+                    try {
+                        if (!$r2Client->doesObjectExist($r2Bucket, $newR2Key)) {
+                            $r2Client->putObject([
+                                'Bucket'     => $r2Bucket,
+                                'Key'        => $newR2Key,
+                                'SourceFile' => $newLocalVid,
+                            ]);
+                        }
+                    } catch (\Throwable $e) {}
+                }
+
+                // Also clean any leftover PROJECT_2 keys for this shot
+                foreach ($candidateR2Keys as $cKey) {
+                    if ($cKey !== $newR2Key && strpos($cKey, 'PROJECT_2') !== false) {
+                        try {
+                            if ($r2Client->doesObjectExist($r2Bucket, $cKey)) {
+                                $r2Client->deleteObject(['Bucket' => $r2Bucket, 'Key' => $cKey]);
+                                $r2Cleaned++;
+                            }
+                        } catch (\Throwable $e) {}
+                    }
+                }
+            }
+
+            $upStmt = $pdo->prepare("UPDATE {$prefix}shots SET preview_video_path = ?, updated_at = ? WHERE id = ?");
+            $upStmt->execute([$newRelVid, $now, $shot['id']]);
+            $movedVideos++;
+            $logs[] = "Moved {$shot['shot_number']} -> {$newRelVid}";
+        }
+
+        // 2. Reorganize Thumbnails into /thumbnails/
+        $oldThumb = $shot['thumbnail_path'];
+        $expectedThumbPrefix = "uploads/{$pCode}/{$sName}/{$sCode}/thumbnails/";
+        if (!empty($oldThumb) && strpos($oldThumb, $expectedThumbPrefix) === false) {
+            $ext = pathinfo($oldThumb, PATHINFO_EXTENSION) ?: 'webp';
+            $newRelThumb = "uploads/{$pCode}/{$sName}/{$sCode}/thumbnails/shot_{$sCode}.{$ext}";
+            $newLocalThumb = __DIR__ . '/' . ltrim($newRelThumb, '/');
+
+            $candidateThumbPaths = [
+                __DIR__ . '/' . ltrim($oldThumb, '/'),
+                __DIR__ . "/uploads/PROJECT_2/SC01/{$sCode}/thumbnails/shot_{$sCode}.{$ext}",
+                __DIR__ . "/uploads/PROJECT_2/SC01/{$sCodeUpper}/thumbnails/shot_{$sCodeUpper}.{$ext}",
+                __DIR__ . "/uploads/PROJECT_2/SC01/{$sCodeLower}/thumbnails/shot_{$sCodeLower}.{$ext}",
+                __DIR__ . "/uploads/PROJECT_2/{$sCode}/thumbnails/shot_{$sCode}.{$ext}",
+            ];
+
+            $foundThumb = null;
+            foreach ($candidateThumbPaths as $cand) {
+                if (file_exists($cand)) {
+                    $foundThumb = $cand;
+                    break;
+                }
+            }
+
+            if ($foundThumb) {
+                $newThumbDir = dirname($newLocalThumb);
+                if (!is_dir($newThumbDir)) @mkdir($newThumbDir, 0777, true);
+                if ($foundThumb !== $newLocalThumb) {
+                    @rename($foundThumb, $newLocalThumb);
+                }
+            }
+
+            if ($r2Configured && $r2Client) {
+                $newR2ThumbKey = ltrim($newRelThumb, '/');
+                $candidateR2ThumbKeys = [
+                    ltrim($oldThumb, '/'),
+                    "uploads/PROJECT_2/SC01/{$sCode}/thumbnails/shot_{$sCode}.{$ext}",
+                    "uploads/PROJECT_2/SC01/{$sCodeUpper}/thumbnails/shot_{$sCodeUpper}.{$ext}",
+                    "uploads/PROJECT_2/SC01/{$sCodeLower}/thumbnails/shot_{$sCodeLower}.{$ext}",
+                ];
+
+                $foundR2ThumbKey = null;
+                foreach ($candidateR2ThumbKeys as $cKey) {
+                    try {
+                        if ($cKey !== $newR2ThumbKey && $r2Client->doesObjectExist($r2Bucket, $cKey)) {
+                            $foundR2ThumbKey = $cKey;
+                            break;
+                        }
+                    } catch (\Throwable $e) {}
+                }
+
+                if ($foundR2ThumbKey) {
+                    try {
+                        $r2Client->copyObject([
+                            'Bucket'     => $r2Bucket,
+                            'CopySource' => "{$r2Bucket}/{$foundR2ThumbKey}",
+                            'Key'        => $newR2ThumbKey,
+                        ]);
+                        $r2Client->deleteObject([
+                            'Bucket' => $r2Bucket,
+                            'Key'    => $foundR2ThumbKey,
+                        ]);
+                        $r2Cleaned++;
+                    } catch (\Throwable $e) {}
+                } elseif (file_exists($newLocalThumb)) {
+                    try {
+                        if (!$r2Client->doesObjectExist($r2Bucket, $newR2ThumbKey)) {
+                            $r2Client->putObject([
+                                'Bucket'     => $r2Bucket,
+                                'Key'        => $newR2ThumbKey,
+                                'SourceFile' => $newLocalThumb,
+                            ]);
+                        }
+                    } catch (\Throwable $e) {}
+                }
+            }
+
+            $upStmt = $pdo->prepare("UPDATE {$prefix}shots SET thumbnail_path = ?, updated_at = ? WHERE id = ?");
+            $upStmt->execute([$newRelThumb, $now, $shot['id']]);
+            $movedThumbs++;
+        }
+    }
+
+    $newRemaining = max(0, $totalRemaining - count($batch));
+    if ($newRemaining === 0) {
+        @rmdir(__DIR__ . '/uploads/shots/videos');
+        @rmdir(__DIR__ . '/uploads/shots');
+        @rmdir(__DIR__ . '/uploads/PROJECT_2/SC01');
+        @rmdir(__DIR__ . '/uploads/PROJECT_2');
+    }
+
+    echo json_encode([
+        'success'      => true,
+        'processed'    => count($batch),
+        'remaining'    => $newRemaining,
+        'movedVideos'  => $movedVideos,
+        'movedThumbs'  => $movedThumbs,
+        'r2Cleaned'    => $r2Cleaned,
+        'logs'         => $logs
+    ]);
+    exit;
+}
+
+// =========================================================================
+// 🖥️ HTML DIAGNOSTIC DASHBOARD & UI
+// =========================================================================
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>EnsoFlow Media Diagnostic & Migration</title>
+    <style>
+        body { font-family: monospace; background: #0f0f0f; color: #eee; padding: 20px; }
+        h2 { color: #3ea6ff; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #333; padding: 8px 12px; text-align: left; }
+        th { background: #1a1a1a; color: #aaa; }
+        .badge-yes { color: #4ade80; font-weight: bold; }
+        .badge-no { color: #f87171; font-weight: bold; }
+        video { max-width: 260px; border-radius: 6px; background: #000; }
+    </style>
+</head>
+<body>
+
+<h2>🎬 EnsoFlow Media &amp; Video Diagnostic Tool</h2>
+
+<?php
+$videoDir = __DIR__ . '/uploads/shots/videos';
+if (!is_dir($videoDir)) {
+    @mkdir($videoDir, 0777, true);
+}
+
+echo "<h3>1. Files on Server Disk: <code>public/uploads/shots/videos</code></h3>";
+if (!is_dir($videoDir)) {
+    echo "<p class='badge-no'>❌ Directory not found: $videoDir</p>";
+} else {
+    $files = scandir($videoDir);
+    $videoFiles = array_filter($files, fn($f) => !in_array($f, ['.', '..']));
+    echo "<p>Total legacy video files in uploads/shots/videos: <b>" . count($videoFiles) . "</b></p>";
+}
+
+echo "<h3>1.5. Cloudflare R2 CDN Storage</h3>";
+if ($r2Configured) {
+    echo "<p class='badge-yes'>✅ Cloudflare R2 is configured (Bucket: <code>$r2Bucket</code>" . ($r2CustomDomain ? ", Custom CDN: <code>$r2CustomDomain</code>" : "") . ")</p>";
+} else {
+    echo "<p style='color:#aaa;'>Cloudflare R2 is not configured in .env.</p>";
+}
+
+echo "<h3>2. Database Status &amp; Auto-Linker</h3>";
 if ($pdo) {
     try {
-        // 2.1 List Projects
         $projects = $pdo->query("SELECT id, name, project_code FROM {$prefix}projects ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
         echo "<p>Active Projects in Database: ";
         foreach ($projects as $p) {
             echo "<b>[ID: {$p['id']}] {$p['name']} ({$p['project_code']})</b> &nbsp; ";
         }
         echo "</p>";
-
-        // Auto-Link & Auto-Create Action: If user clicks link
-        if (isset($_GET['action']) && $_GET['action'] === 'autolink') {
-            $files = is_dir($videoDir) ? scandir($videoDir) : [];
-            $videoFiles = array_filter($files, fn($f) => !in_array($f, ['.', '..']));
-            $createdCount = 0;
-            $linkedCount = 0;
-            $now = date('Y-m-d H:i:s');
-
-            // Find target project ID (default to project 2 if exists, or first project)
-            $targetProjId = 2;
-            $projIds = array_column($projects, 'id');
-            if (!in_array($targetProjId, $projIds) && !empty($projIds)) {
-                $targetProjId = (int)$projIds[0];
-            }
-
-            // Get sequence for Project (or create 'War' sequence)
-            $seqStmt = $pdo->prepare("SELECT id FROM {$prefix}sequences WHERE project_id = ? LIMIT 1");
-            $seqStmt->execute([$targetProjId]);
-            $defaultSeq = $seqStmt->fetch(PDO::FETCH_ASSOC);
-            $seqId = $defaultSeq ? $defaultSeq['id'] : null;
-            if (!$seqId) {
-                try {
-                    $insSeq = $pdo->prepare("INSERT INTO {$prefix}sequences (project_id, name, description, created_at, updated_at) VALUES (?, 'War', 'Production Sequence', ?, ?)");
-                    $insSeq->execute([$targetProjId, $now, $now]);
-                    $seqId = $pdo->lastInsertId();
-                } catch (\Throwable $e) {}
-            }
-
-            foreach ($videoFiles as $vf) {
-                $projId = $targetProjId;
-                $rawShotNum = null;
-
-                if (preg_match('/^vid_(\d+)_(.+?)_[a-zA-Z0-9]+\.(mp4|mov|webm|m4v)$/i', $vf, $m)) {
-                    $projId = (int)$m[1];
-                    $rawShotNum = $m[2];
-                } elseif (preg_match('/^vid_(.+?)_[a-zA-Z0-9]+\.(mp4|mov|webm|m4v)$/i', $vf, $m)) {
-                    $rawShotNum = $m[1];
-                } elseif (preg_match('/^(.+?)\.(mp4|mov|webm|m4v)$/i', $vf, $m)) {
-                    $rawShotNum = $m[1];
-                }
-
-                if (!empty($rawShotNum)) {
-                    $shotNum = strtoupper($rawShotNum);
-                    $relPath = 'uploads/shots/videos/' . $vf;
-
-                    // Check if shot already exists in DB
-                    $checkStmt = $pdo->prepare("SELECT id FROM {$prefix}shots WHERE project_id = ? AND (LOWER(shot_number) = ? OR LOWER(comp_name) = ?)");
-                    $checkStmt->execute([$projId, strtolower($rawShotNum), strtolower($rawShotNum)]);
-                    $existing = $checkStmt->fetch(PDO::FETCH_ASSOC);
-
-                    if ($existing) {
-                        $updateStmt = $pdo->prepare("UPDATE {$prefix}shots SET preview_video_path = ?, updated_at = ? WHERE id = ?");
-                        $updateStmt->execute([$relPath, $now, $existing['id']]);
-                        $linkedCount++;
-                    } else {
-                        // Auto-create shot in database!
-                        try {
-                            $insertStmt = $pdo->prepare("INSERT INTO {$prefix}shots (project_id, sequence_id, shot_number, preview_video_path, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)");
-                            $insertStmt->execute([$projId, $seqId, $shotNum, $relPath, $now, $now]);
-                            $createdCount++;
-                        } catch (\Throwable $e) {
-                            try {
-                                $insertStmt = $pdo->prepare("INSERT INTO {$prefix}shots (project_id, shot_number, preview_video_path, created_at, updated_at) VALUES (?, ?, ?, ?, ?)");
-                                $insertStmt->execute([$projId, $shotNum, $relPath, $now, $now]);
-                                $createdCount++;
-                            } catch (\Throwable $e2) {}
-                        }
-                    }
-                }
-            }
-            echo "<div style='background:#064e3b; border:1px solid #059669; color:#a7f3d0; padding:15px; border-radius:8px; margin-bottom:15px;'>";
-            echo "<h4 style='margin:0 0 5px 0;'>🎉 Auto-Creation Complete!</h4>";
-            echo "<p style='margin:0;'>Created <b>{$createdCount}</b> new shots and linked <b>{$linkedCount}</b> shots in Project {$targetProjId}!</p>";
-            echo "</div>";
-        }
-
-        // Cloudflare R2 Sync Action
-        if (isset($_GET['action']) && $_GET['action'] === 'sync_r2' && $r2Configured && $r2Client) {
-            @ini_set('max_execution_time', 600);
-            $files = is_dir($videoDir) ? scandir($videoDir) : [];
-            $videoFiles = array_filter($files, fn($f) => !in_array($f, ['.', '..']));
-            $r2Synced = 0;
-            $r2Failed = 0;
-
-            foreach ($videoFiles as $vf) {
-                $abs = $videoDir . '/' . $vf;
-                $key = 'uploads/shots/videos/' . $vf;
-                try {
-                    if (!$r2Client->doesObjectExist($r2Bucket, $key)) {
-                        $r2Client->putObject([
-                            'Bucket'     => $r2Bucket,
-                            'Key'        => $key,
-                            'SourceFile' => $abs,
-                        ]);
-                    }
-                    $r2Synced++;
-                } catch (\Throwable $e) {
-                    $r2Failed++;
-                }
-            }
-            echo "<div style='background:#064e3b; border:1px solid #059669; color:#a7f3d0; padding:15px; border-radius:8px; margin-bottom:15px;'>";
-            echo "<b>☁️ Cloudflare R2 Sync Complete! {$r2Synced} videos are now active in R2 bucket '{$r2Bucket}'!</b>";
-            echo "</div>";
-        }
-
-        // AJAX Batch Hierarchy Reorganizer (Fast 10-shot chunks, Zero Timeouts, Zero Duplicate Bytes)
-        if (isset($_GET['action']) && $_GET['action'] === 'batch_reorganize_step') {
-            header('Content-Type: application/json');
-            $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 10;
-            if ($limit < 1) $limit = 10;
-            if ($limit > 25) $limit = 25;
-
-            $now = date('Y-m-d H:i:s');
-
-            // Get all shots with project name, project code, and sequence name
-            $allQuery = "SELECT s.id, s.project_id, s.shot_number, s.preview_video_path, s.thumbnail_path, p.name as project_name, p.project_code, seq.name as seq_name 
-                         FROM {$prefix}shots s 
-                         LEFT JOIN {$prefix}projects p ON p.id = s.project_id 
-                         LEFT JOIN {$prefix}sequences seq ON seq.id = s.sequence_id
-                         ORDER BY s.id ASC";
-            $allRows = $pdo->query($allQuery)->fetchAll(PDO::FETCH_ASSOC);
-
-            // Filter rows that are NOT yet in standard uploads/{pCode}/{sName}/{sCode}/ folder
-            $shotsToMove = [];
-            foreach ($allRows as $r) {
-                $pCode = !empty($r['project_code']) ? $r['project_code'] : (!empty($r['project_name']) ? $r['project_name'] : ($r['project_id'] == 2 ? 'MHLYA-1' : 'Project_' . $r['project_id']));
-                $pCode = preg_replace('/[^a-zA-Z0-9_-]/', '_', trim($pCode));
-
-                $sName = !empty($r['seq_name']) ? $r['seq_name'] : ($r['project_id'] == 2 ? 'War' : 'WAR');
-                $sName = preg_replace('/[^a-zA-Z0-9_-]/', '_', trim($sName));
-
-                $sCode = preg_replace('/[^a-zA-Z0-9_-]/', '_', trim($r['shot_number']));
-
-                $expectedVidPrefix = "uploads/{$pCode}/{$sName}/{$sCode}/edit/";
-                $expectedThumbPrefix = "uploads/{$pCode}/{$sName}/{$sCode}/thumbnails/";
-
-                $vidNeedsMove = !empty($r['preview_video_path']) && strpos($r['preview_video_path'], $expectedVidPrefix) === false;
-                $thumbNeedsMove = !empty($r['thumbnail_path']) && strpos($r['thumbnail_path'], $expectedThumbPrefix) === false;
-
-                if ($vidNeedsMove || $thumbNeedsMove) {
-                    $r['target_pcode'] = $pCode;
-                    $r['target_sname'] = $sName;
-                    $r['target_scode'] = $sCode;
-                    $shotsToMove[] = $r;
-                }
-            }
-
-            $totalRemaining = count($shotsToMove);
-            $batch = array_slice($shotsToMove, 0, $limit);
-
-            $movedVideos = 0;
-            $movedThumbs = 0;
-            $r2Cleaned = 0;
-            $logs = [];
-
-            foreach ($batch as $shot) {
-                $pCode = $shot['target_pcode'];
-                $sName = $shot['target_sname'];
-                $sCode = $shot['target_scode'];
-                $sCodeUpper = strtoupper($sCode);
-                $sCodeLower = strtolower($sCode);
-
-                // 1. Reorganize Video Previews into /edit/
-                $oldVid = $shot['preview_video_path'];
-                $newRelVid = "uploads/{$pCode}/{$sName}/{$sCode}/edit/vid_{$sCode}.mp4";
-                $expectedVidPrefix = "uploads/{$pCode}/{$sName}/{$sCode}/edit/";
-
-                if (!empty($oldVid) && strpos($oldVid, $expectedVidPrefix) === false) {
-                    $ext = pathinfo($oldVid, PATHINFO_EXTENSION) ?: 'mp4';
-                    $newRelVid = "uploads/{$pCode}/{$sName}/{$sCode}/edit/vid_{$sCode}.{$ext}";
-                    $newLocalVid = __DIR__ . '/' . ltrim($newRelVid, '/');
-
-                    // Potential local locations where the file might currently be
-                    $candidateLocalPaths = [
-                        __DIR__ . '/' . ltrim($oldVid, '/'),
-                        __DIR__ . "/uploads/PROJECT_2/SC01/{$sCode}/edit/vid_{$sCode}.{$ext}",
-                        __DIR__ . "/uploads/PROJECT_2/SC01/{$sCodeUpper}/edit/vid_{$sCodeUpper}.{$ext}",
-                        __DIR__ . "/uploads/PROJECT_2/SC01/{$sCodeLower}/edit/vid_{$sCodeLower}.{$ext}",
-                        __DIR__ . "/uploads/PROJECT_2/{$sCode}/edit/vid_{$sCode}.{$ext}",
-                        __DIR__ . "/uploads/shots/videos/vid_2_{$sCodeLower}_*.mp4",
-                    ];
-
-                    $foundLocal = null;
-                    foreach ($candidateLocalPaths as $cand) {
-                        if (strpos($cand, '*') !== false) {
-                            $matches = glob($cand);
-                            if (!empty($matches) && file_exists($matches[0])) {
-                                $foundLocal = $matches[0];
-                                break;
-                            }
-                        } elseif (file_exists($cand)) {
-                            $foundLocal = $cand;
-                            break;
-                        }
-                    }
-
-                    if ($foundLocal) {
-                        $newLocalDir = dirname($newLocalVid);
-                        if (!is_dir($newLocalDir)) @mkdir($newLocalDir, 0777, true);
-                        if ($foundLocal !== $newLocalVid) {
-                            @rename($foundLocal, $newLocalVid);
-                        }
-                    }
-
-                    // Cloudflare R2 Move & Clean
-                    if ($r2Configured && $r2Client) {
-                        $newR2Key = ltrim($newRelVid, '/');
-                        $candidateR2Keys = [
-                            ltrim($oldVid, '/'),
-                            "uploads/PROJECT_2/SC01/{$sCode}/edit/vid_{$sCode}.{$ext}",
-                            "uploads/PROJECT_2/SC01/{$sCodeUpper}/edit/vid_{$sCodeUpper}.{$ext}",
-                            "uploads/PROJECT_2/SC01/{$sCodeLower}/edit/vid_{$sCodeLower}.{$ext}",
-                            "uploads/PROJECT_2/{$sCode}/edit/vid_{$sCode}.{$ext}",
-                        ];
-
-                        $foundR2Key = null;
-                        foreach ($candidateR2Keys as $cKey) {
-                            try {
-                                if ($cKey !== $newR2Key && $r2Client->doesObjectExist($r2Bucket, $cKey)) {
-                                    $foundR2Key = $cKey;
-                                    break;
-                                }
-                            } catch (\Throwable $e) {}
-                        }
-
-                        if ($foundR2Key) {
-                            try {
-                                $r2Client->copyObject([
-                                    'Bucket'     => $r2Bucket,
-                                    'CopySource' => "{$r2Bucket}/{$foundR2Key}",
-                                    'Key'        => $newR2Key,
-                                ]);
-                                $r2Client->deleteObject([
-                                    'Bucket' => $r2Bucket,
-                                    'Key'    => $foundR2Key,
-                                ]);
-                                $r2Cleaned++;
-                            } catch (\Throwable $e) {}
-                        } elseif (file_exists($newLocalVid)) {
-                            try {
-                                if (!$r2Client->doesObjectExist($r2Bucket, $newR2Key)) {
-                                    $r2Client->putObject([
-                                        'Bucket'     => $r2Bucket,
-                                        'Key'        => $newR2Key,
-                                        'SourceFile' => $newLocalVid,
-                                    ]);
-                                }
-                            } catch (\Throwable $e) {}
-                        }
-
-                        // Also clean any leftover PROJECT_2 keys for this shot
-                        foreach ($candidateR2Keys as $cKey) {
-                            if ($cKey !== $newR2Key && strpos($cKey, 'PROJECT_2') !== false) {
-                                try {
-                                    if ($r2Client->doesObjectExist($r2Bucket, $cKey)) {
-                                        $r2Client->deleteObject(['Bucket' => $r2Bucket, 'Key' => $cKey]);
-                                        $r2Cleaned++;
-                                    }
-                                } catch (\Throwable $e) {}
-                            }
-                        }
-                    }
-
-                    $upStmt = $pdo->prepare("UPDATE {$prefix}shots SET preview_video_path = ?, updated_at = ? WHERE id = ?");
-                    $upStmt->execute([$newRelVid, $now, $shot['id']]);
-                    $movedVideos++;
-                    $logs[] = "Moved {$shot['shot_number']} -> {$newRelVid}";
-                }
-
-                // 2. Reorganize Thumbnails into /thumbnails/
-                $oldThumb = $shot['thumbnail_path'];
-                $expectedThumbPrefix = "uploads/{$pCode}/{$sName}/{$sCode}/thumbnails/";
-                if (!empty($oldThumb) && strpos($oldThumb, $expectedThumbPrefix) === false) {
-                    $ext = pathinfo($oldThumb, PATHINFO_EXTENSION) ?: 'webp';
-                    $newRelThumb = "uploads/{$pCode}/{$sName}/{$sCode}/thumbnails/shot_{$sCode}.{$ext}";
-                    $newLocalThumb = __DIR__ . '/' . ltrim($newRelThumb, '/');
-
-                    $candidateThumbPaths = [
-                        __DIR__ . '/' . ltrim($oldThumb, '/'),
-                        __DIR__ . "/uploads/PROJECT_2/SC01/{$sCode}/thumbnails/shot_{$sCode}.{$ext}",
-                        __DIR__ . "/uploads/PROJECT_2/SC01/{$sCodeUpper}/thumbnails/shot_{$sCodeUpper}.{$ext}",
-                        __DIR__ . "/uploads/PROJECT_2/SC01/{$sCodeLower}/thumbnails/shot_{$sCodeLower}.{$ext}",
-                        __DIR__ . "/uploads/PROJECT_2/{$sCode}/thumbnails/shot_{$sCode}.{$ext}",
-                    ];
-
-                    $foundThumb = null;
-                    foreach ($candidateThumbPaths as $cand) {
-                        if (file_exists($cand)) {
-                            $foundThumb = $cand;
-                            break;
-                        }
-                    }
-
-                    if ($foundThumb) {
-                        $newThumbDir = dirname($newLocalThumb);
-                        if (!is_dir($newThumbDir)) @mkdir($newThumbDir, 0777, true);
-                        if ($foundThumb !== $newLocalThumb) {
-                            @rename($foundThumb, $newLocalThumb);
-                        }
-                    }
-
-                    if ($r2Configured && $r2Client) {
-                        $newR2ThumbKey = ltrim($newRelThumb, '/');
-                        $candidateR2ThumbKeys = [
-                            ltrim($oldThumb, '/'),
-                            "uploads/PROJECT_2/SC01/{$sCode}/thumbnails/shot_{$sCode}.{$ext}",
-                            "uploads/PROJECT_2/SC01/{$sCodeUpper}/thumbnails/shot_{$sCodeUpper}.{$ext}",
-                            "uploads/PROJECT_2/SC01/{$sCodeLower}/thumbnails/shot_{$sCodeLower}.{$ext}",
-                        ];
-
-                        $foundR2ThumbKey = null;
-                        foreach ($candidateR2ThumbKeys as $cKey) {
-                            try {
-                                if ($cKey !== $newR2ThumbKey && $r2Client->doesObjectExist($r2Bucket, $cKey)) {
-                                    $foundR2ThumbKey = $cKey;
-                                    break;
-                                }
-                            } catch (\Throwable $e) {}
-                        }
-
-                        if ($foundR2ThumbKey) {
-                            try {
-                                $r2Client->copyObject([
-                                    'Bucket'     => $r2Bucket,
-                                    'CopySource' => "{$r2Bucket}/{$foundR2ThumbKey}",
-                                    'Key'        => $newR2ThumbKey,
-                                ]);
-                                $r2Client->deleteObject([
-                                    'Bucket' => $r2Bucket,
-                                    'Key'    => $foundR2ThumbKey,
-                                ]);
-                                $r2Cleaned++;
-                            } catch (\Throwable $e) {}
-                        } elseif (file_exists($newLocalThumb)) {
-                            try {
-                                if (!$r2Client->doesObjectExist($r2Bucket, $newR2ThumbKey)) {
-                                    $r2Client->putObject([
-                                        'Bucket'     => $r2Bucket,
-                                        'Key'        => $newR2ThumbKey,
-                                        'SourceFile' => $newLocalThumb,
-                                    ]);
-                                }
-                            } catch (\Throwable $e) {}
-                        }
-                    }
-
-                    $upStmt = $pdo->prepare("UPDATE {$prefix}shots SET thumbnail_path = ?, updated_at = ? WHERE id = ?");
-                    $upStmt->execute([$newRelThumb, $now, $shot['id']]);
-                    $movedThumbs++;
-                }
-            }
-
-            $newRemaining = max(0, $totalRemaining - count($batch));
-            if ($newRemaining === 0) {
-                // Clean up any legacy empty folders
-                @rmdir(__DIR__ . '/uploads/shots/videos');
-                @rmdir(__DIR__ . '/uploads/shots');
-                @rmdir(__DIR__ . '/uploads/PROJECT_2/SC01');
-                @rmdir(__DIR__ . '/uploads/PROJECT_2');
-            }
-
-            echo json_encode([
-                'success'      => true,
-                'processed'    => count($batch),
-                'remaining'    => $newRemaining,
-                'movedVideos'  => $movedVideos,
-                'movedThumbs'  => $movedThumbs,
-                'r2Cleaned'    => $r2Cleaned,
-                'logs'         => $logs
-            ]);
-            exit;
-        }
 
         // Action Toolbar
         echo "<div style='margin-bottom:15px; display:flex; flex-wrap:wrap; gap:10px; align-items:center;'>";
@@ -613,7 +508,6 @@ if ($pdo) {
 } else {
     echo "<p class='badge-no'>Could not connect to database to inspect shots.</p>";
 }
-
 ?>
 
 <script>
@@ -673,7 +567,7 @@ async function startBatchReorganization() {
             }
         } catch (err) {
             console.error('Batch error:', err);
-            status.innerHTML = `⚠️ Network delay, retrying in 2 seconds...`;
+            status.innerHTML = `⚠️ Error parsing response: ` + err.message + `. Retrying in 2 seconds...`;
             await new Promise(r => setTimeout(r, 2000));
         }
     }
