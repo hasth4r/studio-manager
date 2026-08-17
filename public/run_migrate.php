@@ -1,7 +1,7 @@
 <?php
 /**
- * ONE-TIME NATIVE DATABASE UPDATER
- * Runs database column checks & migrations directly via PHP PDO (no CLI required).
+ * ONE-TIME NATIVE DATABASE SCHEMA MIGRATOR & DIAGNOSTIC
+ * Discovers all tables, checks prefix, and adds reference_images & client_notes columns.
  * URL: https://work.studioinphenix.com/run_migrate.php?key=enso8migrate2026
  */
 
@@ -12,16 +12,17 @@ if ($secret !== 'enso8migrate2026') {
 }
 
 header('Content-Type: text/plain; charset=utf-8');
-echo "=== Native Database Schema Update ===\n\n";
+echo "=== Native Database Schema Discovery & Update ===\n\n";
 
-// Load .env or CI Config to get database credentials
+// Load .env credentials
 $envFile = dirname(__DIR__) . '/.env';
 $dbConfig = [
     'hostname' => 'localhost',
-    'database' => 'enso8_manager',
+    'database' => '',
     'username' => 'root',
     'password' => '',
     'port'     => 3306,
+    'prefix'   => '',
 ];
 
 if (file_exists($envFile)) {
@@ -33,7 +34,7 @@ if (file_exists($envFile)) {
             $dbConfig['hostname'] = trim(explode('=', $line, 2)[1] ?? 'localhost', " '\"");
         }
         if (strpos($line, 'database.default.database') === 0) {
-            $dbConfig['database'] = trim(explode('=', $line, 2)[1] ?? 'enso8_manager', " '\"");
+            $dbConfig['database'] = trim(explode('=', $line, 2)[1] ?? '', " '\"");
         }
         if (strpos($line, 'database.default.username') === 0) {
             $dbConfig['username'] = trim(explode('=', $line, 2)[1] ?? 'root', " '\"");
@@ -44,6 +45,9 @@ if (file_exists($envFile)) {
         if (strpos($line, 'database.default.port') === 0) {
             $dbConfig['port'] = (int)trim(explode('=', $line, 2)[1] ?? 3306, " '\"");
         }
+        if (strpos($line, 'database.default.DBPrefix') === 0) {
+            $dbConfig['prefix'] = trim(explode('=', $line, 2)[1] ?? '', " '\"");
+        }
     }
 }
 
@@ -53,24 +57,53 @@ try {
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ]);
-    echo "[✓] Connected to MySQL database: {$dbConfig['database']}\n";
+    echo "[✓] Connected to MySQL database: {$dbConfig['database']}\n\n";
 
-    // 1. Check & Add 'reference_images' to 'shots'
-    $stmt = $pdo->query("SHOW COLUMNS FROM `shots` LIKE 'reference_images'");
-    if (!$stmt->fetch()) {
-        $pdo->exec("ALTER TABLE `shots` ADD COLUMN `reference_images` LONGTEXT NULL AFTER `description`");
-        echo "[+] Added column `reference_images` (LONGTEXT) to table `shots`\n";
+    // 1. List all tables in this database
+    $tables = $pdo->query("SHOW TABLES")->fetchAll(PDO::FETCH_COLUMN);
+    echo "Found " . count($tables) . " tables in database:\n";
+    foreach ($tables as $t) {
+        echo "  - {$t}\n";
+    }
+    echo "\n";
+
+    // 2. Identify the shots table (direct, with prefix, or matching *shot*)
+    $shotsTable = null;
+    if (in_array('shots', $tables)) {
+        $shotsTable = 'shots';
+    } elseif (!empty($dbConfig['prefix']) && in_array($dbConfig['prefix'] . 'shots', $tables)) {
+        $shotsTable = $dbConfig['prefix'] . 'shots';
     } else {
-        echo "[i] Column `reference_images` already exists in table `shots`\n";
+        foreach ($tables as $t) {
+            if (strpos($t, 'shot') !== false) {
+                $shotsTable = $t;
+                break;
+            }
+        }
     }
 
-    // 2. Check & Add 'client_notes' to 'shots'
-    $stmt = $pdo->query("SHOW COLUMNS FROM `shots` LIKE 'client_notes'");
-    if (!$stmt->fetch()) {
-        $pdo->exec("ALTER TABLE `shots` ADD COLUMN `client_notes` LONGTEXT NULL AFTER `reference_images`");
-        echo "[+] Added column `client_notes` (LONGTEXT) to table `shots`\n";
+    if ($shotsTable) {
+        echo "[✓] Identified shots table: `{$shotsTable}`\n";
+
+        // Check & Add 'reference_images'
+        $stmt = $pdo->query("SHOW COLUMNS FROM `{$shotsTable}` LIKE 'reference_images'");
+        if (!$stmt->fetch()) {
+            $pdo->exec("ALTER TABLE `{$shotsTable}` ADD COLUMN `reference_images` LONGTEXT NULL");
+            echo "[+] Added column `reference_images` (LONGTEXT) to table `{$shotsTable}`\n";
+        } else {
+            echo "[i] Column `reference_images` already exists in `{$shotsTable}`\n";
+        }
+
+        // Check & Add 'client_notes'
+        $stmt = $pdo->query("SHOW COLUMNS FROM `{$shotsTable}` LIKE 'client_notes'");
+        if (!$stmt->fetch()) {
+            $pdo->exec("ALTER TABLE `{$shotsTable}` ADD COLUMN `client_notes` LONGTEXT NULL");
+            echo "[+] Added column `client_notes` (LONGTEXT) to table `{$shotsTable}`\n";
+        } else {
+            echo "[i] Column `client_notes` already exists in `{$shotsTable}`\n";
+        }
     } else {
-        echo "[i] Column `client_notes` already exists in table `shots`\n";
+        echo "[!] No table matching 'shots' was found in `{$dbConfig['database']}`.\n";
     }
 
     // 3. Ensure uploads/references directory exists
@@ -82,14 +115,8 @@ try {
         echo "[i] Upload directory exists: public/uploads/references\n";
     }
 
-    echo "\n=== Database Update Completed Successfully! ===\n";
+    echo "\n=== Script execution finished. ===\n";
 
 } catch (\Throwable $e) {
     echo "\n[!] Database Error: " . $e->getMessage() . "\n";
 }
-
-// Self-delete
-$selfDelete = @unlink(__FILE__);
-echo $selfDelete
-    ? "\n[✓] This script has self-deleted.\n"
-    : "\n[!] Please delete public/run_migrate.php manually.\n";
