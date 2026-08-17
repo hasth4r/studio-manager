@@ -73,17 +73,24 @@ class TaskModel extends Model
         }
 
         if ($projectId && $taskTypeId && $complexity) {
-            // Get Benchmark
+            // Get Benchmark from database
             $benchmark = $this->db->table('task_benchmarks')
                 ->where('project_id', $projectId)
                 ->where('task_type_id', $taskTypeId)
                 ->get()->getRowArray();
 
             $baseHours = 0.0;
-            if ($benchmark) {
+            if ($benchmark && ($benchmark['simple_hours'] > 0 || $benchmark['medium_hours'] > 0 || $benchmark['complex_hours'] > 0)) {
                 if ($complexity === 'Simple')  $baseHours = (float)$benchmark['simple_hours'];
                 if ($complexity === 'Medium')  $baseHours = (float)$benchmark['medium_hours'];
                 if ($complexity === 'Complex') $baseHours = (float)$benchmark['complex_hours'];
+            } else {
+                // Robust standard benchmark fallback if project hasn't custom benchmarks configured yet
+                $baseHours = match ($complexity) {
+                    'Simple'  => 1.0,
+                    'Complex' => 6.0,
+                    default   => 3.0, // Medium
+                };
             }
 
             // Calculate duration multiplier if it's a shot task
@@ -92,28 +99,29 @@ class TaskModel extends Model
                 $shot = $this->db->table('shots')->where('id', $shotId)->get()->getRowArray();
                 $project = $this->db->table('projects')->where('id', $projectId)->get()->getRowArray();
                 
-                $finalFps = $fps ?: ($shot['fps'] ?: ($project['fps'] ?: 24));
-                $finalFrameCount = $frameCount ?: ($shot['frame_count'] ?: null);
+                $finalFps = $fps ?: ($shot['fps'] ?? ($project['fps'] ?? 24));
+                $finalFrameCount = $frameCount ?: ($shot['frame_count'] ?? null);
 
                 if ($finalFrameCount && $finalFps > 0) {
-                    $durationMultiplier = $finalFrameCount / $finalFps; // Duration in seconds
+                    $durationMultiplier = max(0.2, (float)$finalFrameCount / (float)$finalFps);
                 } else {
-                    $durationMultiplier = 0.0; // Can't calculate if no frames are provided yet
+                    $durationMultiplier = 1.0; // Standard 1.0 multiplier if frame count isn't specified yet
                 }
             }
 
             // Get User Multiplier
-            $multiplier = 1.0; // default Mid
+            $multiplier = 1.0; // default Mid level
             if ($assignedTo) {
                 $user = $this->db->table('users')->where('id', $assignedTo)->get()->getRowArray();
-                if ($user && $user['experience_level']) {
-                    if ($user['experience_level'] === 'Junior') $multiplier = 1.5;
-                    if ($user['experience_level'] === 'Senior') $multiplier = 0.8;
+                if ($user && !empty($user['experience_level'])) {
+                    $exp = strtolower($user['experience_level']);
+                    if ($exp === 'junior') $multiplier = 1.5;
+                    if ($exp === 'senior') $multiplier = 0.8;
                 }
             }
 
             $estimated = $baseHours * $durationMultiplier * $multiplier;
-            $data['data']['estimated_hours'] = $estimated > 0 ? round($estimated, 2) : null;
+            $data['data']['estimated_hours'] = $estimated > 0 ? round($estimated, 1) : 1.0;
         }
 
         return $data;

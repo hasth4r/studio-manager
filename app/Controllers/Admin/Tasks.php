@@ -277,24 +277,18 @@ class Tasks extends BaseController
         }
 
         $model = new \App\Models\TaskModel();
-        // Find tasks in this project that have 0 or null estimated_hours
-        $tasks = $model->where('project_id', $projectId)
-                       ->groupStart()
-                           ->where('estimated_hours', null)
-                           ->orWhere('estimated_hours', 0)
-                           ->orWhere('estimated_hours', '')
-                       ->groupEnd()
-                       ->findAll();
+        // Recalculate ALL tasks in this project
+        $tasks = $model->where('project_id', $projectId)->findAll();
 
         $count = 0;
         foreach ($tasks as $task) {
-            // Trigger update to auto-calculate
             $model->update($task->id, [
-                'complexity' => $task->complexity ?: 'Medium'
+                'complexity' => $task->complexity ?: 'Medium',
+                'updated_at' => date('Y-m-d H:i:s')
             ]);
             $count++;
         }
 
-        return redirect()->back()->with('message', "Bulk calculated estimated hours for {$count} tasks.");
+        return redirect()->back()->with('message', "Recalculated estimated hours for {$count} tasks.");
     }
 }

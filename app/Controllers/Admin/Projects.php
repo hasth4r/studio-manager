@@ -390,9 +390,19 @@ class Projects extends BaseController
                     $benchmarkModel->insert($data);
                 }
             }
+
+            // Auto-recalculate tasks for this project with new benchmarks
+            $taskModel = new \App\Models\TaskModel();
+            $tasks = $taskModel->where('project_id', $projectId)->findAll();
+            foreach ($tasks as $t) {
+                $taskModel->update($t->id, [
+                    'complexity' => $t->complexity ?: 'Medium',
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+            }
         }
 
-        return redirect()->to('/admin/projects/' . $projectId)->with('message', 'Benchmarks saved successfully.');
+        return redirect()->to('/admin/projects/' . $projectId)->with('message', 'Benchmarks saved & tasks recalculated.');
     }
 
     public function updateSettings($id)
