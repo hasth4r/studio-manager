@@ -1,0 +1,44 @@
+<?php
+
+namespace App\Filters;
+
+use CodeIgniter\Filters\FilterInterface;
+use CodeIgniter\HTTP\RequestInterface;
+use CodeIgniter\HTTP\ResponseInterface;
+
+class RoleFilter implements FilterInterface
+{
+    /**
+     * Verify that the logged-in user possesses at least one of the required roles.
+     * Usage in Routes: ['filter' => 'role:site_manager,admin']
+     */
+    public function before(RequestInterface $request, $arguments = null)
+    {
+        helper('auth');
+
+        if (!session()->get('isLoggedIn')) {
+            return redirect()->to('/login')->with('error', 'Please log in to continue.');
+        }
+
+        if (empty($arguments)) {
+            return;
+        }
+
+        // Check if user has any of the passed role arguments
+        if (!has_any_role($arguments)) {
+            // Role-based smart fallback redirect
+            if (has_role('client')) {
+                return redirect()->to('/client/dashboard')->with('error', 'Access restricted.');
+            }
+            if (has_any_role(['site_manager', 'admin'])) {
+                return redirect()->to('/admin/dashboard')->with('error', 'Access restricted.');
+            }
+            return redirect()->to('/user/dashboard')->with('error', 'You do not have permission to access that area.');
+        }
+    }
+
+    public function after(RequestInterface $request, ResponseInterface $response, $arguments = null)
+    {
+        //
+    }
+}

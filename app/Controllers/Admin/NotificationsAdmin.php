@@ -8,7 +8,7 @@ class NotificationsAdmin extends BaseController
 {
     public function index()
     {
-        if (!session()->get('isLoggedIn') || session()->get('userRole') !== 'admin') {
+        if (!session()->get('isLoggedIn') || !has_any_role(['site_manager', 'admin'])) {
             return redirect()->to('/login');
         }
 
@@ -22,7 +22,7 @@ class NotificationsAdmin extends BaseController
 
     public function process()
     {
-        if (!session()->get('isLoggedIn') || session()->get('userRole') !== 'admin') {
+        if (!session()->get('isLoggedIn') || !has_any_role(['site_manager', 'admin'])) {
             return redirect()->to('/login');
         }
 

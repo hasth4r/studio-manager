@@ -30,9 +30,26 @@ class MediaManager extends BaseController
         }
 
         $db = \Config\Database::connect();
+        $userId = (int)session()->get('userId');
 
-        // 1. Fetch Projects
-        $projects = $db->table('projects')->select('id, name, project_code')->get()->getResultArray();
+        // 1. Fetch Projects (scoped by role)
+        $projectsQ = $db->table('projects')->select('id, name, project_code');
+        if (!has_any_role(['site_manager', 'admin'])) {
+            $supervisedProj = $db->table('projects')->select('id')->where('supervisor_id', $userId)->get()->getResultArray();
+            $supervisedSeq = $db->table('sequences')->select('project_id')->where('supervisor_id', $userId)->get()->getResultArray();
+            $assignedTasks = $db->table('tasks')->select('project_id')->where('assigned_to', $userId)->get()->getResultArray();
+            $allowedIds = array_values(array_unique(array_filter(array_merge(
+                array_column($supervisedProj, 'id'),
+                array_column($supervisedSeq, 'project_id'),
+                array_column($assignedTasks, 'project_id')
+            ))));
+            if (!empty($allowedIds)) {
+                $projectsQ->whereIn('id', $allowedIds);
+            } else {
+                $projectsQ->where('id', -1);
+            }
+        }
+        $projects = $projectsQ->get()->getResultArray();
         
         // 2. Fetch Sequences
         $sequences = $db->table('sequences')->select('id, project_id, name')->get()->getResultArray();

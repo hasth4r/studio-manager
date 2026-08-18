@@ -41,7 +41,7 @@
                 <span class="material-symbols-outlined text-[16px] md:text-[18px]">table_chart</span>
                 <span>Breakdown Matrix</span>
             </a>
-            <?php if (session()->get('userRole') === 'admin' || session()->get('userRole') === 'project_manager'): ?>
+            <?php if (can_manage_project($project->id)): ?>
                 <form action="/admin/projects/syncFolders/<?= $project->id ?>" method="POST" class="m-0 p-0 shrink-0">
                     <?= csrf_field() ?>
                     <button type="submit" title="Force generate missing folders" class="bg-[#1a1a1a] text-ytText border border-ytBorder p-1.5 md:px-3 md:py-2 rounded-full font-medium text-[12px] hover:bg-ytHover transition-colors flex items-center">
@@ -79,7 +79,8 @@
             <span class="text-[10px] md:text-[11px] text-ytMuted font-semibold uppercase tracking-wider mb-1">Est. Hours</span>
             <span class="text-[20px] md:text-[28px] font-bold text-ytBlue font-mono leading-none"><?= $totalProjectHours ?>h</span>
         </div>
-        <!-- Budget Card -->
+        <!-- Budget Card (Managers/Supervisors only) -->
+        <?php if (can_manage_project($project->id)): ?>
         <div class="bg-ytCard border border-green-700/40 rounded-2xl p-3.5 md:p-4 flex flex-col justify-center shrink-0 w-[180px] sm:w-[210px] md:w-auto snap-start shadow-lg shadow-black/10">
             <div class="flex items-center justify-between mb-1">
                 <span class="text-[10px] md:text-[11px] text-green-400 font-semibold uppercase tracking-wider">Project Budget</span>
@@ -94,6 +95,7 @@
                 <?= $agreedBudget > 0 ? 'Quote: ' . esc($studioCurrency) . number_format($totalIdealBudget, 0) . " ({$scalePercent}%)" : 'Standard quote' ?>
             </div>
         </div>
+        <?php endif; ?>
         <div class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] shadow-[0_0_15px_rgba(23,123,207,0.2)] border border-[#177bcf]/40 rounded-2xl p-3.5 md:p-4 flex flex-col justify-center relative overflow-hidden shrink-0 w-[160px] sm:w-[190px] md:w-auto snap-start">
             <div class="absolute inset-0 bg-black/10"></div>
             <div class="relative z-10 flex justify-between items-end">
@@ -115,9 +117,11 @@
             <button onclick="switchTab('tab-assets')" id="btn-tab-assets" class="border-transparent text-ytMuted hover:text-ytText border-b-2 py-2.5 md:py-3 px-1 text-[13px] md:text-[14px] font-medium outline-none flex items-center gap-1.5 transition-colors">
                 <span class="material-symbols-outlined text-[18px]">token</span> 3D Assets
             </button>
+            <?php if (can_manage_project($project->id)): ?>
             <button onclick="switchTab('tab-benchmarks')" id="btn-tab-benchmarks" class="border-transparent text-ytMuted hover:text-ytText border-b-2 py-2.5 md:py-3 px-1 text-[13px] md:text-[14px] font-medium outline-none flex items-center gap-1.5 transition-colors">
                 <span class="material-symbols-outlined text-[18px]">tune</span> Benchmarks
             </button>
+            <?php endif; ?>
         </nav>
     </div>
 </div>
@@ -137,6 +141,7 @@
             </a>
             
             <!-- Unified + Quick Actions Dropdown -->
+            <?php if (can_manage_project($project->id)): ?>
             <div class="relative inline-block text-left shrink-0" id="quickActionsDropdownContainer">
                 <button type="button" onclick="toggleQuickActionsMenu()" class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] text-white shadow-[0_0_15px_rgba(23,123,207,0.3)] border border-[#177bcf]/40 px-3.5 py-1.5 rounded-full font-bold text-[11px] md:text-[12px] hover:shadow-[0_0_25px_rgba(23,123,207,0.6)] hover:from-[#0d346e] hover:to-[#238bf2] transition-all flex items-center gap-1">
                     <span class="material-symbols-outlined text-[16px]">add</span>
@@ -172,6 +177,7 @@
                     </div>
                 </div>
             </div>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -180,6 +186,7 @@
             <span class="material-symbols-outlined text-[48px] text-ytMuted mb-3">movie</span>
             <p class="text-ytText font-medium">No sequences or shots yet</p>
             <p class="text-ytMuted text-[13px] mt-1 mb-4">Break down your project into manageable sequences and shots, or import directly from After Effects.</p>
+            <?php if (can_manage_project($project->id)): ?>
             <div class="flex justify-center gap-3">
                 <a href="/admin/projects/<?= $project->id ?>/breakdown" class="bg-ytCard border border-ytBorder text-ytText px-5 py-2.5 rounded-full font-medium text-[13px] hover:bg-ytHover transition-colors flex items-center gap-2">
                     <span class="material-symbols-outlined text-[18px] text-ytBlue">table_chart</span> Shot Breakdown Matrix
@@ -189,6 +196,12 @@
                 </button>
                 <button onclick="openModal('shotModal')" class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] text-white shadow-[0_0_15px_rgba(23,123,207,0.3)] border border-[#177bcf]/40 px-5 py-2.5 rounded-full font-medium text-[13px] hover:shadow-[0_0_25px_rgba(23,123,207,0.6)] hover:from-[#0d346e] hover:to-[#238bf2] transition-colors">Add Single Shot</button>
             </div>
+            <?php else: ?>
+            <p class="text-ytMuted text-[13px]">
+                <span class="material-symbols-outlined text-[16px] align-middle">info</span>
+                Contact your project manager to add shots or sequences.
+            </p>
+            <?php endif; ?>
         </div>
     <?php endif; ?>
 
@@ -234,9 +247,11 @@
                                     <p class="text-[11px] text-ytMuted font-mono mt-0.5"><?= esc($shot->frame_count ?? '-') ?> fr &bull; <?= esc($shot->fps ?? $project->fps ?? 24) ?> FPS</p>
                                 <?php endif; ?>
                             </div>
+                            <?php if (can_manage_project($project->id)): ?>
                             <button onclick="editShot(event, <?= $shot->id ?>, <?= $shot->sequence_id ?: 'null' ?>, <?= htmlspecialchars(json_encode($shot->shot_number), ENT_QUOTES, 'UTF-8') ?>, <?= $shot->fps ?: 'null' ?>, <?= $shot->frame_count ?: 'null' ?>, <?= htmlspecialchars(json_encode($shot->description), ENT_QUOTES, 'UTF-8') ?>)" class="text-ytMuted hover:text-ytText transition-colors p-1 rounded-full hover:bg-ytHover opacity-0 group-hover:opacity-100">
                                 <span class="material-symbols-outlined text-[16px] block">edit</span>
                             </button>
+                            <?php endif; ?>
                         </div>
                     </a>
                 <?php endforeach; ?>
@@ -256,10 +271,11 @@
                 </div>
                 
                 <div class="flex items-center gap-2 ml-auto">
-                    <!-- Sequence Lead / Supervisor Selector -->
+                    <!-- Sequence Lead / Supervisor Display -->
                     <div class="flex items-center gap-1 bg-[#101014] border border-ytBorder/70 px-2 py-0.5 rounded-lg text-[11px] font-mono">
                         <span class="material-symbols-outlined text-[13px] text-blue-400">person</span>
                         <span class="text-ytMuted text-[10px]">Lead:</span>
+                        <?php if (can_manage_project($project->id)): ?>
                         <select onchange="updateSequenceSupervisor(<?= $seq->id ?>, this.value)" class="bg-transparent text-blue-300 font-bold focus:outline-none cursor-pointer hover:text-blue-200 text-[11px]">
                             <option value="" class="bg-ytCard text-ytText">(Unassigned)</option>
                             <?php foreach($users as $u): ?>
@@ -268,11 +284,20 @@
                                 </option>
                             <?php endforeach; ?>
                         </select>
+                        <?php else: ?>
+                            <?php 
+                                $leadUser = array_filter($users, fn($u) => $u->id == ($seq->supervisor_id ?? 0));
+                                $leadName = !empty($leadUser) ? reset($leadUser)->name : 'Unassigned';
+                            ?>
+                            <span class="text-blue-300 font-bold text-[11px]"><?= esc($leadName) ?></span>
+                        <?php endif; ?>
                     </div>
 
+                    <?php if (can_manage_project($project->id)): ?>
                     <button onclick="editSequence(<?= $seq->id ?>, <?= htmlspecialchars(json_encode($seq->name), ENT_QUOTES, 'UTF-8') ?>, <?= htmlspecialchars(json_encode($seq->description), ENT_QUOTES, 'UTF-8') ?>)" class="flex items-center gap-1 bg-[#1a1a1a] border border-ytBorder hover:border-ytText hover:text-ytText transition-colors px-3 py-1 rounded-full text-[12px] font-medium text-ytMuted" title="Edit Sequence">
                         <span class="material-symbols-outlined text-[16px]">edit</span> Edit
                     </button>
+                    <?php endif; ?>
                     <a href="/admin/reviews/sequence/<?= $seq->id ?>" class="flex items-center gap-1 bg-[#1a1a1a] border border-ytBorder hover:border-ytBlue hover:text-ytBlue transition-colors px-3 py-1 rounded-full text-[12px] font-medium text-ytMuted">
                         <span class="material-symbols-outlined text-[16px]">movie_edit</span> Lineup Editor
                     </a>
@@ -317,9 +342,11 @@
                                         <p class="text-[11px] text-ytMuted font-mono mt-0.5"><?= esc($shot->frame_count ?? '-') ?> fr &bull; <?= esc($shot->fps ?? $project->fps ?? 24) ?> FPS</p>
                                     <?php endif; ?>
                                 </div>
+                                <?php if (can_manage_project($project->id)): ?>
                                 <button onclick="editShot(event, <?= $shot->id ?>, <?= $shot->sequence_id ?: 'null' ?>, <?= htmlspecialchars(json_encode($shot->shot_number), ENT_QUOTES, 'UTF-8') ?>, <?= $shot->fps ?: 'null' ?>, <?= $shot->frame_count ?: 'null' ?>, <?= htmlspecialchars(json_encode($shot->description), ENT_QUOTES, 'UTF-8') ?>)" class="text-ytMuted hover:text-ytText transition-colors p-1 rounded-full hover:bg-ytHover opacity-0 group-hover:opacity-100">
                                     <span class="material-symbols-outlined text-[16px] block">edit</span>
                                 </button>
+                                <?php endif; ?>
                             </div>
                         </a>
                     <?php endforeach; ?>
@@ -369,9 +396,11 @@
                                     <p class="text-[11px] text-ytMuted font-mono mt-0.5"><?= esc($shot->frame_count ?? '-') ?> fr &bull; <?= esc($shot->fps ?? $project->fps ?? 24) ?> FPS</p>
                                 <?php endif; ?>
                             </div>
+                            <?php if (can_manage_project($project->id)): ?>
                             <button onclick="editShot(event, <?= $shot->id ?>, null, <?= htmlspecialchars(json_encode($shot->shot_number), ENT_QUOTES, 'UTF-8') ?>, <?= $shot->fps ?: 'null' ?>, <?= $shot->frame_count ?: 'null' ?>, <?= htmlspecialchars(json_encode($shot->description), ENT_QUOTES, 'UTF-8') ?>)" class="text-ytMuted hover:text-ytText transition-colors p-1 rounded-full hover:bg-ytHover opacity-0 group-hover:opacity-100">
                                 <span class="material-symbols-outlined text-[16px] block">edit</span>
                             </button>
+                            <?php endif; ?>
                         </div>
                     </a>
                 <?php endforeach; ?>
@@ -384,9 +413,11 @@
 <div id="tab-assets" class="hidden pt-4">
     <div class="flex justify-between items-center mb-4">
         <h3 class="text-[16px] font-medium text-ytText">3D Assets</h3>
+        <?php if (can_manage_project($project->id)): ?>
         <button onclick="openModal('assetModal')" class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] text-white shadow-[0_0_15px_rgba(23,123,207,0.3)] border border-[#177bcf]/40 px-4 py-2 rounded-full font-medium text-[13px] hover:shadow-[0_0_25px_rgba(23,123,207,0.6)] hover:from-[#0d346e] hover:to-[#238bf2] transition-colors">
             + Add Asset
         </button>
+        <?php endif; ?>
     </div>
 
     <?php if(empty($assets)): ?>
@@ -394,7 +425,9 @@
             <span class="material-symbols-outlined text-[48px] text-ytMuted mb-3">view_in_ar</span>
             <p class="text-ytText font-medium">No assets created yet</p>
             <p class="text-ytMuted text-[13px] mt-1 mb-4">Manage characters, props, and environments globally.</p>
+            <?php if (can_manage_project($project->id)): ?>
             <button onclick="openModal('assetModal')" class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] text-white shadow-[0_0_15px_rgba(23,123,207,0.3)] border border-[#177bcf]/40 px-4 py-2 rounded-full font-medium text-[13px] hover:shadow-[0_0_25px_rgba(23,123,207,0.6)] hover:from-[#0d346e] hover:to-[#238bf2] transition-colors">Add First Asset</button>
+            <?php endif; ?>
         </div>
     <?php else: ?>
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
@@ -421,6 +454,7 @@
 
 <!-- TAB: Benchmarks -->
 <div id="tab-benchmarks" class="hidden pt-4">
+    <?php if (can_manage_project($project->id)): ?>
     <div class="flex justify-between items-center mb-4">
         <h3 class="text-[16px] font-medium text-ytText">Project Benchmarks</h3>
         <p class="text-[13px] text-ytMuted">Define base hours for tasks.</p>
@@ -477,9 +511,16 @@
             <button type="submit" class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] text-white shadow-[0_0_15px_rgba(23,123,207,0.3)] border border-[#177bcf]/40 px-8 py-3 rounded-full font-medium text-[14px] hover:shadow-[0_0_25px_rgba(23,123,207,0.6)] hover:from-[#0d346e] hover:to-[#238bf2]">Save Benchmarks</button>
         </div>
     </form>
+    <?php else: ?>
+    <div class="bg-ytCard border border-ytBorder rounded-xl p-8 text-center">
+        <span class="material-symbols-outlined text-[48px] text-ytMuted mb-3">lock</span>
+        <p class="text-ytText font-medium">Access Restricted</p>
+        <p class="text-ytMuted text-[13px] mt-1">Only project managers can configure benchmarks.</p>
+    </div>
+    <?php endif; ?>
 </div>
 
-
+<?php if (can_manage_project($project->id)): ?>
 <!-- MODAL: Add Sequence -->
 <div id="sequenceModal" class="fixed inset-0 z-50 hidden bg-black/70 flex items-center justify-center backdrop-blur-sm">
     <div class="bg-ytCard border border-ytBorder rounded-xl w-full max-w-md mx-4 shadow-2xl">
@@ -772,20 +813,16 @@
                 </div>
             </div>
 
-            <!-- TAB 2: File Upload (CSV / ZIP) -->
+            <!-- TAB 2: Direct File Upload (CSV / ZIP) -->
             <div id="importMode-upload" class="hidden space-y-4">
                 <div>
-                    <div class="flex justify-between items-center mb-1.5">
-                        <label class="block text-[13px] font-medium text-ytText">CSV or ZIP File <span class="text-ytRed">*</span></label>
-                        <a href="/templates/shots_import_template.csv" download class="text-[11px] text-ytBlue hover:underline flex items-center gap-0.5 font-medium">
-                            <span class="material-symbols-outlined text-[13px]">download</span> Sample CSV
-                        </a>
-                    </div>
-                    <input type="file" id="import_csv_file" name="csv_file" accept=".csv,.txt,.zip" class="w-full bg-ytBg border border-ytBorder text-ytText rounded-lg px-3.5 py-2 text-[13px] focus:outline-none focus:border-ytBlue file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-[12px] file:font-medium file:bg-ytHover file:text-ytText hover:file:bg-[#3f3f3f]">
+                    <label class="block text-[13px] font-medium text-ytText mb-1.5">CSV Shotlist File <span class="text-ytRed">*</span></label>
+                    <input type="file" name="csv_file" id="csv_file_input" accept=".csv,text/csv" class="w-full bg-ytBg border border-ytBorder text-ytText rounded-lg px-3.5 py-2 text-[13px] focus:outline-none focus:border-ytBlue file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-[12px] file:font-medium file:bg-ytHover file:text-ytText hover:file:bg-[#3f3f3f]">
+                    <p class="text-[11px] text-ytMuted mt-1">Exported from AE Essentials / ShotGrid / Custom CSV.</p>
                 </div>
 
                 <div>
-                    <label class="block text-[13px] font-medium text-ytText mb-1.5">Thumbnails (Optional Multiple Images)</label>
+                    <label class="block text-[13px] font-medium text-ytText mb-1.5">Thumbnail Images (Optional Multiple .webp / .jpg / .png)</label>
                     <input type="file" name="thumbnails[]" multiple accept="image/*" class="w-full bg-ytBg border border-ytBorder text-ytText rounded-lg px-3.5 py-2 text-[13px] focus:outline-none focus:border-ytBlue file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-[12px] file:font-medium file:bg-ytHover file:text-ytText hover:file:bg-[#3f3f3f]">
                     <p class="text-[11px] text-ytMuted mt-1">Multi-select images matching shot names or filenames in CSV.</p>
                 </div>
@@ -858,6 +895,7 @@
         </form>
     </div>
 </div>
+<?php endif; ?>
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {

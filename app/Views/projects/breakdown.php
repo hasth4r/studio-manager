@@ -59,12 +59,14 @@
                 <span class="material-symbols-outlined text-[16px] text-ytBlue" id="toggleMetaIcon">visibility_off</span>
                 <span id="toggleMetaText">Hide Metadata</span>
             </button>
+            <?php if (can_manage_project($project->id)): ?>
             <form action="/admin/tasks/bulkRecalculate/<?= $project->id ?>" method="POST" class="m-0">
                 <?= csrf_field() ?>
                 <button type="submit" title="Recalculate benchmark hours for all shot tasks" class="bg-ytCard border border-ytBorder hover:border-ytBlue text-ytText px-3.5 py-1.5 rounded-lg font-medium text-[12px] hover:bg-ytHover transition-colors flex items-center gap-1.5">
                     <span class="material-symbols-outlined text-[16px] text-ytBlue">calculate</span> Recalc Hours
                 </button>
             </form>
+            <?php endif; ?>
             <a href="/admin/projects/<?= $project->id ?>" class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] text-white shadow-[0_0_15px_rgba(23,123,207,0.3)] border border-[#177bcf]/40 px-4 py-1.5 rounded-lg font-medium text-[12px] hover:shadow-[0_0_25px_rgba(23,123,207,0.6)] hover:from-[#0d346e] hover:to-[#238bf2] transition-all flex items-center gap-1">
                 <span class="material-symbols-outlined text-[16px]">grid_view</span> Card View
             </a>

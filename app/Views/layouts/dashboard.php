@@ -97,7 +97,7 @@
     <nav class="md:hidden fixed bottom-0 w-full z-40 bg-[#000107]/95 backdrop-blur-xl border-t border-ytBorder flex justify-around items-center h-16 pb-safe">
         <?php 
             $dashLink = '/user/dashboard';
-            if (has_any_role(['site_manager', 'admin', 'project_manager'])) $dashLink = '/admin/dashboard';
+            if (has_any_role(['site_manager', 'admin'])) $dashLink = '/admin/dashboard';
             elseif (has_role('client')) $dashLink = '/client/dashboard';
             $isActiveDash = (strpos(uri_string(), ltrim($dashLink, '/')) === 0 || uri_string() === '' || uri_string() === 'admin');
         ?>
@@ -106,7 +106,7 @@
             <span class="text-[10px] tracking-tight">Dashboard</span>
         </a>
         
-        <?php if(!has_role('client') || has_any_role(['site_manager', 'admin', 'project_manager'])): ?>
+        <?php if(has_any_role(['site_manager', 'admin', 'project_manager']) || (!has_role('client') && is_any_supervisor())): ?>
         <?php $isActiveProj = (strpos(uri_string(), 'admin/projects') === 0 || strpos(uri_string(), 'admin/shots') === 0); ?>
         <a href="/admin/projects" class="flex flex-col items-center justify-center w-full h-full space-y-1 <?= $isActiveProj ? 'text-ytBlue font-bold' : 'text-ytMuted hover:text-ytText' ?>">
             <span class="material-symbols-outlined text-[22px]">video_library</span>
@@ -152,7 +152,7 @@
     </div>
     <!-- Left Sidebar: FIXED position, completely independent from content -->
     <aside id="sidebar" class="hidden md:flex flex-col fixed top-0 left-0 h-screen z-50" style="width: 256px; background-color: #000107;">
-            <!-- Sidebar Header / Logo & Notifications -->
+            <!-- Sidebar Header / Logo -->
             <div class="h-14 flex items-center justify-between px-3.5 flex-shrink-0 pt-2 mb-2">
                 <div class="flex items-center min-w-0">
                     <button id="menuToggle" class="p-2 hover:bg-ytHover rounded-full transition-colors flex items-center justify-center flex-shrink-0">
@@ -161,28 +161,6 @@
                     <div class="flex items-center space-x-2 ml-2 cursor-pointer nav-text overflow-hidden">
                         <img src="/assets/images/enso8_logo_Slim.png" alt="Enso8 Logo" class="h-7 w-7 object-contain flex-shrink-0">
                         <span class="text-lg font-bold tracking-tighter text-ytText">EnsoFlow</span>
-                    </div>
-                </div>
-
-                <!-- Desktop Sidebar Notification Bell -->
-                <div class="relative flex-shrink-0 nav-text">
-                    <button id="sidebar-notification-btn" class="p-2 hover:bg-ytHover rounded-full transition-all relative flex items-center justify-center text-ytMuted hover:text-white outline-none" title="Notifications">
-                        <span class="material-symbols-outlined text-[20px]">notifications</span>
-                        <span id="sidebar-notification-badge" class="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full min-w-[16px] text-center hidden shadow-[0_0_8px_rgba(239,68,68,0.5)]">0</span>
-                    </button>
-
-                    <!-- Dropdown Panel -->
-                    <div id="sidebar-notification-panel" class="absolute left-0 top-full mt-2 w-80 bg-ytCard border border-ytBorder rounded-2xl shadow-2xl hidden flex-col overflow-hidden transform origin-top-left transition-all opacity-0 scale-95 z-[100]" style="backdrop-filter: blur(16px); background-color: rgba(17, 24, 39, 0.95);">
-                        <div class="px-4 py-3 border-b border-ytBorder/50 flex justify-between items-center bg-[#0a0d17]/50">
-                            <h3 class="text-[14px] font-bold text-ytText">Notifications</h3>
-                            <span class="text-[11px] text-ytMuted uppercase tracking-wider">Unread</span>
-                        </div>
-                        <div id="sidebar-notification-list" class="max-h-96 overflow-y-auto">
-                            <div class="p-6 text-center text-ytMuted text-[13px]">
-                                <span class="material-symbols-outlined text-[32px] mb-2 opacity-50">notifications_paused</span>
-                                <p>All caught up!</p>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -200,12 +178,22 @@
                             elseif (has_role('client')) $dashLink = '/client/dashboard';
                             $isActive = (strpos($currentUri, ltrim($dashLink, '/')) === 0 || $currentUri === '' || $currentUri === 'admin');
                         ?>
-                        <a href="<?= $dashLink ?>" class="<?= $isActive ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors" title="Dashboard">
-                            <span class="material-symbols-outlined <?= $isActive ? 'text-ytBlue' : 'text-ytMuted' ?>">dashboard</span>
+                        <?php if(has_any_role(['site_manager', 'admin'])): ?>
+                        <a href="/admin/dashboard" class="<?= (strpos($currentUri, 'admin/dashboard') === 0 || $currentUri === '' || $currentUri === 'admin') ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors" title="Executive Dashboard">
+                            <span class="material-symbols-outlined <?= (strpos($currentUri, 'admin/dashboard') === 0 || $currentUri === '' || $currentUri === 'admin') ? 'text-ytBlue' : 'text-ytMuted' ?>">dashboard</span>
                             <span class="nav-text">Dashboard</span>
                         </a>
+                        <?php endif; ?>
 
-                        <?php if(has_any_role(['artist', 'freelancer']) && !has_any_role(['admin', 'site_manager'])): ?>
+                        <?php if(has_role('project_manager') || is_any_supervisor()): ?>
+                        <?php $isActive = (strpos($currentUri, 'pm/dashboard') === 0); ?>
+                        <a href="/pm/dashboard" class="<?= $isActive ? 'active-nav-item bg-ytHover text-amber-400' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors" title="Project Manager Hub">
+                            <span class="material-symbols-outlined <?= $isActive ? 'text-amber-400' : 'text-amber-400/80' ?>">shield_person</span>
+                            <span class="nav-text">PM Hub</span>
+                        </a>
+                        <?php endif; ?>
+
+                        <?php if(!has_role('client') && !has_any_role(['admin', 'site_manager'])): ?>
                         <?php $isActive = (strpos($currentUri, 'user/dashboard') === 0); ?>
                         <a href="/user/dashboard" class="<?= $isActive ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors" title="My Tasks Workbench">
                             <span class="material-symbols-outlined <?= $isActive ? 'text-ytBlue' : 'text-ytMuted' ?>">task_alt</span>
@@ -213,7 +201,7 @@
                         </a>
                         <?php endif; ?>
                         
-                        <?php if(has_any_role(['site_manager', 'admin', 'project_manager', 'collaborator'])): ?>
+                        <?php if(has_any_role(['site_manager', 'admin', 'project_manager', 'collaborator']) || is_any_supervisor()): ?>
                         <?php $isActive = (strpos($currentUri, 'admin/projects') === 0 || strpos($currentUri, 'admin/shots') === 0); ?>
                         <a href="/admin/projects" class="<?= $isActive ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors" title="Projects">
                             <span class="material-symbols-outlined <?= $isActive ? 'text-ytBlue' : 'text-ytMuted' ?>">video_library</span>
@@ -340,10 +328,30 @@
                 </a>
                 <?php endif; ?>
             </div>
-    </aside>
-
     <!-- Main Content Area: margin-left matches sidebar width, scrolls independently -->
-    <main id="main-content" class="overflow-y-auto bg-ytBg pt-14 pb-16 md:pt-0 md:pb-0 md:ml-[256px] <?= isset($fullScreen) && $fullScreen ? '' : 'px-4 md:px-8' ?>" style="height: 100vh;">
+    <main id="main-content" class="overflow-y-auto bg-ytBg pt-14 pb-16 md:pt-4 md:pb-6 md:ml-[256px] <?= isset($fullScreen) && $fullScreen ? '' : 'px-4 md:px-8' ?>" style="height: 100vh;">
+        <!-- Desktop Top Header Bar for Global Notifications & Quick Info -->
+        <div class="hidden md:flex items-center justify-end h-10 mb-2 gap-3">
+            <div class="relative">
+                <button id="sidebar-notification-btn" class="p-2 hover:bg-ytHover rounded-full transition-all relative flex items-center justify-center text-ytMuted hover:text-white outline-none border border-transparent hover:border-ytBorder" title="Notifications">
+                    <span class="material-symbols-outlined text-[20px]">notifications</span>
+                    <span id="sidebar-notification-badge" class="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full min-w-[16px] text-center hidden shadow-[0_0_8px_rgba(239,68,68,0.5)]">0</span>
+                </button>
+                <!-- Desktop Dropdown Panel -->
+                <div id="sidebar-notification-panel" class="absolute right-0 top-full mt-2 w-80 bg-ytCard border border-ytBorder rounded-2xl shadow-2xl hidden flex-col overflow-hidden transform origin-top-right transition-all opacity-0 scale-95 z-[100]" style="backdrop-filter: blur(16px); background-color: rgba(17, 24, 39, 0.98);">
+                    <div class="px-4 py-3 border-b border-ytBorder/50 flex justify-between items-center bg-[#0a0d17]/80">
+                        <h3 class="text-[14px] font-bold text-ytText">Notifications</h3>
+                        <span class="text-[11px] text-ytMuted uppercase tracking-wider">Unread</span>
+                    </div>
+                    <div id="sidebar-notification-list" class="max-h-96 overflow-y-auto">
+                        <div class="p-6 text-center text-ytMuted text-[13px]">
+                            <span class="material-symbols-outlined text-[32px] mb-2 opacity-50">notifications_paused</span>
+                            <p>All caught up!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
         <!-- Page Content injected here -->
         <?= $this->renderSection('content') ?>
     </main>

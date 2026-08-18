@@ -78,10 +78,12 @@ class Auth extends BaseController
                 'isLoggedIn' => true,
             ]);
 
-            if (in_array('site_manager', $roles) || in_array('admin', $roles) || in_array('project_manager', $roles)) {
+            if (in_array('site_manager', $roles) || in_array('admin', $roles)) {
                 return redirect()->to('/admin/dashboard');
             } elseif (in_array('client', $roles)) {
                 return redirect()->to('/client/dashboard');
+            } elseif (in_array('project_manager', $roles)) {
+                return redirect()->to('/pm/dashboard');
             } else {
                 return redirect()->to('/user/dashboard');
             }

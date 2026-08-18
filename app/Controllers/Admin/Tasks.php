@@ -216,7 +216,7 @@ class Tasks extends BaseController
 
     public function reviewStatus($id)
     {
-        if (!session()->get('isLoggedIn') || !in_array(session()->get('userRole'), ['admin', 'project_manager'])) {
+        if (!session()->get('isLoggedIn') || !has_any_role(['site_manager', 'admin', 'project_manager'])) {
             return redirect()->to('/login');
         }
 
@@ -251,7 +251,7 @@ class Tasks extends BaseController
 
     public function recalculate($id)
     {
-        if (!session()->get('isLoggedIn') || !in_array(session()->get('userRole'), ['admin', 'project_manager'])) {
+        if (!session()->get('isLoggedIn') || !has_any_role(['site_manager', 'admin', 'project_manager'])) {
             return redirect()->to('/login');
         }
 
@@ -272,7 +272,7 @@ class Tasks extends BaseController
 
     public function bulkRecalculate($projectId)
     {
-        if (!session()->get('isLoggedIn') || !in_array(session()->get('userRole'), ['admin', 'project_manager'])) {
+        if (!session()->get('isLoggedIn') || !has_any_role(['site_manager', 'admin', 'project_manager'])) {
             return redirect()->to('/login');
         }
 

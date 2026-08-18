@@ -18,8 +18,10 @@ $routes->get('logout', 'Auth::logout');
 $routes->get('notifications/getUnread', 'Notifications::getUnread', ['filter' => 'auth']);
 $routes->get('notifications/read/(:num)', 'Notifications::markRead/$1', ['filter' => 'auth']);
 
-// Admin Portal Routes
-$routes->group('admin', ['filter' => 'auth', 'namespace' => 'App\Controllers\Admin'], function($routes) {
+// ==========================================
+// 1. Super Admin & Owner Restricted Area (Site Manager & Admin Only)
+// ==========================================
+$routes->group('admin', ['filter' => 'role:site_manager,admin', 'namespace' => 'App\Controllers\Admin'], function($routes) {
     $routes->get('dashboard', 'Dashboard::index');
     
     // Clients Management
@@ -36,7 +38,15 @@ $routes->group('admin', ['filter' => 'auth', 'namespace' => 'App\Controllers\Adm
     $routes->get('notifications/generate', 'NotificationsAdmin::index');
     $routes->post('notifications/generate/process', 'NotificationsAdmin::process');
 
-    // Database Manager
+    // Studio Budgeting & Economics (Top Secret)
+    $routes->get('budgeting', 'Budgeting::index');
+    $routes->post('budgeting/update', 'Budgeting::update');
+
+    // Project Types Management
+    $routes->get('project-types', 'ProjectTypes::index');
+    $routes->post('project-types/store', 'ProjectTypes::store');
+
+    // Database Manager (Site Manager & Admin Only)
     $routes->get('database', 'DatabaseManager::index');
     $routes->match(['get', 'post'], 'database/migrate', 'DatabaseManager::runMigrations');
     $routes->post('database/backup', 'DatabaseManager::createBackup');
@@ -44,15 +54,26 @@ $routes->group('admin', ['filter' => 'auth', 'namespace' => 'App\Controllers\Adm
     $routes->get('database/download', 'DatabaseManager::downloadBackup');
     $routes->post('database/delete', 'DatabaseManager::deleteBackup');
 
-    // Users Management
+    // Cloudflare R2 Migration
+    $routes->get('migrate-r2', 'MigrateR2::index');
+    $routes->get('install-composer', 'InstallComposer::index');
+});
+
+// ==========================================
+// 2. HR & Personnel Management Area (Site Manager, Admin, HR Only)
+// ==========================================
+$routes->group('admin', ['filter' => 'role:site_manager,admin,hr', 'namespace' => 'App\Controllers\Admin'], function($routes) {
+    // Users & Salaries Management
     $routes->get('users', 'Users::index');
     $routes->post('users/store', 'Users::store');
     $routes->post('users/update/(:num)', 'Users::update/$1');
+});
 
-    // Studio Budgeting & Economics
-    $routes->get('budgeting', 'Budgeting::index');
-    $routes->post('budgeting/update', 'Budgeting::update');
-
+// ==========================================
+// 3. Project Production & Operations Area (Site Manager, Admin, PM, Collaborator, Artist)
+// Scoped by Controller & can_manage_project guards
+// ==========================================
+$routes->group('admin', ['filter' => 'auth', 'namespace' => 'App\Controllers\Admin'], function($routes) {
     // Projects Management
     $routes->get('projects', 'Projects::index');
     $routes->get('projects/create', 'Projects::create');
@@ -82,7 +103,7 @@ $routes->group('admin', ['filter' => 'auth', 'namespace' => 'App\Controllers\Adm
     $routes->get('projects/(:num)/analysis', 'Projects::analysis/$1');
     $routes->get('projects/(:num)/briefing', '\App\Controllers\Client\Briefing::index/$1');
 
-    // VFX Entities
+    // VFX Entities & Tasks
     $routes->get('shots/(:num)', 'Shots::show/$1');
     $routes->post('shots/updateSettings/(:num)', 'Shots::updateSettings/$1');
     $routes->get('assets/(:num)', 'Assets::show/$1');
@@ -92,7 +113,7 @@ $routes->group('admin', ['filter' => 'auth', 'namespace' => 'App\Controllers\Adm
     $routes->post('tasks/updateSettings', 'Tasks::updateSettings');
     $routes->post('tasks/recalculate/(:num)', 'Tasks::recalculate/$1');
     $routes->post('tasks/bulkRecalculate/(:num)', 'Tasks::bulkRecalculate/$1');
-    $routes->post('tasks/reviewStatus/(:num)', 'Tasks::reviewStatus/$1'); // PM review tasks
+    $routes->post('tasks/reviewStatus/(:num)', 'Tasks::reviewStatus/$1');
     
     // Scheduling Dashboard
     $routes->get('scheduling',                     'Scheduling::index');
@@ -125,20 +146,10 @@ $routes->group('admin', ['filter' => 'auth', 'namespace' => 'App\Controllers\Adm
     $routes->get('reviews/getShareLinks/(:num)', 'Reviews::getShareLinks/$1');
     $routes->post('reviews/revokeShareLink', 'Reviews::revokeShareLink');
     
-    // Media Manager
+    // Media Explorer
     $routes->get('media', 'MediaManager::index');
     $routes->get('media/tree', 'MediaManager::getTreeData');
     $routes->post('media/replaceMedia/(:num)', 'MediaManager::replaceMedia/$1');
-
-    // Project Types Management
-    $routes->get('project-types', 'ProjectTypes::index');
-    $routes->post('project-types/store', 'ProjectTypes::store');
-
-    // Cloudflare R2 Migration
-    $routes->get('migrate-r2', 'MigrateR2::index');
-    
-    // Web Installer
-    $routes->get('install-composer', 'InstallComposer::index');
 });
 
 // Secure Media Serving Route
@@ -157,7 +168,12 @@ $routes->get('sys-migrate', function() {
     }
 });
 
-// User Portal Routes (Artists)
+// PM Portal Routes (Project Managers & Supervisors)
+$routes->group('pm', ['filter' => 'role:site_manager,admin,project_manager', 'namespace' => 'App\Controllers\PM'], function($routes) {
+    $routes->get('dashboard', 'Dashboard::index');
+});
+
+// User Portal Routes (Artists & Workbench)
 $routes->group('user', ['filter' => 'auth', 'namespace' => 'App\Controllers\User'], function($routes) {
     $routes->get('dashboard', 'Dashboard::index');
     $routes->post('tasks/updateStatus/(:num)', 'Tasks::updateStatus/$1');

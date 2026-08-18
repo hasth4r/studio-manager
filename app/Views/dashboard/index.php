@@ -2,7 +2,7 @@
 
 <?= $this->section('content') ?>
 
-<?php if (in_array($userRole, ['admin', 'project_manager'])): ?>
+<?php if (has_any_role(['site_manager', 'admin', 'project_manager']) || is_any_supervisor()): ?>
     
     <!-- ==================== MOBILE VIEW (EnsoFlow Responsive Layout) ==================== -->
     <div class="md:hidden space-y-4 pb-6">
@@ -248,7 +248,8 @@
                 </div>
             </div>
 
-            <!-- Widget 3: Studio Economics -->
+            <!-- Widget 3: Studio Economics (Admin & Site Manager only) -->
+            <?php if (has_any_role(['site_manager', 'admin'])): ?>
             <div class="bg-ytCard border border-ytBorder rounded-xl p-6 flex flex-col justify-between">
                 <div>
                     <div class="flex items-center justify-between mb-4">
@@ -296,6 +297,7 @@
                     </a>
                 </div>
             </div>
+            <?php endif; ?>
             
         </div>
     </div>

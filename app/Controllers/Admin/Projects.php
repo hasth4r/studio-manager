@@ -38,18 +38,25 @@ class Projects extends BaseController
         $builder->join('collaborators', 'collaborators.id = projects.collaborator_id', 'left');
         $builder->orderBy('projects.created_at', 'DESC');
 
-        // Dynamic Scope Filtering: If not Site Manager or Admin, only show projects they supervise or have tasks in
+        // Dynamic Scope Filtering: 
+        // 1. Site Manager / Admin: sees ALL studio projects.
+        // 2. Project Manager / Supervisor: sees ONLY projects where they are designated project supervisor or sequence supervisor.
+        // 3. Artist / Freelancer / Collaborator: sees ONLY projects where they are actively assigned tasks or collaborating.
         $userId = (int)session()->get('userId');
         if (!has_any_role(['site_manager', 'admin'])) {
             $supervisedProj = $db->table('projects')->select('id')->where('supervisor_id', $userId)->get()->getResultArray();
             $supervisedSeq = $db->table('sequences')->select('project_id')->where('supervisor_id', $userId)->get()->getResultArray();
-            $assignedTasks = $db->table('tasks')->select('project_id')->where('assigned_to', $userId)->get()->getResultArray();
             
             $allowedIds = array_values(array_unique(array_filter(array_merge(
                 array_column($supervisedProj, 'id'),
-                array_column($supervisedSeq, 'project_id'),
-                array_column($assignedTasks, 'project_id')
+                array_column($supervisedSeq, 'project_id')
             ))));
+
+            // If user is not supervising any project/seq, check if they have assigned tasks
+            if (empty($allowedIds)) {
+                $assignedTasks = $db->table('tasks')->select('project_id')->where('assigned_to', $userId)->get()->getResultArray();
+                $allowedIds = array_values(array_unique(array_filter(array_column($assignedTasks, 'project_id'))));
+            }
 
             if (!empty($allowedIds)) {
                 $builder->whereIn('projects.id', $allowedIds);
@@ -101,8 +108,7 @@ class Projects extends BaseController
 
     public function create()
     {
-        $role = session()->get('userRole');
-        if (!in_array($role, ['admin', 'project_manager'])) {
+        if (!has_any_role(['site_manager', 'admin', 'project_manager'])) {
             return redirect()->to('/admin/projects')->with('error', 'Unauthorized access.');
         }
 
@@ -118,8 +124,7 @@ class Projects extends BaseController
 
     public function store()
     {
-        $role = session()->get('userRole');
-        if (!in_array($role, ['admin', 'project_manager'])) {
+        if (!has_any_role(['site_manager', 'admin', 'project_manager'])) {
             return redirect()->to('/admin/projects')->with('error', 'Unauthorized access.');
         }
 
@@ -161,7 +166,7 @@ class Projects extends BaseController
 
     public function syncFolders($id)
     {
-        if (session()->get('userRole') !== 'admin' && session()->get('userRole') !== 'project_manager') {
+        if (!has_any_role(['site_manager', 'admin', 'project_manager'])) {
             return redirect()->to('/admin/projects')->with('error', 'Unauthorized.');
         }
 
@@ -191,6 +196,19 @@ class Projects extends BaseController
 
         if (!$project) {
             return redirect()->to('/admin/projects')->with('error', 'Project not found.');
+        }
+
+        // Project-Level Access Scope Guard
+        // Non-admins can only view projects they supervise or have tasks in
+        $currentUserId = (int)session()->get('userId');
+        if (!has_any_role(['site_manager', 'admin'])) {
+            $isSupervisor = (int)$project->supervisor_id === $currentUserId;
+            $isSeqSupervisor = $db->table('sequences')->where('project_id', $id)->where('supervisor_id', $currentUserId)->countAllResults() > 0;
+            $hasTask = $db->table('tasks')->where('project_id', $id)->where('assigned_to', $currentUserId)->countAllResults() > 0;
+
+            if (!$isSupervisor && !$isSeqSupervisor && !$hasTask) {
+                return redirect()->to('/admin/projects')->with('error', 'You do not have access to this project.');
+            }
         }
 
         // Models

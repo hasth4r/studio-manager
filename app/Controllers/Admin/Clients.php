@@ -17,9 +17,9 @@ class Clients extends BaseController
 
     public function index()
     {
-        // Only Admin should manage clients
-        if (session()->get('userRole') !== 'admin') {
-            return redirect()->to('/dashboard')->with('error', 'Unauthorized access.');
+        // Only Admin/Site Manager should manage clients
+        if (!has_any_role(['site_manager', 'admin'])) {
+            return redirect()->to('/admin/dashboard')->with('error', 'Unauthorized access.');
         }
 
         $data = [
@@ -32,8 +32,8 @@ class Clients extends BaseController
 
     public function create()
     {
-        if (session()->get('userRole') !== 'admin') {
-            return redirect()->to('/dashboard')->with('error', 'Unauthorized access.');
+        if (!has_any_role(['site_manager', 'admin'])) {
+            return redirect()->to('/admin/dashboard')->with('error', 'Unauthorized access.');
         }
 
         $data = [
@@ -45,8 +45,8 @@ class Clients extends BaseController
 
     public function store()
     {
-        if (session()->get('userRole') !== 'admin') {
-            return redirect()->to('/dashboard')->with('error', 'Unauthorized access.');
+        if (!has_any_role(['site_manager', 'admin'])) {
+            return redirect()->to('/admin/dashboard')->with('error', 'Unauthorized access.');
         }
 
         $rules = [
@@ -73,8 +73,8 @@ class Clients extends BaseController
     }
     public function createUser()
     {
-        if (session()->get('userRole') !== 'admin') {
-            return redirect()->to('/dashboard')->with('error', 'Unauthorized access.');
+        if (!has_any_role(['site_manager', 'admin'])) {
+            return redirect()->to('/admin/dashboard')->with('error', 'Unauthorized access.');
         }
 
         $rules = [

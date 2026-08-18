@@ -26,8 +26,8 @@ class Budgeting extends BaseController
 
     public function index()
     {
-        if (session()->get('userRole') !== 'admin') {
-            return redirect()->to('/dashboard')->with('error', 'Unauthorized access.');
+        if (!has_any_role(['site_manager', 'admin'])) {
+            return redirect()->to('/admin/dashboard')->with('error', 'Unauthorized access.');
         }
 
         // 1. Load Monthly Expense & Studio Settings
@@ -141,8 +141,8 @@ class Budgeting extends BaseController
 
     public function update()
     {
-        if (session()->get('userRole') !== 'admin') {
-            return redirect()->to('/dashboard')->with('error', 'Unauthorized access.');
+        if (!has_any_role(['site_manager', 'admin'])) {
+            return redirect()->to('/admin/dashboard')->with('error', 'Unauthorized access.');
         }
 
         $fields = [

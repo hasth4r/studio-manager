@@ -103,7 +103,23 @@ class Scheduling extends BaseController
         if (!$this->requireLogin()) return redirect()->to('/login');
 
         $db = $this->db();
-        $projects  = $db->table('projects')->get()->getResultArray();
+        $userId = (int)session()->get('userId');
+        
+        $projectsQ = $db->table('projects');
+        if (!has_any_role(['site_manager', 'admin'])) {
+            $supervisedProj = $db->table('projects')->select('id')->where('supervisor_id', $userId)->get()->getResultArray();
+            $supervisedSeq = $db->table('sequences')->select('project_id')->where('supervisor_id', $userId)->get()->getResultArray();
+            $allowedIds = array_values(array_unique(array_filter(array_merge(
+                array_column($supervisedProj, 'id'),
+                array_column($supervisedSeq, 'project_id')
+            ))));
+            if (!empty($allowedIds)) {
+                $projectsQ->whereIn('id', $allowedIds);
+            } else {
+                $projectsQ->where('id', -1);
+            }
+        }
+        $projects  = $projectsQ->get()->getResultArray();
         $projectId = $this->request->getGet('project_id') ?? ($projects[0]['id'] ?? null);
 
         $tasks    = [];

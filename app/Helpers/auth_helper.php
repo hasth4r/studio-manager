@@ -20,7 +20,7 @@ if (!function_exists('is_any_supervisor')) {
 
 if (!function_exists('get_user_roles')) {
     /**
-     * Get all assigned roles for the currently logged-in user as an array.
+     * Get all explicitly assigned global roles for the currently logged-in user as an array.
      */
     function get_user_roles(): array
     {
@@ -44,20 +44,13 @@ if (!function_exists('get_user_roles')) {
             $roles = ['artist'];
         }
 
-        // Dynamically grant project_manager role if user is assigned as a supervisor anywhere
-        if (is_any_supervisor((int)$session->get('userId'))) {
-            if (!in_array('project_manager', $roles)) {
-                $roles[] = 'project_manager';
-            }
-        }
-
         return array_values(array_unique($roles));
     }
 }
 
 if (!function_exists('has_role')) {
     /**
-     * Check if the logged-in user possesses a specific role.
+     * Check if the logged-in user possesses a specific global role.
      * Site Managers possess all role permissions by default.
      */
     function has_role(string $role): bool
@@ -72,7 +65,7 @@ if (!function_exists('has_role')) {
 
 if (!function_exists('has_any_role')) {
     /**
-     * Check if the logged-in user possesses ANY of the specified roles.
+     * Check if the logged-in user possesses ANY of the specified global roles.
      */
     function has_any_role(array $roles): bool
     {
@@ -131,10 +124,31 @@ if (!function_exists('is_sequence_supervisor')) {
 
 if (!function_exists('can_manage_project')) {
     /**
-     * Determine if the user has management/breakdown/assign permissions on a project.
+     * Determine if the user has management/breakdown/assign permissions on a SPECIFIC project.
+     * 1. Global Admin or Site Manager -> YES
+     * 2. Global Project Manager -> YES
+     * 3. Project Supervisor for THIS project -> YES
+     * 4. Sequence Supervisor for ANY sequence in THIS project -> YES
      */
     function can_manage_project(int $projectId, ?int $userId = null): bool
     {
-        return has_any_role(['site_manager', 'admin', 'project_manager']) || is_project_supervisor($projectId, $userId);
+        $userId = $userId ?? session()->get('userId');
+        if (!$userId) return false;
+
+        if (has_any_role(['site_manager', 'admin', 'project_manager'])) {
+            return true;
+        }
+
+        if (is_project_supervisor($projectId, $userId)) {
+            return true;
+        }
+
+        $db = \Config\Database::connect();
+        $seqCount = $db->table('sequences')
+            ->where('project_id', $projectId)
+            ->where('supervisor_id', $userId)
+            ->countAllResults();
+
+        return $seqCount > 0;
     }
 }

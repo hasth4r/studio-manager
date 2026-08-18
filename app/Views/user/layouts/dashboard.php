@@ -106,11 +106,6 @@
                             <span class="nav-text">Review Inbox</span>
                         </a>
 
-                        <?php $isActive = (strpos($currentUri, 'admin/dashboard') === 0); ?>
-                        <a href="/admin/dashboard" class="<?= $isActive ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors" title="Studio Overview">
-                            <span class="material-symbols-outlined <?= $isActive ? 'text-ytBlue' : 'text-ytMuted' ?>">dashboard</span>
-                            <span class="nav-text">Studio Overview</span>
-                        </a>
                         <?php endif; ?>
                     </div>
                 </div>

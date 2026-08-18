@@ -21,7 +21,7 @@
                 <p class="text-[11px] md:text-[13px] text-ytMuted mt-0.5">Manage production pipeline</p>
             </div>
         </div>
-        <?php if(in_array(session()->get('userRole'), ['admin', 'project_manager'])): ?>
+        <?php if(has_any_role(['site_manager', 'admin', 'project_manager'])): ?>
             <a href="/admin/projects/create" class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] text-white shadow-[0_0_15px_rgba(23,123,207,0.3)] border border-[#177bcf]/40 px-3 md:px-4 py-1.5 md:py-2 rounded-full font-bold text-[12px] md:text-[13px] hover:shadow-[0_0_25px_rgba(23,123,207,0.6)] hover:from-[#0d346e] hover:to-[#238bf2] transition-all flex items-center shrink-0">
                 <span class="material-symbols-outlined mr-1 text-[16px] md:text-[18px]">add</span> New Project
             </a>
@@ -58,6 +58,7 @@
                     </div>
 
                     <!-- Budget & Hours compact pill -->
+                    <?php if(can_manage_project($project->id)): ?>
                     <div class="bg-[#050811] border border-slate-800 rounded-xl p-2.5 flex items-center justify-between text-xs mb-3 font-mono">
                         <div class="flex items-center gap-1.5">
                             <span class="text-blue-400 font-bold"><?= $project->total_hours ?>h</span>
@@ -70,6 +71,7 @@
                             </span>
                         <?php endif; ?>
                     </div>
+                    <?php endif; ?>
                 </div>
 
                 <!-- Action Buttons -->
@@ -114,62 +116,82 @@
                             <td class="px-6 py-4 text-ytMuted" onclick="window.location.href='/admin/projects/<?= $project->id ?>'"><?= esc($project->client_name ?: 'Unknown Client') ?></td>
                             <td class="px-6 py-4 text-ytMuted capitalize" onclick="window.location.href='/admin/projects/<?= $project->id ?>'"><?= esc($project->project_type_name ?: 'Unknown') ?></td>
                             <td class="px-6 py-4 font-mono text-[12px]">
-                                <div class="flex flex-col gap-0.5">
-                                    <div class="flex items-center gap-1.5">
-                                        <span class="text-ytBlue font-bold"><?= $project->total_hours ?>h</span>
-                                        <span class="text-ytMuted">&bull;</span>
-                                        <span class="text-ytText font-semibold"><?= esc($studioCurrency) ?><?= number_format($project->ideal_budget, 0) ?></span>
-                                    </div>
-                                    <?php if(!empty($project->agreed_budget) && (float)$project->agreed_budget > 0): ?>
-                                        <div class="flex items-center gap-1 text-[10px]">
-                                            <span class="text-green-400 font-bold">Locked: <?= esc($studioCurrency) ?><?= number_format($project->agreed_budget, 0) ?></span>
-                                            <span class="bg-green-950/80 border border-green-700/50 text-green-300 px-1 rounded font-bold">(<?= $project->scale_percent ?>%)</span>
+                                <?php if(can_manage_project($project->id)): ?>
+                                    <div class="flex flex-col gap-0.5">
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="text-ytBlue font-bold"><?= $project->total_hours ?>h</span>
+                                            <span class="text-ytMuted">&bull;</span>
+                                            <span class="text-ytText font-semibold"><?= esc($studioCurrency) ?><?= number_format($project->ideal_budget, 0) ?></span>
                                         </div>
-                                    <?php endif; ?>
-                                </div>
+                                        <?php if(!empty($project->agreed_budget) && (float)$project->agreed_budget > 0): ?>
+                                            <div class="flex items-center gap-1 text-[10px]">
+                                                <span class="text-green-400 font-bold">Locked: <?= esc($studioCurrency) ?><?= number_format($project->agreed_budget, 0) ?></span>
+                                                <span class="bg-green-950/80 border border-green-700/50 text-green-300 px-1 rounded font-bold">(<?= $project->scale_percent ?>%)</span>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php else: ?>
+                                    <span class="text-ytMuted text-[11px]">&mdash;</span>
+                                <?php endif; ?>
                             </td>
                             <td class="px-6 py-4 text-ytMuted">
-                                <form action="/admin/projects/updateSettings/<?= $project->id ?>" method="POST" class="m-0 p-0 inline">
-                                    <?= csrf_field() ?>
-                                    <input type="hidden" name="return_url" value="/admin/projects">
-                                    <select name="fps" onchange="this.form.submit()" class="bg-transparent border border-transparent hover:border-ytBorder hover:bg-[#1a1a1a] focus:bg-ytBg focus:border-ytBlue text-[13px] rounded px-1 py-0.5 outline-none text-ytText w-20 cursor-pointer transition-colors" onclick="event.stopPropagation()">
-                                        <?php
-                                            $commonFps = [23, 24, 25, 30, 48, 50, 60];
-                                            $currentFps = $project->fps ?? 24;
-                                            if (!in_array($currentFps, $commonFps)) {
-                                                $commonFps[] = $currentFps;
-                                                sort($commonFps);
-                                            }
-                                            foreach($commonFps as $f) {
-                                                $selected = ($currentFps == $f) ? 'selected' : '';
-                                                echo "<option value=\"{$f}\" {$selected}>{$f}</option>";
-                                            }
-                                        ?>
-                                    </select>
-                                </form>
+                                <?php if(can_manage_project($project->id)): ?>
+                                    <form action="/admin/projects/updateSettings/<?= $project->id ?>" method="POST" class="m-0 p-0 inline">
+                                        <?= csrf_field() ?>
+                                        <input type="hidden" name="return_url" value="/admin/projects">
+                                        <select name="fps" onchange="this.form.submit()" class="bg-transparent border border-transparent hover:border-ytBorder hover:bg-[#1a1a1a] focus:bg-ytBg focus:border-ytBlue text-[13px] rounded px-1 py-0.5 outline-none text-ytText w-20 cursor-pointer transition-colors" onclick="event.stopPropagation()">
+                                            <?php
+                                                $commonFps = [23, 24, 25, 30, 48, 50, 60];
+                                                $currentFps = $project->fps ?? 24;
+                                                if (!in_array($currentFps, $commonFps)) {
+                                                    $commonFps[] = $currentFps;
+                                                    sort($commonFps);
+                                                }
+                                                foreach($commonFps as $f) {
+                                                    $selected = ($currentFps == $f) ? 'selected' : '';
+                                                    echo "<option value=\"{$f}\" {$selected}>{$f}</option>";
+                                                }
+                                            ?>
+                                        </select>
+                                    </form>
+                                <?php else: ?>
+                                    <span class="text-[13px] font-mono"><?= esc($project->fps ?? 24) ?> FPS</span>
+                                <?php endif; ?>
                             </td>
                             <td class="px-6 py-4">
-                                <form action="/admin/projects/updateSettings/<?= $project->id ?>" method="POST" class="m-0 p-0 inline">
-                                    <?= csrf_field() ?>
-                                    <input type="hidden" name="return_url" value="/admin/projects">
-                                    <select name="status" onchange="this.form.submit()" class="bg-transparent border border-transparent hover:border-ytBorder hover:bg-[#1a1a1a] focus:bg-ytBg focus:border-ytBlue text-[11px] uppercase tracking-wider font-medium rounded px-1 py-0.5 outline-none text-ytText w-28 cursor-pointer transition-colors" onclick="event.stopPropagation()">
-                                        <option value="active" <?= $project->status === 'active' ? 'selected' : '' ?>>Active</option>
-                                        <option value="completed" <?= $project->status === 'completed' ? 'selected' : '' ?>>Completed</option>
-                                        <option value="on_hold" <?= $project->status === 'on_hold' ? 'selected' : '' ?>>On Hold</option>
-                                        <option value="archived" <?= $project->status === 'archived' ? 'selected' : '' ?>>Archived</option>
-                                    </select>
-                                </form>
+                                <?php if(can_manage_project($project->id)): ?>
+                                    <form action="/admin/projects/updateSettings/<?= $project->id ?>" method="POST" class="m-0 p-0 inline">
+                                        <?= csrf_field() ?>
+                                        <input type="hidden" name="return_url" value="/admin/projects">
+                                        <select name="status" onchange="this.form.submit()" class="bg-transparent border border-transparent hover:border-ytBorder hover:bg-[#1a1a1a] focus:bg-ytBg focus:border-ytBlue text-[11px] uppercase tracking-wider font-medium rounded px-1 py-0.5 outline-none text-ytText w-28 cursor-pointer transition-colors" onclick="event.stopPropagation()">
+                                            <option value="active" <?= $project->status === 'active' ? 'selected' : '' ?>>Active</option>
+                                            <option value="completed" <?= $project->status === 'completed' ? 'selected' : '' ?>>Completed</option>
+                                            <option value="on_hold" <?= $project->status === 'on_hold' ? 'selected' : '' ?>>On Hold</option>
+                                            <option value="archived" <?= $project->status === 'archived' ? 'selected' : '' ?>>Archived</option>
+                                        </select>
+                                    </form>
+                                <?php else: ?>
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider <?= $project->status === 'active' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : ($project->status === 'completed' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-700/30 text-slate-400 border border-slate-700') ?>">
+                                        <?= esc($project->status) ?>
+                                    </span>
+                                <?php endif; ?>
                             </td>
                             <td class="px-6 py-4">
-                                <form action="/admin/projects/updateSettings/<?= $project->id ?>" method="POST" class="m-0 p-0 inline">
-                                    <?= csrf_field() ?>
-                                    <input type="hidden" name="return_url" value="/admin/projects">
-                                    <select name="priority" onchange="this.form.submit()" class="bg-transparent border border-transparent hover:border-ytBorder hover:bg-[#1a1a1a] focus:bg-ytBg focus:border-ytBlue text-[12px] font-medium rounded px-1 py-0.5 outline-none text-ytText w-24 cursor-pointer transition-colors" onclick="event.stopPropagation()">
-                                        <option value="high" <?= $project->priority === 'high' ? 'selected' : '' ?> class="text-red-400">High</option>
-                                        <option value="normal" <?= $project->priority === 'normal' ? 'selected' : '' ?> class="text-ytMuted">Normal</option>
-                                        <option value="low" <?= $project->priority === 'low' ? 'selected' : '' ?> class="text-blue-400">Low</option>
-                                    </select>
-                                </form>
+                                <?php if(can_manage_project($project->id)): ?>
+                                    <form action="/admin/projects/updateSettings/<?= $project->id ?>" method="POST" class="m-0 p-0 inline">
+                                        <?= csrf_field() ?>
+                                        <input type="hidden" name="return_url" value="/admin/projects">
+                                        <select name="priority" onchange="this.form.submit()" class="bg-transparent border border-transparent hover:border-ytBorder hover:bg-[#1a1a1a] focus:bg-ytBg focus:border-ytBlue text-[12px] font-medium rounded px-1 py-0.5 outline-none text-ytText w-24 cursor-pointer transition-colors" onclick="event.stopPropagation()">
+                                            <option value="high" <?= $project->priority === 'high' ? 'selected' : '' ?> class="text-red-400">High</option>
+                                            <option value="normal" <?= $project->priority === 'normal' ? 'selected' : '' ?> class="text-ytMuted">Normal</option>
+                                            <option value="low" <?= $project->priority === 'low' ? 'selected' : '' ?> class="text-blue-400">Low</option>
+                                        </select>
+                                    </form>
+                                <?php else: ?>
+                                    <span class="text-[12px] capitalize <?= $project->priority === 'high' ? 'text-red-400' : ($project->priority === 'low' ? 'text-blue-400' : 'text-ytMuted') ?>">
+                                        <?= esc($project->priority) ?>
+                                    </span>
+                                <?php endif; ?>
                             </td>
                             <td class="px-6 py-4 text-right">
                                 <div class="flex items-center justify-end gap-1.5" onclick="event.stopPropagation()">
