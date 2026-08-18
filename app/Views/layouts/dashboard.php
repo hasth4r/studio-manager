@@ -328,6 +328,8 @@
                 </a>
                 <?php endif; ?>
             </div>
+    </aside>
+
     <!-- Main Content Area: margin-left matches sidebar width, scrolls independently -->
     <main id="main-content" class="overflow-y-auto bg-ytBg pt-14 pb-16 md:pt-4 md:pb-6 md:ml-[256px] <?= isset($fullScreen) && $fullScreen ? '' : 'px-4 md:px-8' ?>" style="height: 100vh;">
         <!-- Desktop Top Header Bar for Global Notifications & Quick Info -->
