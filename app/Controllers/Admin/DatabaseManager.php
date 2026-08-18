@@ -18,7 +18,7 @@ class DatabaseManager extends BaseController
 
     public function index()
     {
-        if (session()->get('userRole') !== 'admin') {
+        if (!has_any_role(['site_manager', 'admin', 'it'])) {
             return redirect()->to('/login')->with('error', 'Unauthorized access.');
         }
 
@@ -45,16 +45,39 @@ class DatabaseManager extends BaseController
         });
 
         $data = [
-            'pageTitle' => 'Database Manager',
-            'backups' => $backups
+            'pageTitle' => 'Database Center & Migrations',
+            'backups'   => $backups
         ];
 
         return view('admin/database/index', $data);
     }
 
+    /**
+     * 1-Click Run Database Migrations from Web UI
+     */
+    public function runMigrations()
+    {
+        if (!has_any_role(['site_manager', 'admin', 'it'])) {
+            return redirect()->to('/login')->with('error', 'Unauthorized access.');
+        }
+
+        try {
+            $migrate = \Config\Services::migrations();
+            $result = $migrate->latest();
+            
+            if ($result) {
+                return redirect()->to('/admin/database')->with('message', 'Database migrations executed successfully! All schema updates are active.');
+            } else {
+                return redirect()->to('/admin/database')->with('message', 'Database is already up to date. No pending migrations.');
+            }
+        } catch (\Throwable $e) {
+            return redirect()->to('/admin/database')->with('error', 'Migration error: ' . $e->getMessage());
+        }
+    }
+
     public function createBackup()
     {
-        if (session()->get('userRole') !== 'admin') {
+        if (!has_any_role(['site_manager', 'admin', 'it'])) {
             return redirect()->to('/login')->with('error', 'Unauthorized access.');
         }
 
@@ -86,7 +109,7 @@ class DatabaseManager extends BaseController
 
     public function restoreBackup()
     {
-        if (session()->get('userRole') !== 'admin') {
+        if (!has_any_role(['site_manager', 'admin', 'it'])) {
             return redirect()->to('/login')->with('error', 'Unauthorized access.');
         }
 
@@ -125,7 +148,7 @@ class DatabaseManager extends BaseController
 
     public function deleteBackup()
     {
-        if (session()->get('userRole') !== 'admin') {
+        if (!has_any_role(['site_manager', 'admin', 'it'])) {
             return redirect()->to('/login')->with('error', 'Unauthorized access.');
         }
 
@@ -145,7 +168,7 @@ class DatabaseManager extends BaseController
 
     public function downloadBackup()
     {
-        if (session()->get('userRole') !== 'admin') {
+        if (!has_any_role(['site_manager', 'admin', 'it'])) {
             return redirect()->to('/login')->with('error', 'Unauthorized access.');
         }
 

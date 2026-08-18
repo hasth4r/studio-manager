@@ -38,6 +38,7 @@ $routes->group('admin', ['filter' => 'auth', 'namespace' => 'App\Controllers\Adm
 
     // Database Manager
     $routes->get('database', 'DatabaseManager::index');
+    $routes->match(['get', 'post'], 'database/migrate', 'DatabaseManager::runMigrations');
     $routes->post('database/backup', 'DatabaseManager::createBackup');
     $routes->post('database/restore', 'DatabaseManager::restoreBackup');
     $routes->get('database/download', 'DatabaseManager::downloadBackup');

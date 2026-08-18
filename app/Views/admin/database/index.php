@@ -3,25 +3,51 @@
 <?= $this->section('content') ?>
 
 <!-- Header -->
-<div class="sticky top-0 z-30 bg-ytBg/95 backdrop-blur-sm pt-6 pb-4 mb-6 border-b border-ytBorder/50 flex justify-between items-end">
+<div class="sticky top-0 z-30 bg-ytBg/95 backdrop-blur-sm pt-6 pb-4 mb-6 border-b border-ytBorder/50 flex flex-wrap justify-between items-center gap-4">
     <div class="flex items-center space-x-4">
         <div class="p-2 bg-[#1a122a] rounded-full flex items-center justify-center text-blue-400 border border-blue-900/50">
             <span class="material-symbols-outlined">storage</span>
         </div>
         <div>
-            <h2 class="text-[24px] font-medium text-ytText">Database Manager</h2>
-            <p class="text-[13px] text-ytMuted mt-1">Manage MySQL database snapshots, backups, and restorations.</p>
+            <h2 class="text-[24px] font-medium text-ytText">Database Center &amp; Migrations</h2>
+            <p class="text-[13px] text-ytMuted mt-1">Execute live schema migrations, snapshot backups, and restore database tables.</p>
         </div>
     </div>
-    <div class="flex gap-3">
+    <div class="flex items-center gap-3">
+        <form action="/admin/database/migrate" method="POST" onsubmit="this.querySelector('button').disabled=true; this.querySelector('button').innerHTML='<span class=\'material-symbols-outlined animate-spin text-[18px]\'>sync</span> Migrating...';">
+            <?= csrf_field() ?>
+            <button type="submit" class="bg-gradient-to-br from-emerald-950 to-emerald-700 hover:from-emerald-900 hover:to-emerald-600 text-emerald-100 border border-emerald-500/50 px-4 py-2 rounded-xl font-bold text-[13px] flex items-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.6)] transition-all">
+                <span class="material-symbols-outlined text-[18px] text-emerald-300">bolt</span>
+                <span>Run Migrations (1-Click)</span>
+            </button>
+        </form>
         <form action="/admin/database/backup" method="POST">
             <?= csrf_field() ?>
-            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium text-[14px] flex items-center gap-2 transition-colors border border-blue-500/50 shadow-lg shadow-blue-500/20">
+            <button type="submit" class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] text-white shadow-[0_0_15px_rgba(23,123,207,0.3)] border border-[#177bcf]/40 px-4 py-2 rounded-xl font-medium text-[13px] hover:shadow-[0_0_25px_rgba(23,123,207,0.6)] hover:from-[#0d346e] hover:to-[#238bf2] transition-colors flex items-center gap-2">
                 <span class="material-symbols-outlined text-[18px]">cloud_download</span>
-                Create New Backup
+                Create Snapshot
             </button>
         </form>
     </div>
+</div>
+
+<!-- Schema Migration Notice Banner -->
+<div class="bg-[#0b1329] border border-blue-900/60 rounded-xl p-4 mb-6 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+        <div class="p-2.5 bg-blue-950/80 border border-blue-800/60 rounded-lg text-blue-400 shrink-0">
+            <span class="material-symbols-outlined text-[24px]">terminal</span>
+        </div>
+        <div>
+            <h4 class="text-[14px] font-semibold text-blue-200">Browser-Based Database Migrations (No PuTTY / SSH Needed)</h4>
+            <p class="text-[12px] text-blue-300/80 mt-0.5">Whenever new features (like Multi-Role RBAC or Supervisors) are added to the code, simply click <strong class="text-white">Run Migrations</strong> above to safely update your MySQL database tables.</p>
+        </div>
+    </div>
+    <form action="/admin/database/migrate" method="POST" class="shrink-0">
+        <?= csrf_field() ?>
+        <button type="submit" class="bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/50 text-blue-200 px-3.5 py-1.5 rounded-lg text-[12px] font-mono font-bold flex items-center gap-1.5 transition-all">
+            <span class="material-symbols-outlined text-[16px]">play_arrow</span> Run Now
+        </button>
+    </form>
 </div>
 
 <!-- Notifications -->
