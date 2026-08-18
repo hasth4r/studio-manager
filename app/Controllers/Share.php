@@ -60,7 +60,7 @@ class Share extends BaseController
 
         // Fetch sequence & project
         $sequence = $db->table('sequences s')
-            ->select('s.*, p.name as project_name, p.code as project_code')
+            ->select('s.*, p.name as project_name, p.project_code')
             ->join('projects p', 'p.id = s.project_id', 'left')
             ->where('s.id', $sequenceId)
             ->get()->getRow();
