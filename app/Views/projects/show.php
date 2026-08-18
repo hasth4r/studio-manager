@@ -1432,30 +1432,31 @@
     });
 </script>
 
-<!-- Quick Video Player Modal: Fixed Viewport Lock -->
-<div id="quickVideoModal" class="fixed inset-0 z-[999] hidden bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center p-0 sm:p-4" onclick="if(event.target===this) closeVideoModal()">
-    <div class="bg-[#0c101d] border-y sm:border border-ytBorder sm:rounded-2xl overflow-hidden shadow-2xl max-w-4xl w-full my-auto">
-        <div class="px-4 sm:px-5 py-3 sm:py-3.5 border-b border-ytBorder/60 flex items-center justify-between bg-[#111625]">
-            <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-ytBlue text-[20px]">play_circle</span>
-                <h4 id="quickVideoTitle" class="text-[14px] font-bold text-ytText font-mono">Video Preview</h4>
-            </div>
-            <button type="button" onclick="closeVideoModal()" class="text-ytMuted hover:text-ytText p-1.5 rounded-full hover:bg-ytHover transition-colors flex items-center justify-center">
-                <span class="material-symbols-outlined text-[22px]">close</span>
-            </button>
+<!-- Quick Video Player Modal: 100% Fullscreen Immersive Player -->
+<div id="quickVideoModal" class="fixed inset-0 z-[9999] hidden bg-black w-screen h-screen flex flex-col justify-between overflow-hidden">
+    <!-- Top Bar Header -->
+    <div class="px-4 md:px-6 py-3 bg-[#0c0f18]/95 border-b border-ytBorder/40 flex items-center justify-between z-20 backdrop-blur-md shrink-0">
+        <div class="flex items-center gap-2.5 min-w-0">
+            <span class="material-symbols-outlined text-ytBlue text-[22px] shrink-0">play_circle</span>
+            <h4 id="quickVideoTitle" class="text-[14px] font-bold text-ytText font-mono truncate">Video Preview</h4>
         </div>
-        <div class="aspect-video bg-black relative flex items-center justify-center w-full">
-            <!-- Modal Loading Buffer Indicator -->
-            <div id="quickVideoLoader" class="absolute inset-0 flex flex-col items-center justify-center bg-black/60 z-10 transition-opacity duration-300 pointer-events-none">
-                <div class="relative w-10 h-10 flex items-center justify-center">
-                    <div class="absolute inset-0 rounded-full border-2 border-blue-500/20"></div>
-                    <div class="absolute inset-0 rounded-full border-2 border-t-blue-400 border-r-transparent border-b-transparent border-l-transparent animate-spin"></div>
-                    <span class="material-symbols-outlined text-[16px] text-blue-400">smart_display</span>
-                </div>
-                <span class="text-[11px] text-blue-300 font-mono mt-2 tracking-wider">Loading Video Stream...</span>
+        <button type="button" onclick="closeVideoModal()" class="text-ytMuted hover:text-white p-2 rounded-full hover:bg-ytHover transition-colors flex items-center justify-center bg-[#151928] border border-ytBorder/60 shrink-0" title="Close Preview">
+            <span class="material-symbols-outlined text-[24px]">close</span>
+        </button>
+    </div>
+
+    <!-- Center Video Screen (Fills Full Viewport Height & Width) -->
+    <div class="flex-1 w-full h-full bg-black relative flex items-center justify-center overflow-hidden">
+        <!-- Modal Loading Buffer Indicator -->
+        <div id="quickVideoLoader" class="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-10 transition-opacity duration-300 pointer-events-none">
+            <div class="relative w-12 h-12 flex items-center justify-center">
+                <div class="absolute inset-0 rounded-full border-2 border-blue-500/20"></div>
+                <div class="absolute inset-0 rounded-full border-2 border-t-blue-400 border-r-transparent border-b-transparent border-l-transparent animate-spin"></div>
+                <span class="material-symbols-outlined text-[20px] text-blue-400">smart_display</span>
             </div>
-            <video id="quickVideoPlayer" controls playsinline class="w-full h-full object-contain"></video>
+            <span class="text-[12px] text-blue-300 font-mono mt-2.5 tracking-wider">Loading Video Stream...</span>
         </div>
+        <video id="quickVideoPlayer" controls playsinline class="w-full h-full max-h-full max-w-full object-contain"></video>
     </div>
 </div>
 
