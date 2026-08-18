@@ -54,50 +54,88 @@
 </head>
 <body class="bg-ytBg text-ytText font-sans antialiased" style="background: radial-gradient(circle at 15% 0%, #060b1c 0%, transparent 40%), radial-gradient(circle at 85% 0%, #0a081a 0%, #010103 50%); background-color: #010103; background-attachment: fixed;">
     
-    <!-- Mobile Top Bar -->
-    <header class="md:hidden flex items-center justify-between px-4 h-14 fixed top-0 w-full z-40 bg-ytBg border-b border-ytBorder backdrop-blur-md bg-opacity-80">
-        <div class="flex items-center space-x-3">
-            <button id="mobileTopMenuToggle" class="text-ytText flex items-center justify-center hover:bg-ytHover rounded-full transition-colors">
-                <span class="material-symbols-outlined text-[26px]">menu</span>
+    <!-- Mobile Top Bar: Exact Match to Studio Inphenix Reference -->
+    <header class="md:hidden flex items-center justify-between px-4 h-14 fixed top-0 w-full z-40 bg-[#050811]/90 border-b border-slate-800/80 backdrop-blur-xl">
+        <div class="flex items-center space-x-2.5">
+            <button id="mobileTopMenuToggle" class="text-slate-300 hover:text-white flex items-center justify-center p-1 rounded-lg hover:bg-slate-800 transition-colors">
+                <span class="material-symbols-outlined text-[24px]">menu</span>
             </button>
-            <div class="flex items-center space-x-2">
-                <img src="/assets/images/enso8_logo_Slim.png" alt="Enso8 Logo" class="h-7 w-7 object-contain">
-                <span class="text-lg font-bold tracking-tighter text-ytText">EnsoFlow</span>
+            <div class="flex items-center space-x-1.5">
+                <span class="text-base font-extrabold tracking-tight bg-gradient-to-r from-purple-400 via-indigo-400 to-blue-400 bg-clip-text text-transparent">Studio Inphenix</span>
+                <span class="text-base font-bold text-white tracking-tight">Studio</span>
             </div>
         </div>
-        <div class="flex items-center">
-            <!-- Notification widget floats here -->
-            <img src="https://ui-avatars.com/api/?name=<?= urlencode(session()->get('userName')) ?>&background=8b5cf6&color=fff&size=64&rounded=true" alt="Profile" class="h-8 w-8 rounded-full border-2 border-ytBorder">
+        
+        <div class="flex items-center space-x-3">
+            <?php if(session()->get('userRole') !== 'client'): ?>
+                <a href="/admin/projects" class="text-slate-300 hover:text-white p-1 rounded-full hover:bg-slate-800 transition-colors flex items-center justify-center" title="Quick Actions">
+                    <span class="material-symbols-outlined text-[22px]">add</span>
+                </a>
+            <?php endif; ?>
+
+            <!-- Notification Bell (Mobile) -->
+            <div class="relative">
+                <button id="notification-btn" class="text-slate-300 hover:text-white p-1 rounded-full hover:bg-slate-800 transition-colors relative flex items-center justify-center outline-none">
+                    <span class="material-symbols-outlined text-[22px]">notifications</span>
+                    <span id="notification-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full min-w-[16px] text-center hidden shadow-[0_0_8px_rgba(239,68,68,0.5)]">0</span>
+                </button>
+                <!-- Mobile Dropdown Panel -->
+                <div id="notification-panel" class="absolute right-0 mt-3 w-[calc(100vw-32px)] sm:w-80 bg-[#111827] border border-slate-800 rounded-2xl shadow-2xl hidden flex-col overflow-hidden transform origin-top-right transition-all opacity-0 scale-95 z-[100]" style="backdrop-filter: blur(16px);">
+                    <div class="px-4 py-3 border-b border-slate-800 flex justify-between items-center bg-[#0a0d17]">
+                        <h3 class="text-[14px] font-bold text-white">Notifications</h3>
+                        <span class="text-[11px] text-slate-400 uppercase tracking-wider">Unread</span>
+                    </div>
+                    <div id="notification-list" class="max-h-80 overflow-y-auto">
+                        <div class="p-6 text-center text-slate-400 text-[13px]">
+                            <span class="material-symbols-outlined text-[32px] mb-2 opacity-50">notifications_paused</span>
+                            <p>All caught up!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profile Avatar -->
+            <img src="https://ui-avatars.com/api/?name=<?= urlencode(session()->get('userName')) ?>&background=8b5cf6&color=fff&size=64&rounded=true" alt="Profile" class="h-7 w-7 rounded-full border border-slate-700">
         </div>
     </header>
 
-    <!-- Mobile Bottom Navigation -->
-    <nav class="md:hidden fixed bottom-0 w-full z-40 bg-[#000107] border-t border-ytBorder flex justify-around items-center h-16 pb-safe">
+    <!-- Mobile Bottom Navigation (Matching Reference) -->
+    <nav class="md:hidden fixed bottom-0 w-full z-40 bg-[#000107]/95 backdrop-blur-xl border-t border-slate-800 flex justify-around items-center h-16 pb-safe">
         <?php 
             $dashLink = '/admin/dashboard';
             if (session()->get('userRole') === 'client') $dashLink = '/client/dashboard';
             elseif (session()->get('userRole') === 'internal_artist') $dashLink = '/user/dashboard';
-            $isActiveDash = (strpos(uri_string(), ltrim($dashLink, '/')) === 0);
+            $isActiveDash = (strpos(uri_string(), ltrim($dashLink, '/')) === 0 || uri_string() === '' || uri_string() === 'admin');
         ?>
-        <a href="<?= $dashLink ?>" class="flex flex-col items-center justify-center w-full h-full space-y-1 <?= $isActiveDash ? 'text-ytBlue' : 'text-ytMuted hover:text-ytText' ?>">
-            <span class="material-symbols-outlined text-[24px]">dashboard</span>
-            <span class="text-[10px] font-medium">Home</span>
+        <a href="<?= $dashLink ?>" class="flex flex-col items-center justify-center w-full h-full space-y-1 <?= $isActiveDash ? 'text-purple-400 font-bold' : 'text-slate-400 hover:text-white' ?>">
+            <span class="material-symbols-outlined text-[22px]">dashboard</span>
+            <span class="text-[10px] tracking-tight">Dashboard</span>
         </a>
         
         <?php if(session()->get('userRole') !== 'client'): ?>
         <?php $isActiveProj = (strpos(uri_string(), 'admin/projects') === 0 || strpos(uri_string(), 'admin/shots') === 0); ?>
-        <a href="/admin/projects" class="flex flex-col items-center justify-center w-full h-full space-y-1 <?= $isActiveProj ? 'text-ytBlue' : 'text-ytMuted hover:text-ytText' ?>">
-            <span class="material-symbols-outlined text-[24px]">video_library</span>
-            <span class="text-[10px] font-medium">Projects</span>
+        <a href="/admin/projects" class="flex flex-col items-center justify-center w-full h-full space-y-1 <?= $isActiveProj ? 'text-purple-400 font-bold' : 'text-slate-400 hover:text-white' ?>">
+            <span class="material-symbols-outlined text-[22px]">video_library</span>
+            <span class="text-[10px] tracking-tight">Projects</span>
         </a>
         
         <?php $isActiveRev = (strpos(uri_string(), 'admin/reviews') === 0); ?>
-        <a href="/admin/reviews" class="flex flex-col items-center justify-center w-full h-full space-y-1 <?= $isActiveRev ? 'text-ytBlue' : 'text-ytMuted hover:text-ytText' ?>">
-            <span class="material-symbols-outlined text-[24px]">rate_review</span>
-            <span class="text-[10px] font-medium">Reviews</span>
+        <a href="/admin/reviews" class="flex flex-col items-center justify-center w-full h-full space-y-1 <?= $isActiveRev ? 'text-purple-400 font-bold' : 'text-slate-400 hover:text-white' ?>">
+            <span class="material-symbols-outlined text-[22px]">rate_review</span>
+            <span class="text-[10px] tracking-tight">Reviews</span>
+        </a>
+
+        <?php $isActiveBudget = (strpos(uri_string(), 'admin/budgeting') === 0); ?>
+        <a href="/admin/budgeting" class="flex flex-col items-center justify-center w-full h-full space-y-1 <?= $isActiveBudget ? 'text-purple-400 font-bold' : 'text-slate-400 hover:text-white' ?>">
+            <span class="material-symbols-outlined text-[22px]">payments</span>
+            <span class="text-[10px] tracking-tight">Economics</span>
         </a>
         <?php endif; ?>
-        
+
+        <button type="button" onclick="document.getElementById('mobileTopMenuToggle').click()" class="flex flex-col items-center justify-center w-full h-full space-y-1 text-slate-400 hover:text-white">
+            <span class="material-symbols-outlined text-[22px]">menu</span>
+            <span class="text-[10px] tracking-tight">More</span>
+        </button>
     </nav>
 
     <!-- Mobile Sidebar Drawer Overlay -->

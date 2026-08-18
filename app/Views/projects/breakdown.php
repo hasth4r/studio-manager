@@ -42,54 +42,56 @@
             </div>
         </div>
 
-        <div class="flex items-center gap-2">
-            <a href="/admin/projects/<?= $project->id ?>/analysis" class="bg-[#181818] border border-purple-500/40 hover:border-purple-400 text-purple-200 px-3 py-1.5 rounded-lg font-medium text-[12px] hover:bg-purple-950/40 transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(168,85,247,0.15)]" title="Open Complete Production, Financial & Risk Analysis">
+        <div class="flex items-center gap-2 overflow-x-auto pb-1 max-w-full flex-nowrap custom-scrollbar shrink-0 -mx-2 px-2 md:mx-0 md:px-0">
+            <a href="/admin/projects/<?= $project->id ?>/analysis" class="bg-[#181818] border border-purple-500/40 hover:border-purple-400 text-purple-200 px-3 py-1.5 rounded-lg font-medium text-[12px] hover:bg-purple-950/40 transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(168,85,247,0.15)] shrink-0" title="Open Complete Production, Financial & Risk Analysis">
                 <span class="material-symbols-outlined text-[16px] text-purple-400">analytics</span>
                 <span>Analysis</span>
             </a>
-            <a href="/admin/projects/<?= $project->id ?>/briefing" class="bg-[#181818] border border-indigo-500/40 hover:border-indigo-400 text-indigo-200 px-3 py-1.5 rounded-lg font-medium text-[12px] hover:bg-indigo-950/40 transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(99,102,241,0.15)]" title="Open Client Shot Briefing & Reference Matrix">
+            <a href="/admin/projects/<?= $project->id ?>/briefing" class="bg-[#181818] border border-indigo-500/40 hover:border-indigo-400 text-indigo-200 px-3 py-1.5 rounded-lg font-medium text-[12px] hover:bg-indigo-950/40 transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(99,102,241,0.15)] shrink-0" title="Open Client Shot Briefing & Reference Matrix">
                 <span class="material-symbols-outlined text-[16px] text-indigo-400">edit_note</span>
                 <span>Shot Briefing</span>
             </a>
-            <button type="button" onclick="autoGenerateAllThumbnails()" class="bg-[#181818] border border-purple-500/40 hover:border-purple-400 text-purple-200 px-3 py-1.5 rounded-lg font-medium text-[12px] hover:bg-purple-950/40 transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(168,85,247,0.15)]" title="Auto-extract crisp mid-frame WebP thumbnails from all shot videos">
+            <button type="button" onclick="autoGenerateAllThumbnails()" class="bg-[#181818] border border-purple-500/40 hover:border-purple-400 text-purple-200 px-3 py-1.5 rounded-lg font-medium text-[12px] hover:bg-purple-950/40 transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(168,85,247,0.15)] shrink-0" title="Auto-extract crisp mid-frame WebP thumbnails from all shot videos">
                 <span class="material-symbols-outlined text-[16px] text-purple-400">photo_camera</span>
                 <span>Auto-Gen WebP</span>
             </button>
-            <button type="button" id="toggleMetaBtn" onclick="toggleMetadataColumns()" class="bg-ytCard border border-ytBorder hover:border-ytText text-ytText px-3.5 py-1.5 rounded-lg font-medium text-[12px] hover:bg-ytHover transition-all flex items-center gap-1.5">
+            <button type="button" id="toggleMetaBtn" onclick="toggleMetadataColumns()" class="bg-ytCard border border-ytBorder hover:border-ytText text-ytText px-3.5 py-1.5 rounded-lg font-medium text-[12px] hover:bg-ytHover transition-all flex items-center gap-1.5 shrink-0">
                 <span class="material-symbols-outlined text-[16px] text-ytBlue" id="toggleMetaIcon">visibility_off</span>
                 <span id="toggleMetaText">Hide Metadata</span>
             </button>
-            <form action="/admin/tasks/bulkRecalculate/<?= $project->id ?>" method="POST" class="m-0">
+            <form action="/admin/tasks/bulkRecalculate/<?= $project->id ?>" method="POST" class="m-0 shrink-0">
                 <?= csrf_field() ?>
                 <button type="submit" title="Recalculate benchmark hours for all shot tasks" class="bg-ytCard border border-ytBorder hover:border-ytBlue text-ytText px-3.5 py-1.5 rounded-lg font-medium text-[12px] hover:bg-ytHover transition-colors flex items-center gap-1.5">
                     <span class="material-symbols-outlined text-[16px] text-ytBlue">calculate</span> Recalc Hours
                 </button>
             </form>
-            <a href="/admin/projects/<?= $project->id ?>" class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] text-white shadow-[0_0_15px_rgba(23,123,207,0.3)] border border-[#177bcf]/40 px-4 py-1.5 rounded-lg font-medium text-[12px] hover:shadow-[0_0_25px_rgba(23,123,207,0.6)] hover:from-[#0d346e] hover:to-[#238bf2] transition-all flex items-center gap-1">
+            <a href="/admin/projects/<?= $project->id ?>" class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] text-white shadow-[0_0_15px_rgba(23,123,207,0.3)] border border-[#177bcf]/40 px-4 py-1.5 rounded-lg font-medium text-[12px] hover:shadow-[0_0_25px_rgba(23,123,207,0.6)] hover:from-[#0d346e] hover:to-[#238bf2] transition-all flex items-center gap-1 shrink-0">
                 <span class="material-symbols-outlined text-[16px]">grid_view</span> Card View
             </a>
         </div>
     </div>
 
     <!-- Filters & Bulk Operations Toolbar -->
-    <div class="flex flex-wrap items-center justify-between gap-2.5 pt-1">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-2.5 pt-1">
         <!-- Search & Filters -->
-        <div class="flex items-center gap-2 flex-1 max-w-xl">
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1 max-w-xl">
             <div class="relative flex-1">
                 <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-ytMuted text-[16px]">search</span>
                 <input type="text" id="shotSearchInput" oninput="filterShotsTable()" placeholder="Search shots, comp name, description..." class="w-full bg-ytCard border border-ytBorder text-ytText rounded-lg pl-8 pr-3 py-1.5 text-[12px] focus:outline-none focus:border-ytBlue placeholder:text-ytMuted/50 font-mono">
             </div>
-            <select id="sequenceFilterSelect" onchange="filterShotsTable()" class="bg-ytCard border border-ytBorder text-ytText rounded-lg px-3 py-1.5 text-[12px] focus:outline-none focus:border-ytBlue font-mono">
-                <option value="">All Sequences (<?= count($sequences) ?>)</option>
-                <?php foreach($sequences as $seq): ?>
-                    <option value="<?= esc($seq->id) ?>"><?= esc($seq->name) ?></option>
-                <?php endforeach; ?>
-            </select>
-            <select id="taskStatusFilterSelect" onchange="filterShotsTable()" class="bg-ytCard border border-ytBorder text-ytText rounded-lg px-3 py-1.5 text-[12px] focus:outline-none focus:border-ytBlue font-mono">
-                <option value="all">All Shots</option>
-                <option value="no_tasks">Shots With 0 Tasks</option>
-                <option value="unassigned">Shots With Unassigned Tasks</option>
-            </select>
+            <div class="flex items-center gap-2">
+                <select id="sequenceFilterSelect" onchange="filterShotsTable()" class="bg-ytCard border border-ytBorder text-ytText rounded-lg px-3 py-1.5 text-[12px] focus:outline-none focus:border-ytBlue font-mono flex-1 sm:flex-none">
+                    <option value="">All Sequences (<?= count($sequences) ?>)</option>
+                    <?php foreach($sequences as $seq): ?>
+                        <option value="<?= esc($seq->id) ?>"><?= esc($seq->name) ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <select id="taskStatusFilterSelect" onchange="filterShotsTable()" class="bg-ytCard border border-ytBorder text-ytText rounded-lg px-3 py-1.5 text-[12px] focus:outline-none focus:border-ytBlue font-mono flex-1 sm:flex-none">
+                    <option value="all">All Shots</option>
+                    <option value="no_tasks">0 Tasks</option>
+                    <option value="unassigned">Unassigned</option>
+                </select>
+            </div>
         </div>
 
         <!-- Bulk Action Bar (Visible when >= 1 shot selected) -->
