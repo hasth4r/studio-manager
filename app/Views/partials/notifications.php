@@ -1,27 +1,4 @@
-<!-- Floating Notifications Widget (Mobile Only) -->
-<div class="fixed top-[7px] right-[60px] md:hidden z-[60]">
-    <div class="relative">
-        <button id="notification-btn" class="p-2.5 bg-ytCard border border-ytBorder hover:bg-ytHover hover:border-ytBlue rounded-full shadow-lg transition-all relative flex items-center justify-center group outline-none">
-            <span class="material-symbols-outlined text-ytMuted group-hover:text-ytText text-[22px]">notifications</span>
-            <span id="notification-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center hidden shadow-[0_0_8px_rgba(239,68,68,0.5)]">0</span>
-        </button>
-
-        <!-- Dropdown Panel -->
-        <div id="notification-panel" class="absolute -right-[44px] mt-3 w-[calc(100vw-32px)] bg-ytCard border border-ytBorder rounded-xl shadow-2xl hidden flex-col overflow-hidden transform origin-top-right transition-all opacity-0 scale-95" style="backdrop-filter: blur(10px);">
-            <div class="px-4 py-3 border-b border-ytBorder/50 flex justify-between items-center bg-[#0a0d17]/50">
-                <h3 class="text-[14px] font-bold text-ytText">Notifications</h3>
-                <span class="text-[11px] text-ytMuted uppercase tracking-wider">Unread</span>
-            </div>
-            <div id="notification-list" class="max-h-96 overflow-y-auto">
-                <!-- Items injected here -->
-                <div class="p-6 text-center text-ytMuted text-[13px]">
-                    <span class="material-symbols-outlined text-[32px] mb-2 opacity-50">notifications_paused</span>
-                    <p>All caught up!</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+<!-- Notifications JavaScript Handler -->
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
