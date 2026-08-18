@@ -170,7 +170,8 @@
                     <p class="text-ytMuted text-[12px] mt-1">Assign layout, animation, lighting, etc.</p>
                 </div>
             <?php else: ?>
-                <div class="overflow-x-auto">
+                <!-- Desktop Table View -->
+                <div class="hidden md:block overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="border-b border-ytBorder/50 text-ytMuted text-[12px] uppercase tracking-wider font-medium">
@@ -204,7 +205,6 @@
                                     </td>
                                     <td class="px-4 py-3 text-ytMuted">
                                         <?php
-                                            // Build tooltip data
                                             $bm = $benchmarks[$task->task_type_id] ?? null;
                                             $comp = $task->complexity ?? 'Medium';
                                             $baseHrs = 0;
@@ -223,100 +223,105 @@
                                                 if ($task->experience_level === 'Senior') { $expMultiplier = 0.8; $expLabel = 'Senior (0.8×)'; }
                                             }
                                             $estCalc = round($baseHrs * $durMult * $expMultiplier, 2);
-
-                                            $tipLines = [];
-                                            $tipLines[] = "Benchmark ({$comp}): " . ($bm ? "{$baseHrs} hrs" : '❌ No benchmark set');
-                                            $tipLines[] = "Frames: " . ($finalFc ?? '❌ Not set') . " ÷ {$finalFps} fps = {$durMult}s";
-                                            $tipLines[] = "Artist: {$expLabel}";
-                                            $tipLines[] = "= {$baseHrs} × {$durMult} × {$expMultiplier} = {$estCalc} hrs";
-                                            $tipText = implode('\n', $tipLines);
                                         ?>
                                         <div class="flex items-center gap-1.5">
                                             <span class="<?= empty($task->estimated_hours) ? 'text-ytMuted' : 'text-ytText font-medium' ?>">
                                                 <?= empty($task->estimated_hours) ? '-' : esc($task->estimated_hours) . ' hrs' ?>
                                             </span>
-                                            <div class="relative group/tip">
-                                                <span class="material-symbols-outlined text-[14px] text-ytMuted/50 hover:text-ytBlue cursor-help transition-colors select-none">info</span>
-                                                <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-[#1a1a1a] border border-ytBorder rounded-lg p-3 text-[11px] leading-relaxed hidden group-hover/tip:block z-50 shadow-xl pointer-events-none">
-                                                    <p class="text-ytBlue font-semibold mb-2">Calculation Breakdown</p>
-                                                    <?php if (!$bm): ?>
-                                                        <p class="text-red-400">⚠ No benchmark set for this task type. Go to Project → Benchmarks tab.</p>
-                                                    <?php else: ?>
-                                                        <div class="space-y-1 text-ytMuted">
-                                                            <div class="flex justify-between"><span>Benchmark (<?= $comp ?>):</span><span class="text-ytText"><?= $baseHrs ?> hrs</span></div>
-                                                            <?php if ($finalFc): ?>
-                                                                <div class="flex justify-between"><span>Duration:</span><span class="text-ytText"><?= $finalFc ?> ÷ <?= $finalFps ?> fps = <?= $durMult ?>s</span></div>
-                                                            <?php else: ?>
-                                                                <div class="text-yellow-400">⚠ No frame count set on shot</div>
-                                                            <?php endif; ?>
-                                                            <div class="flex justify-between"><span>Artist level:</span><span class="text-ytText"><?= $expLabel ?></span></div>
-                                                            <div class="border-t border-ytBorder/50 mt-1.5 pt-1.5 flex justify-between font-semibold"><span class="text-ytMuted">Result:</span><span class="text-ytBlue"><?= $estCalc ?> hrs</span></div>
-                                                        </div>
-                                                    <?php endif; ?>
-                                                    <div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-ytBorder"></div>
-                                                </div>
-                                            </div>
                                         </div>
                                     </td>
-                                    <td class="px-4 py-3 text-ytMuted">
+                                    <td class="px-4 py-3">
                                         <form action="/admin/tasks/updateAssignee" method="POST" class="m-0 p-0">
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="task_id" value="<?= $task->id ?>">
-                                            <select name="assigned_to" onchange="this.form.submit()" class="bg-transparent border border-transparent hover:border-ytBorder hover:bg-[#1a1a1a] focus:bg-ytBg focus:border-ytBlue text-[13px] rounded px-2 py-1 outline-none text-ytText w-32 cursor-pointer transition-colors">
-                                                <option value="" class="italic text-ytMuted">(Unassigned)</option>
+                                            <select name="assigned_to" onchange="this.form.submit()" class="bg-[#1a1a1a] border border-transparent hover:border-ytBorder focus:bg-ytBg focus:border-ytBlue text-[12px] rounded px-2 py-1 outline-none text-ytText cursor-pointer transition-colors">
+                                                <option value="">(Unassigned)</option>
                                                 <?php foreach($users as $user): ?>
                                                     <option value="<?= $user->id ?>" <?= $task->assigned_to == $user->id ? 'selected' : '' ?>>
-                                                        <?= esc($user->name) ?>
+                                                        <?= esc($user->name) ?> (<?= esc($user->experience_level ?? 'mid') ?>)
                                                     </option>
                                                 <?php endforeach; ?>
                                             </select>
                                         </form>
                                     </td>
                                     <td class="px-4 py-3">
-                                        <?php if($task->status === 'pending'): ?>
-                                            <span class="bg-[#2a2a12] text-yellow-400 border border-yellow-900/50 px-2 py-0.5 rounded text-[11px] uppercase tracking-wider font-medium">Pending</span>
-                                        <?php elseif($task->status === 'in_progress'): ?>
-                                            <span class="bg-[#121c2a] text-blue-400 border border-blue-900/50 px-2 py-0.5 rounded text-[11px] uppercase tracking-wider font-medium">In Progress</span>
-                                        <?php elseif($task->status === 'ready_for_review'): ?>
-                                            <span class="bg-[#2a122a] text-purple-400 border border-purple-900/50 px-2 py-0.5 rounded text-[11px] uppercase tracking-wider font-medium">Ready For Review</span>
-                                        <?php elseif($task->status === 'revision_needed'): ?>
-                                            <span class="bg-[#2a1212] text-red-400 border border-red-900/50 px-2 py-0.5 rounded text-[11px] uppercase tracking-wider font-medium">Revision Needed</span>
-                                        <?php elseif($task->status === 'completed'): ?>
-                                            <span class="bg-[#122a15] text-green-400 border border-green-900/50 px-2 py-0.5 rounded text-[11px] uppercase tracking-wider font-medium">Completed</span>
-                                        <?php endif; ?>
+                                        <form action="/admin/tasks/updateStatus" method="POST" class="m-0 p-0">
+                                            <?= csrf_field() ?>
+                                            <input type="hidden" name="task_id" value="<?= $task->id ?>">
+                                            <select name="status" onchange="this.form.submit()" class="bg-[#1a1a1a] border border-transparent hover:border-ytBorder focus:bg-ytBg focus:border-ytBlue text-[12px] rounded px-2 py-1 outline-none font-medium cursor-pointer transition-colors <?= $task->status === 'approved' ? 'text-green-400' : ($task->status === 'in_progress' ? 'text-blue-400' : 'text-amber-400') ?>">
+                                                <option value="pending" <?= $task->status === 'pending' ? 'selected' : '' ?>>Pending</option>
+                                                <option value="in_progress" <?= $task->status === 'in_progress' ? 'selected' : '' ?>>In Progress</option>
+                                                <option value="ready_for_review" <?= $task->status === 'ready_for_review' ? 'selected' : '' ?>>Ready for Review</option>
+                                                <option value="revision_needed" <?= $task->status === 'revision_needed' ? 'selected' : '' ?>>Revision Needed</option>
+                                                <option value="approved" <?= $task->status === 'approved' ? 'selected' : '' ?>>Approved</option>
+                                            </select>
+                                        </form>
                                     </td>
-                                    <td class="px-4 py-3 text-right whitespace-nowrap">
-                                        <button onclick="openTaskSettings(<?= $task->id ?>, <?= $task->frame_count ?? 'null' ?>, <?= $task->fps ?? 'null' ?>)" class="text-ytMuted hover:text-ytBlue p-1 transition-colors" title="Task Settings">
+                                    <td class="px-4 py-3 text-right">
+                                        <button onclick="editTaskOverride(<?= $task->id ?>, <?= $task->fps ?: 'null' ?>, <?= $task->frame_count ?: 'null' ?>, <?= htmlspecialchars(json_encode($task->experience_level), ENT_QUOTES, 'UTF-8') ?>)" class="text-ytMuted hover:text-ytText p-1 transition-colors" title="Settings">
                                             <span class="material-symbols-outlined text-[16px]">settings</span>
                                         </button>
-                                        <?php if(empty($task->estimated_hours)): ?>
-                                            <form action="/admin/tasks/recalculate/<?= $task->id ?>" method="POST" class="m-0 p-0 inline">
-                                                <?= csrf_field() ?>
-                                                <button type="submit" title="Calculate Hours" class="text-ytMuted hover:text-ytBlue p-1 transition-colors"><span class="material-symbols-outlined text-[16px]">calculate</span></button>
-                                            </form>
-                                        <?php endif; ?>
-
                                         <?php if(isset($task->pending_review)): ?>
                                             <a href="/admin/reviews/player/<?= $task->pending_review->id ?>" class="inline-flex items-center bg-[#1a122a] border border-purple-700 text-purple-300 px-3 py-1 rounded-full font-semibold text-[11px] hover:bg-purple-900/50 transition-colors mx-1 gap-1 shadow-[0_0_10px_rgba(126,34,206,0.2)]">
                                                 <span class="material-symbols-outlined text-[14px]">rate_review</span> Open Player
                                             </a>
-                                        <?php elseif($task->status === 'ready_for_review' && in_array(session()->get('userRole'), ['admin', 'project_manager'])): ?>
-                                            <form action="/admin/tasks/reviewStatus/<?= $task->id ?>" method="POST" class="m-0 p-0 inline">
-                                                <?= csrf_field() ?>
-                                                <input type="hidden" name="status" value="completed">
-                                                <button type="submit" class="bg-[#122a15] border border-green-900 text-green-400 px-2 py-1 rounded-full font-medium text-[11px] hover:bg-green-900/50 transition-colors mx-1">Approve</button>
-                                            </form>
-                                            <form action="/admin/tasks/reviewStatus/<?= $task->id ?>" method="POST" class="m-0 p-0 inline">
-                                                <?= csrf_field() ?>
-                                                <input type="hidden" name="status" value="revision_needed">
-                                                <button type="submit" class="bg-[#2a1212] border border-red-900 text-red-400 px-2 py-1 rounded-full font-medium text-[11px] hover:bg-red-900/50 transition-colors">Revise</button>
-                                            </form>
                                         <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
+                </div>
+
+                <!-- Mobile Tasks High-Density Card List -->
+                <div class="md:hidden space-y-2.5">
+                    <?php foreach($tasks as $task): ?>
+                        <div class="bg-[#121624] border border-slate-800 rounded-xl p-3 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-ytBlue text-[13px]"><?= esc($task->task_name) ?></span>
+                                <span class="font-mono text-xs text-white bg-slate-800 px-2 py-0.5 rounded-full font-bold">
+                                    <?= empty($task->estimated_hours) ? '-' : esc($task->estimated_hours) . 'h' ?>
+                                </span>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-2 text-xs">
+                                <form action="/admin/tasks/updateAssignee" method="POST" class="m-0 p-0">
+                                    <?= csrf_field() ?>
+                                    <input type="hidden" name="task_id" value="<?= $task->id ?>">
+                                    <label class="block text-[10px] text-ytMuted mb-0.5">Assignee</label>
+                                    <select name="assigned_to" onchange="this.form.submit()" class="w-full bg-[#1a1a1a] border border-ytBorder/40 text-ytText rounded px-2 py-1 text-[11px] focus:outline-none">
+                                        <option value="">(Unassigned)</option>
+                                        <?php foreach($users as $user): ?>
+                                            <option value="<?= $user->id ?>" <?= $task->assigned_to == $user->id ? 'selected' : '' ?>>
+                                                <?= esc($user->name) ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </form>
+
+                                <form action="/admin/tasks/updateStatus" method="POST" class="m-0 p-0">
+                                    <?= csrf_field() ?>
+                                    <input type="hidden" name="task_id" value="<?= $task->id ?>">
+                                    <label class="block text-[10px] text-ytMuted mb-0.5">Status</label>
+                                    <select name="status" onchange="this.form.submit()" class="w-full bg-[#1a1a1a] border border-ytBorder/40 text-ytText rounded px-2 py-1 text-[11px] font-semibold focus:outline-none <?= $task->status === 'approved' ? 'text-green-400' : ($task->status === 'in_progress' ? 'text-blue-400' : 'text-amber-400') ?>">
+                                        <option value="pending" <?= $task->status === 'pending' ? 'selected' : '' ?>>Pending</option>
+                                        <option value="in_progress" <?= $task->status === 'in_progress' ? 'selected' : '' ?>>In Progress</option>
+                                        <option value="ready_for_review" <?= $task->status === 'ready_for_review' ? 'selected' : '' ?>>Ready for Review</option>
+                                        <option value="revision_needed" <?= $task->status === 'revision_needed' ? 'selected' : '' ?>>Revision Needed</option>
+                                        <option value="approved" <?= $task->status === 'approved' ? 'selected' : '' ?>>Approved</option>
+                                    </select>
+                                </form>
+                            </div>
+
+                            <?php if(isset($task->pending_review)): ?>
+                                <div class="pt-1">
+                                    <a href="/admin/reviews/player/<?= $task->pending_review->id ?>" class="w-full py-1.5 bg-purple-950/60 border border-purple-600/50 text-purple-300 rounded-lg text-center font-bold text-xs flex items-center justify-center gap-1.5 shadow">
+                                        <span class="material-symbols-outlined text-[15px]">rate_review</span> Open Review Player
+                                    </a>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    <?php endforeach; ?>
                 </div>
             <?php endif; ?>
         </div>
