@@ -94,17 +94,14 @@
     <!-- Tabs: Horizontal Scroll on Mobile -->
     <div class="border-b border-ytBorder/30 -mx-4 px-4 md:mx-0 md:px-0 overflow-x-auto custom-scrollbar">
         <nav class="-mb-px flex space-x-6 md:space-x-8 whitespace-nowrap min-w-max" aria-label="Tabs">
-            <button onclick="switchTab('tab-sequences')" id="btn-tab-sequences" class="border-ytBlue text-ytBlue border-b-2 py-2.5 md:py-3 px-1 text-[13px] md:text-[14px] font-semibold outline-none">
-                Sequences &amp; Shots
+            <button onclick="switchTab('tab-sequences')" id="btn-tab-sequences" class="border-ytBlue text-ytBlue border-b-2 py-2.5 md:py-3 px-1 text-[13px] md:text-[14px] font-semibold outline-none flex items-center gap-1.5 transition-colors">
+                <span class="material-symbols-outlined text-[18px]">movie</span> Sequences &amp; Shots
             </button>
-            <button onclick="switchTab('tab-assets')" id="btn-tab-assets" class="border-transparent text-ytMuted hover:text-ytText border-b-2 py-2.5 md:py-3 px-1 text-[13px] md:text-[14px] font-medium outline-none">
-                Assets
+            <button onclick="switchTab('tab-assets')" id="btn-tab-assets" class="border-transparent text-ytMuted hover:text-ytText border-b-2 py-2.5 md:py-3 px-1 text-[13px] md:text-[14px] font-medium outline-none flex items-center gap-1.5 transition-colors">
+                <span class="material-symbols-outlined text-[18px]">view_in_ar</span> 3D Assets
             </button>
-            <button onclick="switchTab('tab-team')" id="btn-tab-team" class="border-transparent text-ytMuted hover:text-ytText border-b-2 py-2.5 md:py-3 px-1 text-[13px] md:text-[14px] font-medium outline-none">
-                Project Team
-            </button>
-            <button onclick="switchTab('tab-files')" id="btn-tab-files" class="border-transparent text-ytMuted hover:text-ytText border-b-2 py-2.5 md:py-3 px-1 text-[13px] md:text-[14px] font-medium outline-none">
-                Files &amp; Deliverables
+            <button onclick="switchTab('tab-benchmarks')" id="btn-tab-benchmarks" class="border-transparent text-ytMuted hover:text-ytText border-b-2 py-2.5 md:py-3 px-1 text-[13px] md:text-[14px] font-medium outline-none flex items-center gap-1.5 transition-colors">
+                <span class="material-symbols-outlined text-[18px]">timer</span> Benchmarks
             </button>
         </nav>
     </div>
@@ -1089,29 +1086,41 @@
             localStorage.setItem('activeProjectTab', tabId);
         }
         
-        // Hide all
-        document.getElementById('tab-sequences').classList.add('hidden');
-        document.getElementById('tab-assets').classList.add('hidden');
-        document.getElementById('tab-benchmarks').classList.add('hidden');
+        // Hide all tabs safely
+        ['tab-sequences', 'tab-assets', 'tab-benchmarks'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.add('hidden');
+        });
         
-        // Unstyle all buttons
-        const btnSeq = document.getElementById('btn-tab-sequences');
-        const btnAst = document.getElementById('btn-tab-assets');
-        const btnBmk = document.getElementById('btn-tab-benchmarks');
+        // Unstyle all buttons safely
+        const inactiveClass = "border-transparent text-ytMuted hover:text-ytText border-b-2 py-2.5 md:py-3 px-1 text-[13px] md:text-[14px] font-medium outline-none flex items-center gap-1.5 transition-colors";
+        const activeClass = "border-ytBlue text-ytBlue border-b-2 py-2.5 md:py-3 px-1 text-[13px] md:text-[14px] font-semibold outline-none flex items-center gap-1.5 transition-colors";
         
-        const inactiveClass = "border-transparent text-ytMuted hover:text-ytText border-b-2 py-4 px-1 text-[14px] font-medium outline-none flex items-center gap-1 transition-colors";
-        const activeClass = "border-ytBlue text-ytBlue border-b-2 py-4 px-1 text-[14px] font-medium outline-none flex items-center gap-1 transition-colors";
-        
-        btnSeq.className = inactiveClass;
-        btnAst.className = inactiveClass;
-        btnBmk.className = inactiveClass;
+        ['btn-tab-sequences', 'btn-tab-assets', 'btn-tab-benchmarks'].forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) btn.className = inactiveClass;
+        });
         
         // Show target & style active
-        document.getElementById(tabId).classList.remove('hidden');
-        if (tabId === 'tab-sequences') btnSeq.className = activeClass;
-        if (tabId === 'tab-assets') btnAst.className = activeClass;
-        if (tabId === 'tab-benchmarks') btnBmk.className = activeClass;
+        const targetTab = document.getElementById(tabId) || document.getElementById('tab-sequences');
+        if (targetTab) {
+            targetTab.classList.remove('hidden');
+        }
+        
+        const activeBtn = document.getElementById('btn-' + (targetTab ? targetTab.id : 'tab-sequences'));
+        if (activeBtn) {
+            activeBtn.className = activeClass;
+        }
     }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const savedTab = localStorage.getItem('activeProjectTab');
+        if (savedTab && document.getElementById(savedTab)) {
+            switchTab(savedTab, false);
+        } else {
+            switchTab('tab-sequences', false);
+        }
+    });
 
     function openModal(modalId) {
         document.getElementById(modalId).classList.remove('hidden');
