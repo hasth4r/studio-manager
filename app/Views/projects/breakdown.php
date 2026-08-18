@@ -741,9 +741,11 @@
                 loader.classList.add('opacity-100');
             }
         };
-
-        video.src = videoUrl;
+         video.src = videoUrl;
         modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        const mainEl = document.getElementById('main-content');
+        if (mainEl) mainEl.style.overflow = 'hidden';
         video.play().catch(() => {});
     }
 
@@ -763,6 +765,9 @@
             loader.classList.add('opacity-0', 'pointer-events-none');
         }
         modal.classList.add('hidden');
+        document.body.style.overflow = '';
+        const mainEl = document.getElementById('main-content');
+        if (mainEl) mainEl.style.overflow = '';
     }
 
     // 11. Auto-Generate WebP Thumbnails from Video Mid-Frames

@@ -1387,6 +1387,9 @@
 
         video.src = videoUrl;
         modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        const mainEl = document.getElementById('main-content');
+        if (mainEl) mainEl.style.overflow = 'hidden';
         video.play().catch(() => {});
     }
 
@@ -1406,6 +1409,9 @@
             loader.classList.add('opacity-0', 'pointer-events-none');
         }
         modal.classList.add('hidden');
+        document.body.style.overflow = '';
+        const mainEl = document.getElementById('main-content');
+        if (mainEl) mainEl.style.overflow = '';
     }
 
     // Quick Actions Dropdown Toggle
@@ -1426,10 +1432,10 @@
     });
 </script>
 
-<!-- Quick Video Player Modal: Full width on mobile -->
-<div id="quickVideoModal" class="fixed inset-0 z-50 hidden bg-black/90 backdrop-blur-md flex items-center justify-center p-0 sm:p-4" onclick="if(event.target===this) closeVideoModal()">
-    <div class="bg-ytCard border-y sm:border border-ytBorder sm:rounded-2xl overflow-hidden shadow-2xl max-w-4xl w-full">
-        <div class="px-4 sm:px-5 py-3 sm:py-3.5 border-b border-ytBorder/60 flex items-center justify-between bg-[#111]">
+<!-- Quick Video Player Modal: Fixed Viewport Lock -->
+<div id="quickVideoModal" class="fixed inset-0 z-[999] hidden bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center p-0 sm:p-4" onclick="if(event.target===this) closeVideoModal()">
+    <div class="bg-[#0c101d] border-y sm:border border-ytBorder sm:rounded-2xl overflow-hidden shadow-2xl max-w-4xl w-full my-auto">
+        <div class="px-4 sm:px-5 py-3 sm:py-3.5 border-b border-ytBorder/60 flex items-center justify-between bg-[#111625]">
             <div class="flex items-center gap-2">
                 <span class="material-symbols-outlined text-ytBlue text-[20px]">play_circle</span>
                 <h4 id="quickVideoTitle" class="text-[14px] font-bold text-ytText font-mono">Video Preview</h4>
