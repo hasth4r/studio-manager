@@ -2300,7 +2300,17 @@ class Projects extends BaseController
         $supervisorId = $this->request->getPost('supervisor_id');
         $supervisorId = !empty($supervisorId) ? (int)$supervisorId : null;
 
-        $this->projectModel->update($id, ['supervisor_id' => $supervisorId]);
+        $db = \Config\Database::connect();
+        
+        // Ensure supervisor_id column exists
+        try {
+            $check = $db->query("SHOW COLUMNS FROM `projects` LIKE 'supervisor_id'")->getRow();
+            if (!$check) {
+                $db->query("ALTER TABLE `projects` ADD COLUMN `supervisor_id` INT UNSIGNED NULL AFTER `client_id`");
+            }
+        } catch (\Throwable $e) {}
+
+        $db->table('projects')->where('id', $id)->update(['supervisor_id' => $supervisorId]);
 
         $user = $supervisorId ? (new \App\Models\UserModel())->find($supervisorId) : null;
 
@@ -2324,8 +2334,17 @@ class Projects extends BaseController
         $supervisorId = $this->request->getPost('supervisor_id');
         $supervisorId = !empty($supervisorId) ? (int)$supervisorId : null;
 
-        $sequenceModel = new \App\Models\SequenceModel();
-        $sequenceModel->update($id, ['supervisor_id' => $supervisorId]);
+        $db = \Config\Database::connect();
+        
+        // Ensure supervisor_id column exists
+        try {
+            $check = $db->query("SHOW COLUMNS FROM `sequences` LIKE 'supervisor_id'")->getRow();
+            if (!$check) {
+                $db->query("ALTER TABLE `sequences` ADD COLUMN `supervisor_id` INT UNSIGNED NULL AFTER `project_id`");
+            }
+        } catch (\Throwable $e) {}
+
+        $db->table('sequences')->where('id', $id)->update(['supervisor_id' => $supervisorId]);
 
         $user = $supervisorId ? (new \App\Models\UserModel())->find($supervisorId) : null;
 

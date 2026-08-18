@@ -1453,6 +1453,20 @@
     // Quick Actions Dropdown Toggle
     function toggleQuickActionsMenu() {
         const menu = document.getElementById('quickActionsDropdownMenu');
+        if (menu) {
+            menu.classList.toggle('hidden');
+        }
+    }
+
+    // Close Quick Actions dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        const container = document.getElementById('quickActionsDropdownContainer');
+        const menu = document.getElementById('quickActionsDropdownMenu');
+        if (container && menu && !container.contains(e.target)) {
+            menu.classList.add('hidden');
+        }
+    });
+
     // Supervisor Instant Ajax Updates
     async function updateProjectSupervisor(projectId, supervisorId) {
         const formData = new FormData();
