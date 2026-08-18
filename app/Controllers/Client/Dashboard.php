@@ -210,6 +210,20 @@ class Dashboard extends BaseController
             return $this->response->setJSON(['status' => 'error', 'message' => 'Project not found or access denied', 'csrf' => csrf_hash()]);
         }
 
+        // Ensure agreed_budget column exists
+        if (!$db->fieldExists('agreed_budget', 'projects')) {
+            $forge = \Config\Database::forge();
+            $forge->addColumn('projects', [
+                'agreed_budget' => [
+                    'type'       => 'DECIMAL',
+                    'constraint' => '15,2',
+                    'null'       => true,
+                    'default'    => 0.00,
+                    'after'      => 'status',
+                ],
+            ]);
+        }
+
         // Update agreed_budget
         $db->table('projects')
             ->where('id', $projectId)
