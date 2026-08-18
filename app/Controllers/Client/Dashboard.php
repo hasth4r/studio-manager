@@ -148,19 +148,21 @@ class Dashboard extends BaseController
 
         $overallProgress = $totalTasksCount > 0 ? round(($totalCompletedTasksCount / $totalTasksCount) * 100) : 0;
 
+        $inProductionTasks = $totalTasksCount - $totalCompletedTasksCount - $totalReviewTasksCount;
+
         $kpis = [
             'total_agreed_budget'     => $totalAgreedBudget,
-            'currency'                 => $currency,
-            'total_estimated_hours'    => round($totalEstimatedHours, 1),
-            'total_completed_hours'    => round($totalCompletedHours, 1),
-            'hours_remaining'          => max(0, round($totalEstimatedHours - $totalCompletedHours, 1)),
-            'total_tasks'              => $totalTasksCount,
-            'completed_tasks'          => $totalCompletedTasksCount,
-            'in_review_tasks'          => $totalReviewTasksCount,
-            'in_progress_tasks'        => $totalInProgressTasksCount,
-            'overall_progress'         => $overallProgress,
-            'total_shots'              => $totalShotsCount,
-            'active_projects_count'    => count($projects)
+            'currency'                => $currency,
+            'total_estimated_hours'   => round($totalEstimatedHours, 1),
+            'total_completed_hours'   => round($totalCompletedHours, 1),
+            'hours_remaining'         => max(0, round($totalEstimatedHours - $totalCompletedHours, 1)),
+            'total_tasks'             => $totalTasksCount,
+            'completed_tasks'         => $totalCompletedTasksCount,
+            'in_review_tasks'         => $totalReviewTasksCount,
+            'in_progress_tasks'       => max(0, $inProductionTasks),
+            'overall_progress'        => $overallProgress,
+            'total_shots'             => $totalShotsCount,
+            'active_projects_count'   => count($projects)
         ];
 
         $data = [
@@ -172,5 +174,60 @@ class Dashboard extends BaseController
         ];
 
         return view('client/dashboard/index', $data);
+    }
+
+    /**
+     * Client Updates / Sets Project Target Budget
+     */
+    public function updateBudget()
+    {
+        if (session()->get('userRole') !== 'client') {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Unauthorized', 'csrf' => csrf_hash()]);
+        }
+
+        $projectId = (int)$this->request->getPost('project_id');
+        $rawBudget = $this->request->getPost('agreed_budget');
+        $clientId = session()->get('clientId');
+
+        if (!$projectId) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Project ID is required', 'csrf' => csrf_hash()]);
+        }
+
+        $cleanBudget = (float)str_replace([',', ' ', '$', '₹', '€', '£'], '', (string)$rawBudget);
+        if ($cleanBudget < 0) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Budget must be a positive amount', 'csrf' => csrf_hash()]);
+        }
+
+        $db = \Config\Database::connect();
+
+        // Verify project belongs to this client
+        $project = $db->table('projects')
+            ->where('id', $projectId)
+            ->where('client_id', $clientId)
+            ->get()->getRow();
+
+        if (!$project) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Project not found or access denied', 'csrf' => csrf_hash()]);
+        }
+
+        // Update agreed_budget
+        $db->table('projects')
+            ->where('id', $projectId)
+            ->update([
+                'agreed_budget' => $cleanBudget,
+                'updated_at'    => date('Y-m-d H:i:s')
+            ]);
+
+        $settingsModel = new \App\Models\SettingsModel();
+        $currency = $settingsModel->getSetting('studio_currency', '$') ?? '$';
+
+        return $this->response->setJSON([
+            'status'           => 'success',
+            'project_id'       => $projectId,
+            'agreed_budget'    => $cleanBudget,
+            'formatted_budget' => $currency . number_format($cleanBudget, 0),
+            'message'          => 'Target budget updated successfully!',
+            'csrf'             => csrf_hash(),
+        ]);
     }
 }

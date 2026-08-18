@@ -180,6 +180,7 @@ $routes->group('client', ['filter' => 'auth', 'namespace' => 'App\Controllers\Cl
     $routes->post('projects/saveBriefAjax', 'Briefing::saveBriefAjax');
     $routes->post('projects/uploadReferenceAjax', 'Briefing::uploadReferenceAjax');
     $routes->post('projects/deleteReferenceAjax', 'Briefing::deleteReferenceAjax');
+    $routes->post('projects/updateBudget', 'Dashboard::updateBudget');
 });
 
 // Shared API Endpoints

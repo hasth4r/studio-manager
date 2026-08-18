@@ -143,18 +143,25 @@
                             <!-- Budget & Production Metrics Row -->
                             <div class="grid grid-cols-2 gap-2 mb-4 p-3 bg-[#0d121c] border border-slate-800/80 rounded-xl text-xs">
                                 <div>
-                                    <span class="text-[10px] text-ytMuted block font-medium uppercase tracking-wider">Agreed Budget</span>
-                                    <span class="text-white font-bold font-mono text-[13px] text-emerald-400">
-                                        <?php if(!empty($project->agreed_budget) && (float)$project->agreed_budget > 0): ?>
-                                            <?= esc($currency) ?><?= number_format($project->agreed_budget, 0) ?>
-                                        <?php else: ?>
-                                            <span class="text-slate-500 font-sans text-xs">In Scope</span>
-                                        <?php endif; ?>
-                                    </span>
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[10px] text-ytMuted block font-medium uppercase tracking-wider">Agreed Budget</span>
+                                        <button type="button" onclick="openBudgetModal(<?= $project->id ?>, '<?= esc(addslashes($project->name)) ?>', <?= (float)($project->agreed_budget ?? 0) ?>)" class="text-blue-400 hover:text-blue-300 transition-colors text-[10px] font-semibold flex items-center gap-0.5" title="Set / Edit Target Budget">
+                                            <span class="material-symbols-outlined text-[13px]">edit</span> Edit
+                                        </button>
+                                    </div>
+                                    <div class="mt-1">
+                                        <span class="font-bold font-mono text-[14px] text-emerald-400 cursor-pointer hover:underline" onclick="openBudgetModal(<?= $project->id ?>, '<?= esc(addslashes($project->name)) ?>', <?= (float)($project->agreed_budget ?? 0) ?>)" id="budget-val-<?= $project->id ?>">
+                                            <?php if(!empty($project->agreed_budget) && (float)$project->agreed_budget > 0): ?>
+                                                <?= esc($currency) ?><?= number_format($project->agreed_budget, 0) ?>
+                                            <?php else: ?>
+                                                <span class="text-blue-400 font-sans text-[11px] font-semibold flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">add_circle</span> Set Budget</span>
+                                            <?php endif; ?>
+                                        </span>
+                                    </div>
                                 </div>
                                 <div>
                                     <span class="text-[10px] text-ytMuted block font-medium uppercase tracking-wider">Estimated Time</span>
-                                    <span class="text-white font-semibold text-[13px]">
+                                    <span class="text-white font-semibold text-[13px] block mt-1">
                                         <?= number_format($project->stats['estimated_hours'] ?? 0, 0) ?> hrs
                                     </span>
                                 </div>
@@ -297,11 +304,121 @@
 
 </div>
 
-<style>
-    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: #0c1017; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #334155; }
-</style>
+<!-- Budget Setting Modal -->
+<div id="budgetModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="bg-[#111827] border border-slate-800 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+        <!-- Modal Header -->
+        <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[18px]">payments</span>
+                </div>
+                <div>
+                    <h3 class="text-[15px] font-bold text-white leading-tight">Set Project Target Budget</h3>
+                    <p class="text-[11px] text-slate-400" id="budgetModalProjectName">Project Name</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeBudgetModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors">
+                <span class="material-symbols-outlined text-[18px]">close</span>
+            </button>
+        </div>
+
+        <!-- Modal Body -->
+        <form id="budgetForm" onsubmit="submitBudgetForm(event)" class="p-6 space-y-4 m-0">
+            <input type="hidden" id="budgetProjectId" value="">
+            <input type="hidden" id="budgetCsrf" name="<?= csrf_token() ?>" value="<?= csrf_hash() ?>">
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-300 mb-1.5">Target / Agreed Budget Amount</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 font-bold font-mono">
+                        <?= esc($currency) ?>
+                    </div>
+                    <input type="number" step="any" min="0" id="budgetAmountInput" placeholder="0" class="w-full bg-[#1e293b] border border-slate-700 rounded-xl pl-9 pr-4 py-2.5 text-base text-white font-mono font-bold focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" required>
+                </div>
+                <p class="text-[11px] text-slate-400 mt-1.5">This updates your allocated budget milestone for production tracking.</p>
+            </div>
+
+            <!-- Quick Presets -->
+            <div class="flex flex-wrap gap-2 pt-1">
+                <button type="button" onclick="setPresetBudget(25000)" class="bg-[#1e293b] hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg text-xs font-mono font-medium transition-colors">+<?= esc($currency) ?>25,000</button>
+                <button type="button" onclick="setPresetBudget(50000)" class="bg-[#1e293b] hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg text-xs font-mono font-medium transition-colors">+<?= esc($currency) ?>50,000</button>
+                <button type="button" onclick="setPresetBudget(100000)" class="bg-[#1e293b] hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg text-xs font-mono font-medium transition-colors">+<?= esc($currency) ?>100,000</button>
+            </div>
+
+            <div class="pt-2 flex items-center justify-end gap-3 border-t border-slate-800">
+                <button type="button" onclick="closeBudgetModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition-colors">Cancel</button>
+                <button type="submit" id="saveBudgetBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-lg shadow-emerald-950/40 flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[16px]">check</span> Save Budget
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    let currentCsrfHash = '<?= csrf_hash() ?>';
+
+    function openBudgetModal(projectId, projectName, currentBudget) {
+        document.getElementById('budgetProjectId').value = projectId;
+        document.getElementById('budgetModalProjectName').textContent = projectName;
+        document.getElementById('budgetAmountInput').value = currentBudget > 0 ? currentBudget : '';
+        document.getElementById('budgetModal').classList.remove('hidden');
+        document.getElementById('budgetAmountInput').focus();
+    }
+
+    function closeBudgetModal() {
+        document.getElementById('budgetModal').classList.add('hidden');
+    }
+
+    function setPresetBudget(val) {
+        document.getElementById('budgetAmountInput').value = val;
+    }
+
+    async function submitBudgetForm(e) {
+        e.preventDefault();
+        const projectId = document.getElementById('budgetProjectId').value;
+        const amount = document.getElementById('budgetAmountInput').value;
+        const btn = document.getElementById('saveBudgetBtn');
+        
+        btn.disabled = true;
+        btn.innerHTML = '<span class="material-symbols-outlined text-[16px] animate-spin">progress_activity</span> Saving...';
+
+        try {
+            const formData = new FormData();
+            formData.append('project_id', projectId);
+            formData.append('agreed_budget', amount);
+            formData.append('<?= csrf_token() ?>', currentCsrfHash);
+
+            const res = await fetch('<?= base_url('client/projects/updateBudget') ?>', {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+
+            const data = await res.json();
+            if (data.csrf) currentCsrfHash = data.csrf;
+
+            if (data.status === 'success') {
+                closeBudgetModal();
+                // Update live text on the card
+                const valEl = document.getElementById('budget-val-' + projectId);
+                if (valEl) {
+                    valEl.textContent = data.formatted_budget;
+                }
+                // Reload cleanly to refresh the top KPI total summary
+                window.location.reload();
+            } else {
+                alert(data.message || 'Error updating budget');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Request failed');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<span class="material-symbols-outlined text-[16px]">check</span> Save Budget';
+        }
+    }
+</script>
 
 <?= $this->endSection() ?>
