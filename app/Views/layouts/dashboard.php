@@ -73,13 +73,13 @@
                     <span class="material-symbols-outlined text-ytMuted group-hover:text-ytText text-[20px]">notifications</span>
                     <span id="notification-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full min-w-[16px] text-center hidden shadow-[0_0_8px_rgba(239,68,68,0.5)]">0</span>
                 </button>
-                <!-- Mobile Dropdown Panel -->
-                <div id="notification-panel" class="absolute right-0 mt-3 w-[calc(100vw-32px)] sm:w-80 bg-ytCard border border-ytBorder rounded-2xl shadow-2xl hidden flex-col overflow-hidden transform origin-top-right transition-all opacity-0 scale-95 z-[100]" style="backdrop-filter: blur(16px);">
+                <!-- Mobile Dropdown Panel: Fixed within viewport boundaries so it never cuts off -->
+                <div id="notification-panel" class="fixed left-3 right-3 top-16 sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-3 sm:w-80 bg-ytCard border border-ytBorder rounded-2xl shadow-2xl hidden flex-col overflow-hidden transform origin-top transition-all opacity-0 scale-95 z-[100]" style="backdrop-filter: blur(16px); background-color: rgba(17, 24, 39, 0.98);">
                     <div class="px-4 py-3 border-b border-ytBorder/50 flex justify-between items-center bg-[#0a0d17]">
                         <h3 class="text-[14px] font-bold text-ytText">Notifications</h3>
                         <span class="text-[11px] text-ytMuted uppercase tracking-wider">Unread</span>
                     </div>
-                    <div id="notification-list" class="max-h-80 overflow-y-auto">
+                    <div id="notification-list" class="max-h-[70vh] sm:max-h-80 overflow-y-auto">
                         <div class="p-6 text-center text-ytMuted text-[13px]">
                             <span class="material-symbols-outlined text-[32px] mb-2 opacity-50">notifications_paused</span>
                             <p>All caught up!</p>
