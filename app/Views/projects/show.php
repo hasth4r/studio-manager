@@ -2,35 +2,35 @@
 
 <?= $this->section('content') ?>
 
-<div class="sticky top-0 z-30 bg-ytBg/95 backdrop-blur-sm pt-6 pb-4 border-b border-ytBorder/50">
+<div class="sticky top-0 z-30 bg-ytBg/95 backdrop-blur-sm pt-3 md:pt-6 pb-2 md:pb-4 border-b border-ytBorder/50">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-4">
-            <a href="/admin/projects" class="p-2 hover:bg-ytHover rounded-full transition-colors flex items-center justify-center text-ytMuted">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="flex items-center space-x-3 md:space-x-4 min-w-0">
+            <a href="/admin/projects" class="p-2 hover:bg-ytHover rounded-full transition-colors flex items-center justify-center text-ytMuted shrink-0">
                 <span class="material-symbols-outlined">arrow_back</span>
             </a>
-            <div>
-                <div class="flex items-center space-x-3">
-                    <h2 class="text-[24px] font-medium text-ytText"><?= esc($project->name) ?></h2>
-                    <button onclick="openModal('projectSettingsModal')" class="p-1 text-ytMuted hover:text-ytText transition-colors mt-1" title="Project Settings">
-                        <span class="material-symbols-outlined text-[20px]">settings</span>
+            <div class="min-w-0">
+                <div class="flex items-center space-x-2 md:space-x-3 truncate">
+                    <h2 class="text-[18px] md:text-[24px] font-bold md:font-medium text-ytText truncate leading-tight"><?= esc($project->name) ?></h2>
+                    <button onclick="openModal('projectSettingsModal')" class="p-1 text-ytMuted hover:text-ytText transition-colors shrink-0" title="Project Settings">
+                        <span class="material-symbols-outlined text-[18px] md:text-[20px]">settings</span>
                     </button>
-                    <span class="bg-[#1a1a1a] text-ytMuted border border-ytBorder/50 px-2 py-0.5 rounded text-[11px] font-mono"><?= esc($project->project_code) ?></span>
+                    <span class="bg-[#1a1a1a] text-ytMuted border border-ytBorder/50 px-1.5 py-0.5 rounded text-[10px] md:text-[11px] font-mono shrink-0"><?= esc($project->project_code) ?></span>
                 </div>
-                <p class="text-[13px] text-ytMuted mt-1">Client: <span class="text-ytBlue"><?= esc($project->client_name) ?></span> &bull; Type: <?= esc($project->project_type_name) ?></p>
+                <p class="text-[11px] md:text-[13px] text-ytMuted mt-0.5 truncate">Client: <span class="text-ytBlue font-semibold"><?= esc($project->client_name) ?></span> &bull; <?= esc($project->project_type_name) ?></p>
             </div>
         </div>
         
-        <div class="flex items-center space-x-3">
-            <a href="/admin/projects/<?= $project->id ?>/breakdown" class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] text-white shadow-[0_0_15px_rgba(23,123,207,0.3)] border border-[#177bcf]/40 px-4 py-2 rounded-full font-medium text-[13px] hover:shadow-[0_0_25px_rgba(23,123,207,0.6)] hover:from-[#0d346e] hover:to-[#238bf2] transition-all flex items-center gap-1.5">
-                <span class="material-symbols-outlined text-[18px]">table_chart</span>
-                <span>Shot Breakdown Matrix</span>
+        <div class="flex items-center space-x-2 overflow-x-auto pb-1 max-w-full flex-nowrap custom-scrollbar shrink-0">
+            <a href="/admin/projects/<?= $project->id ?>/breakdown" class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] text-white shadow-[0_0_15px_rgba(23,123,207,0.3)] border border-[#177bcf]/40 px-3 md:px-4 py-1.5 md:py-2 rounded-full font-bold text-[11px] md:text-[13px] hover:shadow-[0_0_25px_rgba(23,123,207,0.6)] hover:from-[#0d346e] hover:to-[#238bf2] transition-all flex items-center gap-1.5 shrink-0">
+                <span class="material-symbols-outlined text-[16px] md:text-[18px]">table_chart</span>
+                <span>Breakdown Matrix</span>
             </a>
             <?php if (session()->get('userRole') === 'admin' || session()->get('userRole') === 'project_manager'): ?>
-                <form action="/admin/projects/syncFolders/<?= $project->id ?>" method="POST" class="m-0 p-0">
+                <form action="/admin/projects/syncFolders/<?= $project->id ?>" method="POST" class="m-0 p-0 shrink-0">
                     <?= csrf_field() ?>
-                    <button type="submit" title="Force generate missing folders" class="bg-[#1a1a1a] text-ytText border border-ytBorder px-3 py-2 rounded-full font-medium text-[13px] hover:bg-ytHover transition-colors flex items-center">
-                        <span class="material-symbols-outlined text-[18px]">sync</span>
+                    <button type="submit" title="Force generate missing folders" class="bg-[#1a1a1a] text-ytText border border-ytBorder p-1.5 md:px-3 md:py-2 rounded-full font-medium text-[12px] hover:bg-ytHover transition-colors flex items-center">
+                        <span class="material-symbols-outlined text-[16px] md:text-[18px]">sync</span>
                     </button>
                 </form>
             <?php endif; ?>
@@ -38,70 +38,73 @@
     </div>
 
     <?php if (session()->getFlashdata('message')) : ?>
-        <div class="bg-[#122a15] border border-green-900 text-green-200 px-4 py-3 rounded mb-4 text-[13px] flex items-center">
+        <div class="bg-[#122a15] border border-green-900 text-green-200 px-4 py-2.5 rounded-xl mt-3 text-[12px] md:text-[13px] flex items-center">
             <span class="material-symbols-outlined mr-2 text-[18px]">check_circle</span>
             <?= esc(session()->getFlashdata('message')) ?>
         </div>
     <?php endif; ?>
     <?php if (session()->getFlashdata('error')) : ?>
-        <div class="bg-[#2a1215] border border-red-900 text-red-200 px-4 py-3 rounded mb-4 text-[13px] flex items-center">
+        <div class="bg-[#2a1215] border border-red-900 text-red-200 px-4 py-2.5 rounded-xl mt-3 text-[12px] md:text-[13px] flex items-center">
             <span class="material-symbols-outlined mr-2 text-[18px]">error</span>
             <?= esc(session()->getFlashdata('error')) ?>
         </div>
     <?php endif; ?>
 
-    <!-- Analytics & Economics Widget -->
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mt-6 mb-6">
-        <div class="bg-ytCard border border-ytBorder rounded-lg p-4 flex flex-col justify-center">
-            <span class="text-[12px] text-ytMuted font-medium uppercase tracking-wider mb-1">Sequences</span>
-            <span class="text-[28px] font-bold text-ytText leading-none"><?= esc($analytics['sequences']) ?></span>
+    <!-- Analytics & Economics Widget: Mobile Swipeable Carousel / Desktop Grid -->
+    <div class="flex md:grid overflow-x-auto md:overflow-visible gap-2.5 md:gap-4 mt-4 md:mt-6 mb-3 md:mb-6 pb-2.5 md:pb-0 snap-x snap-mandatory scroll-smooth custom-scrollbar -mx-4 px-4 md:mx-0 md:px-0 md:grid-cols-5">
+        <div class="bg-ytCard border border-ytBorder rounded-2xl p-3.5 md:p-4 flex flex-col justify-center shrink-0 w-[140px] sm:w-[170px] md:w-auto snap-start shadow-lg shadow-black/10">
+            <span class="text-[10px] md:text-[11px] text-ytMuted font-semibold uppercase tracking-wider mb-1">Sequences</span>
+            <span class="text-[20px] md:text-[28px] font-bold text-ytText leading-none"><?= esc($analytics['sequences']) ?></span>
         </div>
-        <div class="bg-ytCard border border-ytBorder rounded-lg p-4 flex flex-col justify-center">
-            <span class="text-[12px] text-ytMuted font-medium uppercase tracking-wider mb-1">Total Shots</span>
-            <span class="text-[28px] font-bold text-ytText leading-none"><?= esc($analytics['shots']) ?></span>
+        <div class="bg-ytCard border border-ytBorder rounded-2xl p-3.5 md:p-4 flex flex-col justify-center shrink-0 w-[140px] sm:w-[170px] md:w-auto snap-start shadow-lg shadow-black/10">
+            <span class="text-[10px] md:text-[11px] text-ytMuted font-semibold uppercase tracking-wider mb-1">Total Shots</span>
+            <span class="text-[20px] md:text-[28px] font-bold text-ytText leading-none"><?= esc($analytics['shots']) ?></span>
         </div>
-        <div class="bg-ytCard border border-ytBorder rounded-lg p-4 flex flex-col justify-center">
-            <span class="text-[12px] text-ytMuted font-medium uppercase tracking-wider mb-1">Est. Hours</span>
-            <span class="text-[28px] font-bold text-ytBlue font-mono leading-none"><?= $totalProjectHours ?>h</span>
+        <div class="bg-ytCard border border-ytBorder rounded-2xl p-3.5 md:p-4 flex flex-col justify-center shrink-0 w-[140px] sm:w-[170px] md:w-auto snap-start shadow-lg shadow-black/10">
+            <span class="text-[10px] md:text-[11px] text-ytMuted font-semibold uppercase tracking-wider mb-1">Est. Hours</span>
+            <span class="text-[20px] md:text-[28px] font-bold text-ytBlue font-mono leading-none"><?= $totalProjectHours ?>h</span>
         </div>
         <!-- Budget Card -->
-        <div class="bg-ytCard border border-green-700/40 rounded-lg p-4 flex flex-col justify-center">
+        <div class="bg-ytCard border border-green-700/40 rounded-2xl p-3.5 md:p-4 flex flex-col justify-center shrink-0 w-[180px] sm:w-[210px] md:w-auto snap-start shadow-lg shadow-black/10">
             <div class="flex items-center justify-between mb-1">
-                <span class="text-[11px] text-green-400 font-medium uppercase tracking-wider">Project Budget</span>
+                <span class="text-[10px] md:text-[11px] text-green-400 font-semibold uppercase tracking-wider">Project Budget</span>
                 <?php if($agreedBudget > 0): ?>
-                    <span class="text-[9px] font-mono bg-green-950/80 border border-green-700/50 text-green-300 px-1 rounded font-bold">LOCKED</span>
+                    <span class="text-[8px] md:text-[9px] font-mono bg-green-950/80 border border-green-700/50 text-green-300 px-1 rounded font-bold">LOCKED</span>
                 <?php endif; ?>
             </div>
-            <div class="text-[22px] font-bold text-green-300 font-mono leading-none">
+            <div class="text-[18px] md:text-[22px] font-bold text-green-300 font-mono leading-none">
                 <?= esc($studioCurrency) ?><?= number_format($agreedBudget > 0 ? $agreedBudget : $totalIdealBudget, 0) ?>
             </div>
-            <div class="text-[10px] text-ytMuted font-mono mt-1">
+            <div class="text-[9px] md:text-[10px] text-ytMuted font-mono mt-1 truncate">
                 <?= $agreedBudget > 0 ? 'Quote: ' . esc($studioCurrency) . number_format($totalIdealBudget, 0) . " ({$scalePercent}%)" : 'Standard quote' ?>
             </div>
         </div>
-        <div class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] shadow-[0_0_15px_rgba(23,123,207,0.2)] border border-[#177bcf]/40 rounded-lg p-4 flex flex-col justify-center relative overflow-hidden">
+        <div class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] shadow-[0_0_15px_rgba(23,123,207,0.2)] border border-[#177bcf]/40 rounded-2xl p-3.5 md:p-4 flex flex-col justify-center relative overflow-hidden shrink-0 w-[160px] sm:w-[190px] md:w-auto snap-start">
             <div class="absolute inset-0 bg-black/10"></div>
             <div class="relative z-10 flex justify-between items-end">
                 <div class="flex flex-col">
-                    <span class="text-[12px] text-blue-200 font-medium uppercase tracking-wider mb-1">Task Progress</span>
-                    <span class="text-[28px] font-bold text-white leading-none"><?= esc($analytics['progress']) ?>%</span>
+                    <span class="text-[10px] md:text-[11px] text-blue-200 font-semibold uppercase tracking-wider mb-1">Task Progress</span>
+                    <span class="text-[20px] md:text-[28px] font-bold text-white leading-none"><?= esc($analytics['progress']) ?>%</span>
                 </div>
-                <span class="material-symbols-outlined text-[36px] text-blue-300/50">trending_up</span>
+                <span class="material-symbols-outlined text-[28px] md:text-[36px] text-blue-300/50">trending_up</span>
             </div>
         </div>
     </div>
 
-    <!-- Tabs -->
-    <div class="border-b border-ytBorder/30">
-        <nav class="-mb-px flex space-x-8" aria-label="Tabs">
-            <button onclick="switchTab('tab-sequences')" id="btn-tab-sequences" class="border-ytBlue text-ytBlue border-b-2 py-3 px-1 text-[14px] font-medium outline-none">
+    <!-- Tabs: Horizontal Scroll on Mobile -->
+    <div class="border-b border-ytBorder/30 -mx-4 px-4 md:mx-0 md:px-0 overflow-x-auto custom-scrollbar">
+        <nav class="-mb-px flex space-x-6 md:space-x-8 whitespace-nowrap min-w-max" aria-label="Tabs">
+            <button onclick="switchTab('tab-sequences')" id="btn-tab-sequences" class="border-ytBlue text-ytBlue border-b-2 py-2.5 md:py-3 px-1 text-[13px] md:text-[14px] font-semibold outline-none">
                 Sequences &amp; Shots
             </button>
-            <button onclick="switchTab('tab-assets')" id="btn-tab-assets" class="border-transparent text-ytMuted hover:text-ytText border-b-2 py-3 px-1 text-[14px] font-medium outline-none">
-                3D Assets
+            <button onclick="switchTab('tab-assets')" id="btn-tab-assets" class="border-transparent text-ytMuted hover:text-ytText border-b-2 py-2.5 md:py-3 px-1 text-[13px] md:text-[14px] font-medium outline-none">
+                Assets
             </button>
-            <button onclick="switchTab('tab-benchmarks')" id="btn-tab-benchmarks" class="border-transparent text-ytMuted hover:text-ytText border-b-2 py-3 px-1 text-[14px] font-medium outline-none flex items-center gap-1">
-                <span class="material-symbols-outlined text-[18px]">timer</span> Benchmarks
+            <button onclick="switchTab('tab-team')" id="btn-tab-team" class="border-transparent text-ytMuted hover:text-ytText border-b-2 py-2.5 md:py-3 px-1 text-[13px] md:text-[14px] font-medium outline-none">
+                Project Team
+            </button>
+            <button onclick="switchTab('tab-files')" id="btn-tab-files" class="border-transparent text-ytMuted hover:text-ytText border-b-2 py-2.5 md:py-3 px-1 text-[13px] md:text-[14px] font-medium outline-none">
+                Files &amp; Deliverables
             </button>
         </nav>
     </div>
@@ -109,24 +112,24 @@
 
 <!-- TAB: Sequences & Shots -->
 <div id="tab-sequences" class="block pt-4">
-    <div class="flex justify-between items-center mb-4">
-        <h3 class="text-[16px] font-medium text-ytText">Production Sequences</h3>
-        <div class="flex items-center space-x-2.5">
-            <a href="/admin/projects/<?= $project->id ?>/analysis" class="bg-[#181818] border border-purple-500/40 hover:border-purple-400 text-purple-200 px-3.5 py-1.5 rounded-full font-medium text-[13px] hover:bg-purple-950/40 transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(168,85,247,0.15)]" title="Open Complete Production, Financial & Risk Analysis">
-                <span class="material-symbols-outlined text-[16px] text-purple-400">analytics</span>
-                <span>Project Analysis</span>
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+        <h3 class="text-[15px] md:text-[16px] font-bold md:font-medium text-ytText">Production Sequences</h3>
+        <div class="flex items-center gap-2 overflow-x-auto pb-1 max-w-full flex-nowrap custom-scrollbar shrink-0 -mx-4 px-4 sm:mx-0 sm:px-0">
+            <a href="/admin/projects/<?= $project->id ?>/analysis" class="bg-[#181818] border border-purple-500/40 hover:border-purple-400 text-purple-200 px-3 py-1.5 rounded-full font-semibold text-[11px] md:text-[12px] hover:bg-purple-950/40 transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(168,85,247,0.15)] shrink-0" title="Open Complete Production, Financial & Risk Analysis">
+                <span class="material-symbols-outlined text-[15px] text-purple-400">analytics</span>
+                <span>Analysis</span>
             </a>
-            <a href="/admin/projects/<?= $project->id ?>/breakdown" class="bg-[#181818] border border-ytBlue/50 hover:border-ytBlue text-ytText px-4 py-1.5 rounded-full font-medium text-[13px] hover:bg-ytHover transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(23,123,207,0.15)]">
-                <span class="material-symbols-outlined text-[16px] text-ytBlue">table_chart</span>
-                <span>Shot Breakdown Matrix</span>
+            <a href="/admin/projects/<?= $project->id ?>/breakdown" class="bg-[#181818] border border-ytBlue/50 hover:border-ytBlue text-ytText px-3.5 py-1.5 rounded-full font-semibold text-[11px] md:text-[12px] hover:bg-ytHover transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(23,123,207,0.15)] shrink-0">
+                <span class="material-symbols-outlined text-[15px] text-ytBlue">table_chart</span>
+                <span>Matrix</span>
             </a>
             
             <!-- Unified + Quick Actions Dropdown -->
-            <div class="relative inline-block text-left" id="quickActionsDropdownContainer">
-                <button type="button" onclick="toggleQuickActionsMenu()" class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] text-white shadow-[0_0_15px_rgba(23,123,207,0.3)] border border-[#177bcf]/40 px-4 py-1.5 rounded-full font-medium text-[13px] hover:shadow-[0_0_25px_rgba(23,123,207,0.6)] hover:from-[#0d346e] hover:to-[#238bf2] transition-all flex items-center gap-1">
-                    <span class="material-symbols-outlined text-[18px]">add</span>
+            <div class="relative inline-block text-left shrink-0" id="quickActionsDropdownContainer">
+                <button type="button" onclick="toggleQuickActionsMenu()" class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] text-white shadow-[0_0_15px_rgba(23,123,207,0.3)] border border-[#177bcf]/40 px-3.5 py-1.5 rounded-full font-bold text-[11px] md:text-[12px] hover:shadow-[0_0_25px_rgba(23,123,207,0.6)] hover:from-[#0d346e] hover:to-[#238bf2] transition-all flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[16px]">add</span>
                     <span>Actions</span>
-                    <span class="material-symbols-outlined text-[16px]">expand_more</span>
+                    <span class="material-symbols-outlined text-[14px]">expand_more</span>
                 </button>
                 
                 <!-- Dropdown Menu -->
