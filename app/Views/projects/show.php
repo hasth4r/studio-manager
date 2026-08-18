@@ -2,6 +2,8 @@
 
 <?= $this->section('content') ?>
 
+<?php $users = $users ?? []; ?>
+
 <div class="sticky top-0 z-30 bg-ytBg/95 backdrop-blur-sm pt-3 md:pt-6 pb-2 md:pb-4 border-b border-ytBorder/50">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">

@@ -229,6 +229,7 @@ class Projects extends BaseController
         $data = [
             'pageTitle'          => 'Project: ' . $project->name,
             'project'            => $project,
+            'users'              => $users,
             'sequences'          => $sequences,
             'shots'              => $shots,
             'assets'             => $assets,
