@@ -118,14 +118,38 @@
     </div>
     <!-- Left Sidebar: FIXED position, completely independent from content -->
     <aside id="sidebar" class="hidden md:flex flex-col fixed top-0 left-0 h-screen z-50" style="width: 256px; background-color: #000107;">
-            <!-- Sidebar Header / Logo -->
-            <div class="h-14 flex items-center px-4 flex-shrink-0 pt-2 mb-2">
-                <button id="menuToggle" class="p-2 hover:bg-ytHover rounded-full transition-colors flex items-center justify-center flex-shrink-0">
-                    <span class="material-symbols-outlined text-ytText">menu</span>
-                </button>
-                <div class="flex items-center space-x-2 ml-3 cursor-pointer nav-text overflow-hidden">
-                    <img src="/assets/images/enso8_logo_Slim.png" alt="Enso8 Logo" class="h-8 w-8 object-contain flex-shrink-0">
-                    <span class="text-xl font-bold tracking-tighter text-ytText">EnsoFlow</span>
+            <!-- Sidebar Header / Logo & Notifications -->
+            <div class="h-14 flex items-center justify-between px-3.5 flex-shrink-0 pt-2 mb-2">
+                <div class="flex items-center min-w-0">
+                    <button id="menuToggle" class="p-2 hover:bg-ytHover rounded-full transition-colors flex items-center justify-center flex-shrink-0">
+                        <span class="material-symbols-outlined text-ytText">menu</span>
+                    </button>
+                    <div class="flex items-center space-x-2 ml-2 cursor-pointer nav-text overflow-hidden">
+                        <img src="/assets/images/enso8_logo_Slim.png" alt="Enso8 Logo" class="h-7 w-7 object-contain flex-shrink-0">
+                        <span class="text-lg font-bold tracking-tighter text-ytText">EnsoFlow</span>
+                    </div>
+                </div>
+
+                <!-- Desktop Sidebar Notification Bell -->
+                <div class="relative flex-shrink-0 nav-text">
+                    <button id="sidebar-notification-btn" class="p-2 hover:bg-ytHover rounded-full transition-all relative flex items-center justify-center text-ytMuted hover:text-white outline-none" title="Notifications">
+                        <span class="material-symbols-outlined text-[20px]">notifications</span>
+                        <span id="sidebar-notification-badge" class="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full min-w-[16px] text-center hidden shadow-[0_0_8px_rgba(239,68,68,0.5)]">0</span>
+                    </button>
+
+                    <!-- Dropdown Panel -->
+                    <div id="sidebar-notification-panel" class="absolute left-0 top-full mt-2 w-80 bg-ytCard border border-ytBorder rounded-2xl shadow-2xl hidden flex-col overflow-hidden transform origin-top-left transition-all opacity-0 scale-95 z-[100]" style="backdrop-filter: blur(16px); background-color: rgba(17, 24, 39, 0.95);">
+                        <div class="px-4 py-3 border-b border-ytBorder/50 flex justify-between items-center bg-[#0a0d17]/50">
+                            <h3 class="text-[14px] font-bold text-ytText">Notifications</h3>
+                            <span class="text-[11px] text-ytMuted uppercase tracking-wider">Unread</span>
+                        </div>
+                        <div id="sidebar-notification-list" class="max-h-96 overflow-y-auto">
+                            <div class="p-6 text-center text-ytMuted text-[13px]">
+                                <span class="material-symbols-outlined text-[32px] mb-2 opacity-50">notifications_paused</span>
+                                <p>All caught up!</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
