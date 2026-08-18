@@ -134,9 +134,9 @@
 
 <!-- Interactive Breakdown Matrix Spreadsheet Container -->
 <div class="mt-3 md:mt-4 pb-20">
-    <div class="bg-ytCard border border-ytBorder rounded-xl shadow-xl overflow-hidden -mx-4 sm:mx-0">
+    <div class="bg-ytCard border border-ytBorder rounded-2xl shadow-xl overflow-hidden">
         <div class="overflow-x-auto max-h-[calc(100vh-190px)] overflow-y-auto custom-scrollbar">
-            <table class="w-full text-left border-collapse" id="breakdownTable">
+            <table class="min-w-full text-left border-collapse" id="breakdownTable">
                 <thead class="sticky top-0 z-30 bg-[#141414] border-b border-ytBorder/80 text-[11px] uppercase tracking-wider text-ytMuted font-semibold select-none">
                     <tr>
                         <th class="py-2.5 px-2 w-8 text-center shrink-0">
