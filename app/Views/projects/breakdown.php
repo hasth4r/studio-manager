@@ -92,40 +92,42 @@
         </div>
 
         <!-- Bulk Action Bar (Visible when >= 1 shot selected) -->
-        <div id="bulkActionBar" class="flex items-center gap-2 bg-[#181818] border border-ytBlue/40 px-3 py-1 rounded-lg shadow-sm">
-            <span class="text-[12px] text-ytText font-mono font-medium flex items-center gap-1">
-                <span class="material-symbols-outlined text-ytBlue text-[16px]">check_circle</span>
-                <span id="selectedShotsCounter">0</span> selected
-            </span>
-            <span class="text-ytBorder">|</span>
+        <div id="bulkActionBar" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-[#181818] border border-ytBlue/40 p-2 sm:px-3 sm:py-1 rounded-xl shadow-sm max-w-full">
+            <div class="flex items-center justify-between sm:justify-start gap-2">
+                <span class="text-[12px] text-ytText font-mono font-medium flex items-center gap-1 shrink-0">
+                    <span class="material-symbols-outlined text-ytBlue text-[16px]">check_circle</span>
+                    <span id="selectedShotsCounter">0</span> selected
+                </span>
+                <span class="hidden sm:inline text-ytBorder">|</span>
+            </div>
             
             <!-- Bulk Add Task Form -->
-            <form id="bulkAddTasksForm" onsubmit="submitBulkAssign(event)" class="flex items-center gap-2 m-0">
+            <form id="bulkAddTasksForm" onsubmit="submitBulkAssign(event)" class="flex flex-wrap sm:flex-nowrap items-center gap-1.5 m-0 w-full sm:w-auto">
                 <?= csrf_field() ?>
                 <input type="hidden" name="project_id" value="<?= $project->id ?>">
                 
-                <select name="task_type_id" required class="bg-ytBg border border-ytBorder text-ytText rounded px-2 py-1 text-[11px] focus:outline-none focus:border-ytBlue">
+                <select name="task_type_id" required class="bg-ytBg border border-ytBorder text-ytText rounded px-2 py-1.5 text-[11px] focus:outline-none focus:border-ytBlue flex-1 sm:flex-none">
                     <option value="">+ Select Task Type...</option>
                     <?php foreach($taskTypes as $tt): ?>
                         <option value="<?= $tt->id ?>"><?= esc($tt->name) ?></option>
                     <?php endforeach; ?>
                 </select>
 
-                <select name="complexity" class="bg-ytBg border border-ytBorder text-ytText rounded px-2 py-1 text-[11px] focus:outline-none focus:border-ytBlue">
+                <select name="complexity" class="bg-ytBg border border-ytBorder text-ytText rounded px-2 py-1.5 text-[11px] focus:outline-none focus:border-ytBlue shrink-0">
                     <option value="Simple">Simple</option>
                     <option value="Medium" selected>Medium</option>
                     <option value="Complex">Complex</option>
                 </select>
 
-                <select name="assigned_to" class="bg-ytBg border border-ytBorder text-ytText rounded px-2 py-1 text-[11px] focus:outline-none focus:border-ytBlue">
+                <select name="assigned_to" class="bg-ytBg border border-ytBorder text-ytText rounded px-2 py-1.5 text-[11px] focus:outline-none focus:border-ytBlue flex-1 sm:flex-none">
                     <option value="">(Unassigned)</option>
                     <?php foreach($users as $u): ?>
                         <option value="<?= $u->id ?>"><?= esc($u->name) ?> (<?= esc($u->experience_level ?? 'mid') ?>)</option>
                     <?php endforeach; ?>
                 </select>
 
-                <button type="submit" id="btnBulkApply" class="bg-ytBlue hover:bg-blue-600 text-white font-medium px-3 py-1 rounded text-[11px] flex items-center gap-1 transition-colors shadow-sm">
-                    <span class="material-symbols-outlined text-[14px]">bolt</span> Apply to Selected
+                <button type="submit" id="btnBulkApply" class="bg-ytBlue hover:bg-blue-600 text-white font-medium px-3 py-1.5 rounded text-[11px] flex items-center justify-center gap-1 transition-colors shadow-sm w-full sm:w-auto shrink-0">
+                    <span class="material-symbols-outlined text-[14px]">bolt</span> Apply
                 </button>
             </form>
         </div>
