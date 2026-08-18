@@ -29,10 +29,10 @@
     </div>
 <?php endif; ?>
 
-<!-- Top Economics KPIs -->
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+<!-- Top Economics KPIs: Horizontal Swipe Carousel on Mobile -->
+<div class="flex overflow-x-auto gap-3 pb-2 snap-x custom-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:overflow-visible mb-6">
     <!-- Card 1: Total Monthly Bills -->
-    <div class="bg-ytCard border border-ytBorder rounded-xl p-4 flex flex-col justify-between">
+    <div class="min-w-[240px] sm:min-w-0 snap-center bg-ytCard border border-ytBorder rounded-2xl p-4 flex flex-col justify-between">
         <div class="flex items-center justify-between text-ytMuted mb-2">
             <span class="text-[12px] uppercase font-bold tracking-wider">Monthly Studio Bills</span>
             <span class="material-symbols-outlined text-[20px] text-purple-400">receipt_long</span>
@@ -46,7 +46,7 @@
     </div>
 
     <!-- Card 2: Hourly Ops Cost -->
-    <div class="bg-ytCard border border-ytBorder rounded-xl p-4 flex flex-col justify-between">
+    <div class="min-w-[240px] sm:min-w-0 snap-center bg-ytCard border border-ytBorder rounded-2xl p-4 flex flex-col justify-between">
         <div class="flex items-center justify-between text-ytMuted mb-2">
             <span class="text-[12px] uppercase font-bold tracking-wider">Ops Recovery Rate</span>
             <span class="material-symbols-outlined text-[20px] text-blue-400">speed</span>
@@ -60,7 +60,7 @@
     </div>
 
     <!-- Card 3: Studio Margin -->
-    <div class="bg-ytCard border border-ytBorder rounded-xl p-4 flex flex-col justify-between">
+    <div class="min-w-[240px] sm:min-w-0 snap-center bg-ytCard border border-ytBorder rounded-2xl p-4 flex flex-col justify-between">
         <div class="flex items-center justify-between text-ytMuted mb-2">
             <span class="text-[12px] uppercase font-bold tracking-wider">Studio Margin</span>
             <span class="material-symbols-outlined text-[20px] text-amber-400">trending_up</span>
@@ -74,7 +74,7 @@
     </div>
 
     <!-- Card 4: Total Pipeline Budget -->
-    <div class="bg-ytCard border border-ytBorder rounded-xl p-4 flex flex-col justify-between">
+    <div class="min-w-[240px] sm:min-w-0 snap-center bg-ytCard border border-ytBorder rounded-2xl p-4 flex flex-col justify-between">
         <div class="flex items-center justify-between text-ytMuted mb-2">
             <span class="text-[12px] uppercase font-bold tracking-wider">Total Active Pipeline</span>
             <span class="material-symbols-outlined text-[20px] text-green-400">account_balance</span>
