@@ -88,10 +88,30 @@
                     <p class="section-title px-4 text-[11px] font-bold uppercase tracking-wider text-ytMuted mb-2">Main</p>
                     <div class="space-y-0.5">
                         <?php $isActive = (strpos($currentUri, 'user/dashboard') === 0); ?>
-                        <a href="/user/dashboard" class="<?= $isActive ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors" title="Dashboard">
-                            <span class="material-symbols-outlined <?= $isActive ? 'text-ytBlue' : 'text-ytMuted' ?>">dashboard</span>
-                            <span class="nav-text">My Dashboard</span>
+                        <a href="/user/dashboard" class="<?= $isActive ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors" title="My Assigned Tasks">
+                            <span class="material-symbols-outlined <?= $isActive ? 'text-ytBlue' : 'text-ytMuted' ?>">task_alt</span>
+                            <span class="nav-text">My Tasks</span>
                         </a>
+
+                        <?php if(has_any_role(['site_manager', 'admin', 'project_manager']) || is_any_supervisor()): ?>
+                        <?php $isActive = (strpos($currentUri, 'admin/projects') === 0 || strpos($currentUri, 'admin/shots') === 0); ?>
+                        <a href="/admin/projects" class="<?= $isActive ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors" title="Projects & Breakdowns">
+                            <span class="material-symbols-outlined <?= $isActive ? 'text-ytBlue' : 'text-ytMuted' ?>">video_library</span>
+                            <span class="nav-text">Projects</span>
+                        </a>
+
+                        <?php $isActive = (strpos($currentUri, 'admin/reviews') === 0); ?>
+                        <a href="/admin/reviews" class="<?= $isActive ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors" title="Review Inbox">
+                            <span class="material-symbols-outlined <?= $isActive ? 'text-ytBlue' : 'text-ytMuted' ?>">rate_review</span>
+                            <span class="nav-text">Review Inbox</span>
+                        </a>
+
+                        <?php $isActive = (strpos($currentUri, 'admin/dashboard') === 0); ?>
+                        <a href="/admin/dashboard" class="<?= $isActive ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors" title="Studio Overview">
+                            <span class="material-symbols-outlined <?= $isActive ? 'text-ytBlue' : 'text-ytMuted' ?>">dashboard</span>
+                            <span class="nav-text">Studio Overview</span>
+                        </a>
+                        <?php endif; ?>
                     </div>
                 </div>
             </nav>
@@ -103,7 +123,9 @@
                         <img src="https://ui-avatars.com/api/?name=<?= urlencode(session()->get('userName')) ?>&background=8b5cf6&color=fff&size=64&rounded=true" alt="Profile" class="h-9 w-9 rounded-full flex-shrink-0">
                         <div class="nav-text flex flex-col overflow-hidden">
                             <span class="text-[14px] font-medium text-ytText truncate leading-tight"><?= esc(session()->get('userName')) ?></span>
-                            <span class="text-[11px] text-ytMuted uppercase truncate leading-tight mt-0.5"><?= esc(str_replace('_', ' ', session()->get('userRole'))) ?></span>
+                            <span class="text-[10px] text-amber-400 font-bold uppercase truncate leading-tight mt-0.5 font-mono">
+                                <?= (has_role('project_manager') || is_any_supervisor()) ? 'SUPERVISOR / PM' : esc(str_replace('_', ' ', session()->get('userRole'))) ?>
+                            </span>
                         </div>
                     </div>
                     <a href="/logout" class="nav-text text-ytMuted hover:text-ytRed transition-colors ml-2 flex-shrink-0 opacity-0 group-hover:opacity-100" title="Sign Out">

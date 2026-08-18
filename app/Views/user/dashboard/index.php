@@ -23,11 +23,78 @@
             </div>
             <div>
                 <h2 class="text-[24px] font-medium text-ytText">My Dashboard</h2>
-                <p class="text-[13px] text-ytMuted mt-1">Overview of your assigned tasks</p>
+                <p class="text-[13px] text-ytMuted mt-1">Overview of your assigned tasks &amp; supervised projects</p>
             </div>
         </div>
+        <?php if(!empty($supervisedProjects) || !empty($supervisedSequences)): ?>
+        <div class="flex items-center gap-2">
+            <a href="/admin/projects" class="bg-gradient-to-r from-amber-500/20 to-amber-600/20 border border-amber-500/40 text-amber-300 hover:text-white px-3.5 py-1.5 rounded-xl text-[12px] font-medium flex items-center gap-1.5 transition-all shadow-md">
+                <span class="material-symbols-outlined text-[16px] text-amber-400">shield_person</span>
+                <span>Project Management Hub</span>
+            </a>
+        </div>
+        <?php endif; ?>
     </div>
 </div>
+
+<?php if(!empty($supervisedProjects) || !empty($supervisedSequences)): ?>
+<!-- SUPERVISOR DELEGATION BANNER -->
+<div class="mt-4 mb-6 p-4 rounded-2xl bg-gradient-to-br from-[#1c1808]/80 to-[#121008]/80 border border-amber-500/30 shadow-xl shadow-amber-950/10">
+    <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-amber-400 text-[20px]">shield_person</span>
+            <h3 class="text-[14px] font-bold text-amber-300 tracking-wide uppercase font-mono">My Supervised Projects &amp; Sequences</h3>
+        </div>
+        <span class="text-[11px] text-amber-400/70 font-mono">Supervisor Access Active</span>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <?php foreach(($supervisedProjects ?? []) as $sp): ?>
+            <div class="bg-[#0e0d0a] border border-amber-500/30 rounded-xl p-3.5 flex flex-col justify-between hover:border-amber-400/60 transition-all group">
+                <div class="flex items-start justify-between gap-2 mb-2">
+                    <div class="min-w-0">
+                        <span class="text-[9px] uppercase tracking-wider font-mono px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">Project Supervisor</span>
+                        <h4 class="text-[14px] font-bold text-ytText group-hover:text-amber-200 transition-colors truncate mt-1"><?= esc($sp->name) ?></h4>
+                        <span class="text-[11px] text-ytMuted truncate block"><?= esc($sp->client_name ?? 'Internal') ?> &bull; <?= $sp->shot_count ?> shots</span>
+                    </div>
+                    <span class="material-symbols-outlined text-amber-400/50 group-hover:text-amber-400 transition-colors">video_library</span>
+                </div>
+                <div class="flex items-center gap-2 pt-2 border-t border-ytBorder/40">
+                    <a href="/admin/projects/<?= $sp->id ?>" class="flex-1 text-center bg-ytHover hover:bg-ytBorder text-ytText text-[11px] font-medium py-1 rounded transition-colors">
+                        Overview
+                    </a>
+                    <a href="/admin/projects/<?= $sp->id ?>/breakdown" class="flex-1 text-center bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[11px] font-bold py-1 rounded transition-colors flex items-center justify-center gap-1">
+                        <span>Matrix</span>
+                        <span class="material-symbols-outlined text-[13px]">table_chart</span>
+                    </a>
+                </div>
+            </div>
+        <?php endforeach; ?>
+
+        <?php foreach(($supervisedSequences ?? []) as $ss): ?>
+            <div class="bg-[#0e0d0a] border border-amber-500/30 rounded-xl p-3.5 flex flex-col justify-between hover:border-amber-400/60 transition-all group">
+                <div class="flex items-start justify-between gap-2 mb-2">
+                    <div class="min-w-0">
+                        <span class="text-[9px] uppercase tracking-wider font-mono px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold">Sequence Lead</span>
+                        <h4 class="text-[14px] font-bold text-ytText group-hover:text-amber-200 transition-colors truncate mt-1"><?= esc($ss->name) ?></h4>
+                        <span class="text-[11px] text-ytMuted truncate block"><?= esc($ss->project_name ?? 'Project') ?> &bull; <?= $ss->shot_count ?> shots</span>
+                    </div>
+                    <span class="material-symbols-outlined text-indigo-400/50 group-hover:text-indigo-400 transition-colors">folder</span>
+                </div>
+                <div class="flex items-center gap-2 pt-2 border-t border-ytBorder/40">
+                    <a href="/admin/projects/<?= $ss->project_id ?>" class="flex-1 text-center bg-ytHover hover:bg-ytBorder text-ytText text-[11px] font-medium py-1 rounded transition-colors">
+                        Overview
+                    </a>
+                    <a href="/admin/projects/<?= $ss->project_id ?>/breakdown" class="flex-1 text-center bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[11px] font-bold py-1 rounded transition-colors flex items-center justify-center gap-1">
+                        <span>Breakdown</span>
+                        <span class="material-symbols-outlined text-[13px]">table_chart</span>
+                    </a>
+                </div>
+            </div>
+        <?php endforeach; ?>
+    </div>
+</div>
+<?php endif; ?>
 
 <!-- Summary Stats Row -->
 <?php

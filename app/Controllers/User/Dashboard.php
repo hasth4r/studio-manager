@@ -8,7 +8,7 @@ class Dashboard extends BaseController
 {
     public function index()
     {
-        if (!session()->get('isLoggedIn') || session()->get('userRole') !== 'artist') {
+        if (!session()->get('isLoggedIn')) {
             return redirect()->to('/login');
         }
 
@@ -41,10 +41,26 @@ class Dashboard extends BaseController
             ->orderBy('CASE t.status WHEN "revision_needed" THEN 0 WHEN "in_progress" THEN 1 WHEN "pending" THEN 2 WHEN "ready_for_review" THEN 3 WHEN "completed" THEN 4 ELSE 5 END', 'ASC', false)
             ->get()->getResult();
 
+        // Fetch projects where user is designated supervisor
+        $supervisedProjects = $db->table('projects p')
+            ->select('p.*, c.company_name as client_name, (SELECT COUNT(*) FROM ' . $db->prefixTable('shots') . ' WHERE project_id = p.id) as shot_count')
+            ->join('clients c', 'c.id = p.client_id', 'left')
+            ->where('p.supervisor_id', $userId)
+            ->get()->getResult();
+
+        // Fetch sequences where user is designated sequence lead
+        $supervisedSequences = $db->table('sequences sq')
+            ->select('sq.*, p.name as project_name, (SELECT COUNT(*) FROM ' . $db->prefixTable('shots') . ' WHERE sequence_id = sq.id) as shot_count')
+            ->join('projects p', 'p.id = sq.project_id', 'left')
+            ->where('sq.supervisor_id', $userId)
+            ->get()->getResult();
+
         $data = [
-            'pageTitle' => 'My Dashboard',
-            'userRole'  => $userRole,
-            'myTasks'   => $myTasks,
+            'pageTitle'           => 'My Dashboard',
+            'userRole'            => $userRole,
+            'myTasks'             => $myTasks,
+            'supervisedProjects'  => $supervisedProjects,
+            'supervisedSequences' => $supervisedSequences,
         ];
 
         return view('user/dashboard/index', $data);
