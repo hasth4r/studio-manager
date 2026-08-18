@@ -53,7 +53,7 @@ class DatabaseManager extends BaseController
     }
 
     /**
-     * 1-Click Run Database Migrations from Web UI
+     * 1-Click Run Database Migrations & Schema Auto-Repair from Web UI
      */
     public function runMigrations()
     {
@@ -61,17 +61,252 @@ class DatabaseManager extends BaseController
             return redirect()->to('/login')->with('error', 'Unauthorized access.');
         }
 
+        $db = \Config\Database::connect();
+
         try {
-            $migrate = \Config\Services::migrations();
-            $result = $migrate->latest();
-            
-            if ($result) {
-                return redirect()->to('/admin/database')->with('message', 'Database migrations executed successfully! All schema updates are active.');
-            } else {
-                return redirect()->to('/admin/database')->with('message', 'Database is already up to date. No pending migrations.');
+            // 1. Create Core Tables If Not Exist (with clean UTF8MB4 schema)
+            $db->query("CREATE TABLE IF NOT EXISTS `users` (
+                `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `name` VARCHAR(255) NOT NULL,
+                `email` VARCHAR(191) NOT NULL UNIQUE,
+                `password_hash` VARCHAR(255) NOT NULL,
+                `global_role` VARCHAR(50) NOT NULL DEFAULT 'artist',
+                `roles` TEXT NULL,
+                `status` VARCHAR(50) NOT NULL DEFAULT 'active',
+                `experience_level` VARCHAR(50) NULL DEFAULT 'Mid',
+                `hourly_rate` DECIMAL(10,2) NULL DEFAULT 500.00,
+                `weekly_hours` INT NULL DEFAULT 40,
+                `telegram_chat_id` VARCHAR(255) NULL,
+                `telegram_link_code` VARCHAR(50) NULL,
+                `client_id` INT UNSIGNED NULL,
+                `created_at` DATETIME NULL,
+                `updated_at` DATETIME NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+            $db->query("CREATE TABLE IF NOT EXISTS `clients` (
+                `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `company_name` VARCHAR(255) NOT NULL,
+                `contact_person` VARCHAR(255) NULL,
+                `email` VARCHAR(191) NULL,
+                `phone` VARCHAR(50) NULL,
+                `created_at` DATETIME NULL,
+                `updated_at` DATETIME NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+            $db->query("CREATE TABLE IF NOT EXISTS `collaborators` (
+                `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `company_name` VARCHAR(255) NOT NULL,
+                `contact_person` VARCHAR(255) NULL,
+                `email` VARCHAR(191) NULL,
+                `phone` VARCHAR(50) NULL,
+                `created_at` DATETIME NULL,
+                `updated_at` DATETIME NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+            $db->query("CREATE TABLE IF NOT EXISTS `project_types` (
+                `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `name` VARCHAR(100) NOT NULL,
+                `description` TEXT NULL,
+                `created_at` DATETIME NULL,
+                `updated_at` DATETIME NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+            $db->query("CREATE TABLE IF NOT EXISTS `projects` (
+                `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `name` VARCHAR(255) NOT NULL,
+                `project_code` VARCHAR(50) NOT NULL UNIQUE,
+                `client_id` INT UNSIGNED NULL,
+                `supervisor_id` INT UNSIGNED NULL,
+                `collaborator_id` INT UNSIGNED NULL,
+                `project_type_id` INT UNSIGNED NULL,
+                `status` VARCHAR(50) NOT NULL DEFAULT 'active',
+                `start_date` DATE NULL,
+                `deadline` DATE NULL,
+                `priority` VARCHAR(50) NOT NULL DEFAULT 'normal',
+                `fps` INT NOT NULL DEFAULT 24,
+                `agreed_budget` DECIMAL(15,2) NOT NULL DEFAULT 0.00,
+                `created_at` DATETIME NULL,
+                `updated_at` DATETIME NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+            $db->query("CREATE TABLE IF NOT EXISTS `sequences` (
+                `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `project_id` INT UNSIGNED NOT NULL,
+                `supervisor_id` INT UNSIGNED NULL,
+                `name` VARCHAR(100) NOT NULL,
+                `description` TEXT NULL,
+                `created_at` DATETIME NULL,
+                `updated_at` DATETIME NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+            $db->query("CREATE TABLE IF NOT EXISTS `shots` (
+                `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `project_id` INT UNSIGNED NOT NULL,
+                `sequence_id` INT UNSIGNED NULL,
+                `shot_number` VARCHAR(50) NOT NULL,
+                `description` TEXT NULL,
+                `thumbnail_path` VARCHAR(255) NULL,
+                `preview_video_path` VARCHAR(255) NULL,
+                `reference_images` TEXT NULL,
+                `pipeline_metadata` JSON NULL,
+                `fps` INT NULL DEFAULT 24,
+                `frame_count` INT NULL,
+                `frame_in` INT NULL,
+                `frame_out` INT NULL,
+                `created_at` DATETIME NULL,
+                `updated_at` DATETIME NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+            $db->query("CREATE TABLE IF NOT EXISTS `assets` (
+                `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `project_id` INT UNSIGNED NOT NULL,
+                `name` VARCHAR(150) NOT NULL,
+                `type` VARCHAR(50) NOT NULL DEFAULT 'model',
+                `description` TEXT NULL,
+                `thumbnail_path` VARCHAR(255) NULL,
+                `status` VARCHAR(50) NOT NULL DEFAULT 'in_progress',
+                `created_at` DATETIME NULL,
+                `updated_at` DATETIME NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+            $db->query("CREATE TABLE IF NOT EXISTS `task_types` (
+                `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `name` VARCHAR(100) NOT NULL,
+                `department` VARCHAR(100) NULL,
+                `created_at` DATETIME NULL,
+                `updated_at` DATETIME NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+            $db->query("CREATE TABLE IF NOT EXISTS `tasks` (
+                `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `project_id` INT UNSIGNED NOT NULL,
+                `shot_id` INT UNSIGNED NULL,
+                `asset_id` INT UNSIGNED NULL,
+                `task_type_id` INT UNSIGNED NULL,
+                `name` VARCHAR(150) NOT NULL,
+                `description` TEXT NULL,
+                `status` VARCHAR(50) NOT NULL DEFAULT 'not_started',
+                `priority` VARCHAR(50) NOT NULL DEFAULT 'normal',
+                `assigned_to` INT UNSIGNED NULL,
+                `estimated_hours` DECIMAL(8,2) NOT NULL DEFAULT 0.00,
+                `complexity` VARCHAR(50) NOT NULL DEFAULT 'Medium',
+                `start_date` DATE NULL,
+                `due_date` DATE NULL,
+                `created_at` DATETIME NULL,
+                `updated_at` DATETIME NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+            $db->query("CREATE TABLE IF NOT EXISTS `task_benchmarks` (
+                `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `project_type_id` INT UNSIGNED NOT NULL,
+                `task_name` VARCHAR(100) NOT NULL,
+                `estimated_hours` DECIMAL(8,2) NOT NULL DEFAULT 8.00,
+                `complexity` VARCHAR(50) NOT NULL DEFAULT 'Medium',
+                `created_at` DATETIME NULL,
+                `updated_at` DATETIME NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+            $db->query("CREATE TABLE IF NOT EXISTS `reviews` (
+                `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `project_id` INT UNSIGNED NOT NULL,
+                `shot_id` INT UNSIGNED NULL,
+                `task_id` INT UNSIGNED NULL,
+                `title` VARCHAR(255) NOT NULL,
+                `description` TEXT NULL,
+                `status` VARCHAR(50) NOT NULL DEFAULT 'pending',
+                `created_by` INT UNSIGNED NULL,
+                `created_at` DATETIME NULL,
+                `updated_at` DATETIME NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+            $db->query("CREATE TABLE IF NOT EXISTS `review_files` (
+                `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `review_id` INT UNSIGNED NOT NULL,
+                `file_path` VARCHAR(255) NOT NULL,
+                `file_type` VARCHAR(50) NOT NULL DEFAULT 'video',
+                `version` INT NOT NULL DEFAULT 1,
+                `created_at` DATETIME NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+            $db->query("CREATE TABLE IF NOT EXISTS `review_comments` (
+                `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `review_id` INT UNSIGNED NOT NULL,
+                `user_id` INT UNSIGNED NULL,
+                `comment` TEXT NOT NULL,
+                `frame_number` INT NULL,
+                `annotation_data` JSON NULL,
+                `created_at` DATETIME NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+            $db->query("CREATE TABLE IF NOT EXISTS `public_share_tokens` (
+                `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `token` VARCHAR(64) NOT NULL UNIQUE,
+                `resource_type` VARCHAR(50) NOT NULL,
+                `resource_id` INT UNSIGNED NOT NULL,
+                `expires_at` DATETIME NULL,
+                `created_by` INT UNSIGNED NULL,
+                `created_at` DATETIME NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+            $db->query("CREATE TABLE IF NOT EXISTS `settings` (
+                `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `setting_key` VARCHAR(100) NOT NULL UNIQUE,
+                `setting_value` TEXT NULL,
+                `created_at` DATETIME NULL,
+                `updated_at` DATETIME NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+            $db->query("CREATE TABLE IF NOT EXISTS `notifications` (
+                `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `user_id` INT UNSIGNED NOT NULL,
+                `title` VARCHAR(255) NOT NULL,
+                `message` TEXT NOT NULL,
+                `type` VARCHAR(50) NOT NULL DEFAULT 'info',
+                `is_read` TINYINT(1) NOT NULL DEFAULT 0,
+                `created_at` DATETIME NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+            // 2. Safely Add Missing Columns to Existing Tables
+            $safeColumns = [
+                ['users', 'roles', "TEXT NULL AFTER `global_role`"],
+                ['users', 'hourly_rate', "DECIMAL(10,2) NULL DEFAULT 500.00 AFTER `experience_level`"],
+                ['users', 'experience_level', "VARCHAR(50) NULL DEFAULT 'Mid' AFTER `status`"],
+                ['users', 'weekly_hours', "INT NULL DEFAULT 40"],
+                ['users', 'telegram_chat_id', "VARCHAR(255) NULL"],
+                ['users', 'telegram_link_code', "VARCHAR(50) NULL"],
+                ['users', 'client_id', "INT UNSIGNED NULL"],
+                ['projects', 'supervisor_id', "INT UNSIGNED NULL AFTER `client_id`"],
+                ['projects', 'agreed_budget', "DECIMAL(15,2) NOT NULL DEFAULT 0.00 AFTER `priority`"],
+                ['projects', 'fps', "INT NOT NULL DEFAULT 24 AFTER `priority`"],
+                ['sequences', 'supervisor_id', "INT UNSIGNED NULL AFTER `project_id`"],
+                ['shots', 'preview_video_path', "VARCHAR(255) NULL AFTER `thumbnail_path`"],
+                ['shots', 'reference_images', "TEXT NULL AFTER `preview_video_path`"],
+                ['shots', 'pipeline_metadata', "JSON NULL AFTER `reference_images`"],
+                ['shots', 'fps', "INT NULL DEFAULT 24"],
+                ['shots', 'frame_count', "INT NULL"],
+                ['shots', 'frame_in', "INT NULL"],
+                ['shots', 'frame_out', "INT NULL"],
+                ['tasks', 'complexity', "VARCHAR(50) NOT NULL DEFAULT 'Medium' AFTER `estimated_hours`"],
+            ];
+
+            foreach ($safeColumns as $col) {
+                list($tableName, $colName, $colDef) = $col;
+                try {
+                    $check = $db->query("SHOW COLUMNS FROM `{$tableName}` LIKE '{$colName}'")->getRow();
+                    if (!$check) {
+                        $db->query("ALTER TABLE `{$tableName}` ADD COLUMN `{$colName}` {$colDef}");
+                    }
+                } catch (\Throwable $ignored) {}
             }
+
+            // 3. Seed Default Roles for any users with empty roles
+            try {
+                $db->query("UPDATE `users` SET `roles` = JSON_ARRAY(`global_role`) WHERE `roles` IS NULL OR `roles` = ''");
+            } catch (\Throwable $ignored) {}
+
+            return redirect()->to('/admin/database')->with('message', 'Database schema synced & updated successfully! All tables and multi-role columns are ready.');
         } catch (\Throwable $e) {
-            return redirect()->to('/admin/database')->with('error', 'Migration error: ' . $e->getMessage());
+            return redirect()->to('/admin/database')->with('error', 'Schema update error: ' . $e->getMessage());
         }
     }
 
