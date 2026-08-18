@@ -106,7 +106,8 @@ class Users extends BaseController
             $postedRoles = [$postedRoles];
         }
 
-        $primaryRole = $postedRoles[0];
+        $postedRoles = array_values(array_unique(array_filter((array)$postedRoles)));
+        $primaryRole = $postedRoles[0] ?? 'artist';
         $hourlyRate = $this->request->getPost('hourly_rate');
 
         $data = [
@@ -116,17 +117,16 @@ class Users extends BaseController
             'roles'            => json_encode($postedRoles),
             'experience_level' => $this->request->getPost('experience_level') ?: 'Mid',
             'hourly_rate'      => $hourlyRate !== '' && $hourlyRate !== null ? (float)$hourlyRate : 500.00,
-            'status'           => $this->request->getPost('status'),
+            'status'           => $this->request->getPost('status') ?: 'active',
         ];
 
         if ($this->request->getPost('password')) {
             $data['password_hash'] = password_hash($this->request->getPost('password'), PASSWORD_DEFAULT);
         }
 
-        if ($this->userModel->update($id, $data)) {
-            return redirect()->to('/admin/users')->with('message', 'User updated successfully.');
-        }
+        $db = \Config\Database::connect();
+        $db->table('users')->where('id', (int)$id)->update($data);
 
-        return redirect()->back()->withInput()->with('error', 'Failed to update user.');
+        return redirect()->to('/admin/users')->with('message', 'User roles and profile updated successfully.');
     }
 }

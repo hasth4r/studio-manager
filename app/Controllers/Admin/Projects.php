@@ -2317,12 +2317,20 @@ class Projects extends BaseController
             // 2. Perform direct update
             $db->table('projects')->where('id', (int)$id)->update(['supervisor_id' => $supervisorId]);
 
-            // 3. Get user name
+            // 3. Automatically append project_manager role to the user
             $userName = 'Unassigned';
             if ($supervisorId) {
                 $userRow = $db->table('users')->where('id', $supervisorId)->get()->getRow();
                 if ($userRow) {
                     $userName = $userRow->name;
+                    $currentRoles = !empty($userRow->roles) ? json_decode($userRow->roles, true) : [$userRow->global_role ?? 'artist'];
+                    if (!is_array($currentRoles)) $currentRoles = [$userRow->global_role ?? 'artist'];
+                    if (!in_array('project_manager', $currentRoles)) {
+                        $currentRoles[] = 'project_manager';
+                        $db->table('users')->where('id', $supervisorId)->update([
+                            'roles' => json_encode(array_values(array_unique($currentRoles)))
+                        ]);
+                    }
                 }
             }
 
@@ -2370,12 +2378,20 @@ class Projects extends BaseController
             // 2. Perform direct update
             $db->table('sequences')->where('id', (int)$id)->update(['supervisor_id' => $supervisorId]);
 
-            // 3. Get user name
+            // 3. Automatically append project_manager role to the user
             $userName = 'Unassigned';
             if ($supervisorId) {
                 $userRow = $db->table('users')->where('id', $supervisorId)->get()->getRow();
                 if ($userRow) {
                     $userName = $userRow->name;
+                    $currentRoles = !empty($userRow->roles) ? json_decode($userRow->roles, true) : [$userRow->global_role ?? 'artist'];
+                    if (!is_array($currentRoles)) $currentRoles = [$userRow->global_role ?? 'artist'];
+                    if (!in_array('project_manager', $currentRoles)) {
+                        $currentRoles[] = 'project_manager';
+                        $db->table('users')->where('id', $supervisorId)->update([
+                            'roles' => json_encode(array_values(array_unique($currentRoles)))
+                        ]);
+                    }
                 }
             }
 

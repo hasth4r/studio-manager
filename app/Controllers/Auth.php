@@ -53,9 +53,16 @@ class Auth extends BaseController
                 $roles = [$user->global_role ?? 'artist'];
             }
 
+            // Check if supervisor of any project or sequence
+            $isSupervisor = $db->table('projects')->where('supervisor_id', $user->id)->countAllResults() > 0 
+                         || $db->table('sequences')->where('supervisor_id', $user->id)->countAllResults() > 0;
+            if ($isSupervisor && !in_array('project_manager', $roles)) {
+                $roles[] = 'project_manager';
+            }
+
             // RBAC Check for Admin Login Route
-            if ($type === 'ADMIN' && !in_array('admin', $roles) && !in_array('site_manager', $roles)) {
-                return redirect()->back()->withInput()->with('error', 'Unauthorized. Admin or Site Manager access required.');
+            if ($type === 'ADMIN' && !in_array('admin', $roles) && !in_array('site_manager', $roles) && !in_array('project_manager', $roles)) {
+                return redirect()->back()->withInput()->with('error', 'Unauthorized. Management access required.');
             }
 
             $primaryRole = $roles[0] ?? $user->global_role;

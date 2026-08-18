@@ -32,10 +32,10 @@ class UserModel extends Model
     protected $validationRules      = [
         'name'          => 'required|max_length[255]',
         'email'         => 'required|valid_email|is_unique[users.email,id,{id}]',
-        'password_hash' => 'required',
-        'global_role'   => 'required',
+        'password_hash' => 'permit_empty',
+        'global_role'   => 'permit_empty',
         'roles'         => 'permit_empty',
-        'status'        => 'required|in_list[active,inactive]',
+        'status'        => 'permit_empty',
         'experience_level' => 'permit_empty',
         'client_id'     => 'permit_empty|is_natural_no_zero'
     ];

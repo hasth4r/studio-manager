@@ -1,4 +1,20 @@
-<?php
+if (!function_exists('is_any_supervisor')) {
+    /**
+     * Check if the user is assigned as Supervisor on ANY project or sequence.
+     */
+    function is_any_supervisor(?int $userId = null): bool
+    {
+        $userId = $userId ?? session()->get('userId');
+        if (!$userId) return false;
+
+        $db = \Config\Database::connect();
+        $pCount = $db->table('projects')->where('supervisor_id', $userId)->countAllResults();
+        if ($pCount > 0) return true;
+
+        $sCount = $db->table('sequences')->where('supervisor_id', $userId)->countAllResults();
+        return $sCount > 0;
+    }
+}
 
 if (!function_exists('get_user_roles')) {
     /**
@@ -22,7 +38,18 @@ if (!function_exists('get_user_roles')) {
             $roles = is_array($decoded) ? $decoded : [$roles];
         }
 
-        return is_array($roles) ? array_values(array_unique($roles)) : [];
+        if (!is_array($roles)) {
+            $roles = ['artist'];
+        }
+
+        // Dynamically grant project_manager role if user is assigned as a supervisor anywhere
+        if (is_any_supervisor((int)$session->get('userId'))) {
+            if (!in_array('project_manager', $roles)) {
+                $roles[] = 'project_manager';
+            }
+        }
+
+        return array_values(array_unique($roles));
     }
 }
 
