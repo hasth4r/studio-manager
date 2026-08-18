@@ -1,3 +1,5 @@
+<?php
+
 if (!function_exists('is_any_supervisor')) {
     /**
      * Check if the user is assigned as Supervisor on ANY project or sequence.
