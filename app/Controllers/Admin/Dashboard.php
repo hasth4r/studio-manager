@@ -28,14 +28,18 @@ class Dashboard extends BaseController
         $builder->orderBy('tasks.created_at', 'DESC');
         $myTasks = $builder->get()->getResult();
 
-        // Analytics for Admin/PM
+        // Analytics for Admin/PM/Site Manager
         $activeProjectsCount = 0;
         $completedTasksCount = 0;
         $pendingReviewsCount = 0;
         $topProjects = [];
         $latestReview = null;
+        $totalPipelineBudget = 0.0;
+        $totalLockedBudget = 0.0;
+        $totalPipelineHours = 0.0;
+        $studioCurrency = '₹';
 
-        if (in_array($userRole, ['admin', 'project_manager'])) {
+        if (has_any_role(['site_manager', 'admin', 'project_manager', 'it'])) {
             // Active Projects
             $activeProjectsCount = $db->table('projects')
                 ->where('status !=', 'completed')
@@ -72,6 +76,7 @@ class Dashboard extends BaseController
                 ->orderBy('r.created_at', 'DESC')
                 ->limit(1)
                 ->get()->getRow();
+
             // Budget & Pipeline Economics
             $settingsModel = new \App\Models\SettingsModel();
             $studioCurrency = $settingsModel->getSetting('studio_currency', '₹');
@@ -87,9 +92,6 @@ class Dashboard extends BaseController
             }
 
             $allProjects = $db->table('projects')->where('status !=', 'completed')->get()->getResult();
-            $totalPipelineBudget = 0.0;
-            $totalLockedBudget = 0.0;
-            $totalPipelineHours = 0.0;
 
             foreach ($allProjects as $p) {
                 if (!empty($p->agreed_budget) && (float)$p->agreed_budget > 0) {
