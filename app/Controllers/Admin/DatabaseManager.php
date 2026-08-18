@@ -266,42 +266,46 @@ class DatabaseManager extends BaseController
                 `created_at` DATETIME NULL
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-            // 2. Safely Add Missing Columns to Existing Tables
+            // 2. Safely Add Missing Columns to Existing Tables (Checks both prefixed & direct table names)
             $safeColumns = [
-                ['users', 'roles', "TEXT NULL AFTER `global_role`"],
-                ['users', 'hourly_rate', "DECIMAL(10,2) NULL DEFAULT 500.00 AFTER `experience_level`"],
-                ['users', 'experience_level', "VARCHAR(50) NULL DEFAULT 'Mid' AFTER `status`"],
+                ['users', 'roles', "TEXT NULL"],
+                ['users', 'hourly_rate', "DECIMAL(10,2) NULL DEFAULT 500.00"],
+                ['users', 'experience_level', "VARCHAR(50) NULL DEFAULT 'Mid'"],
                 ['users', 'weekly_hours', "INT NULL DEFAULT 40"],
                 ['users', 'telegram_chat_id', "VARCHAR(255) NULL"],
                 ['users', 'telegram_link_code', "VARCHAR(50) NULL"],
                 ['users', 'client_id', "INT UNSIGNED NULL"],
-                ['projects', 'supervisor_id', "INT UNSIGNED NULL AFTER `client_id`"],
-                ['projects', 'agreed_budget', "DECIMAL(15,2) NOT NULL DEFAULT 0.00 AFTER `priority`"],
-                ['projects', 'fps', "INT NOT NULL DEFAULT 24 AFTER `priority`"],
-                ['sequences', 'supervisor_id', "INT UNSIGNED NULL AFTER `project_id`"],
-                ['shots', 'preview_video_path', "VARCHAR(255) NULL AFTER `thumbnail_path`"],
-                ['shots', 'reference_images', "TEXT NULL AFTER `preview_video_path`"],
-                ['shots', 'pipeline_metadata', "JSON NULL AFTER `reference_images`"],
+                ['projects', 'supervisor_id', "INT UNSIGNED NULL"],
+                ['projects', 'agreed_budget', "DECIMAL(15,2) NOT NULL DEFAULT 0.00"],
+                ['projects', 'fps', "INT NOT NULL DEFAULT 24"],
+                ['sequences', 'supervisor_id', "INT UNSIGNED NULL"],
+                ['shots', 'preview_video_path', "VARCHAR(255) NULL"],
+                ['shots', 'reference_images', "TEXT NULL"],
+                ['shots', 'pipeline_metadata', "JSON NULL"],
                 ['shots', 'fps', "INT NULL DEFAULT 24"],
                 ['shots', 'frame_count', "INT NULL"],
                 ['shots', 'frame_in', "INT NULL"],
                 ['shots', 'frame_out', "INT NULL"],
-                ['tasks', 'complexity', "VARCHAR(50) NOT NULL DEFAULT 'Medium' AFTER `estimated_hours`"],
+                ['tasks', 'complexity', "VARCHAR(50) NOT NULL DEFAULT 'Medium'"],
             ];
 
             foreach ($safeColumns as $col) {
                 list($tableName, $colName, $colDef) = $col;
-                try {
-                    $check = $db->query("SHOW COLUMNS FROM `{$tableName}` LIKE '{$colName}'")->getRow();
-                    if (!$check) {
-                        $db->query("ALTER TABLE `{$tableName}` ADD COLUMN `{$colName}` {$colDef}");
-                    }
-                } catch (\Throwable $ignored) {}
+                $targetTables = array_unique([$tableName, $db->prefixTable($tableName)]);
+                foreach ($targetTables as $t) {
+                    try {
+                        $check = $db->query("SHOW COLUMNS FROM `{$t}` LIKE '{$colName}'")->getRow();
+                        if (!$check) {
+                            $db->query("ALTER TABLE `{$t}` ADD COLUMN `{$colName}` {$colDef}");
+                        }
+                    } catch (\Throwable $ignored) {}
+                }
             }
 
             // 3. Seed Default Roles for any users with empty roles
             try {
-                $db->query("UPDATE `users` SET `roles` = JSON_ARRAY(`global_role`) WHERE `roles` IS NULL OR `roles` = ''");
+                $usersT = $db->prefixTable('users');
+                $db->query("UPDATE `{$usersT}` SET `roles` = JSON_ARRAY(`global_role`) WHERE `roles` IS NULL OR `roles` = ''");
             } catch (\Throwable $ignored) {}
 
             return redirect()->to('/admin/database')->with('message', 'Database schema synced & updated successfully! All tables and multi-role columns are ready.');

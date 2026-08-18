@@ -2302,12 +2302,13 @@ class Projects extends BaseController
             $supervisorId = (!empty($supervisorId) && is_numeric($supervisorId)) ? (int)$supervisorId : null;
 
             $db = \Config\Database::connect();
+            $projectsTable = $db->prefixTable('projects');
             
-            // 1. Ensure supervisor_id column exists on projects table
+            // 1. Ensure supervisor_id column exists on prefixed projects table
             try {
-                $check = $db->query("SHOW COLUMNS FROM `projects` LIKE 'supervisor_id'")->getRow();
+                $check = $db->query("SHOW COLUMNS FROM `{$projectsTable}` LIKE 'supervisor_id'")->getRow();
                 if (!$check) {
-                    $db->query("ALTER TABLE `projects` ADD COLUMN `supervisor_id` INT UNSIGNED NULL");
+                    $db->query("ALTER TABLE `{$projectsTable}` ADD COLUMN `supervisor_id` INT UNSIGNED NULL");
                 }
             } catch (\Throwable $colEx) {
                 log_message('error', 'Auto-add supervisor_id failed: ' . $colEx->getMessage());
@@ -2354,12 +2355,13 @@ class Projects extends BaseController
             $supervisorId = (!empty($supervisorId) && is_numeric($supervisorId)) ? (int)$supervisorId : null;
 
             $db = \Config\Database::connect();
+            $sequencesTable = $db->prefixTable('sequences');
             
-            // 1. Ensure supervisor_id column exists on sequences table
+            // 1. Ensure supervisor_id column exists on prefixed sequences table
             try {
-                $check = $db->query("SHOW COLUMNS FROM `sequences` LIKE 'supervisor_id'")->getRow();
+                $check = $db->query("SHOW COLUMNS FROM `{$sequencesTable}` LIKE 'supervisor_id'")->getRow();
                 if (!$check) {
-                    $db->query("ALTER TABLE `sequences` ADD COLUMN `supervisor_id` INT UNSIGNED NULL");
+                    $db->query("ALTER TABLE `{$sequencesTable}` ADD COLUMN `supervisor_id` INT UNSIGNED NULL");
                 }
             } catch (\Throwable $colEx) {
                 log_message('error', 'Auto-add sequence supervisor_id failed: ' . $colEx->getMessage());
