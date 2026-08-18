@@ -1106,19 +1106,19 @@
     <div id="globalHoverTag" class="absolute bottom-1.5 left-2 bg-black/85 backdrop-blur-md text-blue-300 font-bold text-[10px] font-mono px-2 py-0.5 rounded border border-blue-500/30 z-30 shadow-lg"></div>
 </div>
 
-<!-- Quick Video Player Modal with Loading Animation -->
-<div id="quickVideoModal" class="fixed inset-0 z-50 hidden bg-black/85 backdrop-blur-md flex items-center justify-center p-4" onclick="if(event.target===this) closeVideoModal()">
-    <div class="bg-ytCard border border-ytBorder rounded-2xl overflow-hidden shadow-2xl max-w-3xl w-full">
-        <div class="px-5 py-3.5 border-b border-ytBorder/60 flex items-center justify-between bg-[#111]">
+<!-- Quick Video Player Modal: Full width on mobile -->
+<div id="quickVideoModal" class="fixed inset-0 z-50 hidden bg-black/90 backdrop-blur-md flex items-center justify-center p-0 sm:p-4" onclick="if(event.target===this) closeVideoModal()">
+    <div class="bg-ytCard border-y sm:border border-ytBorder sm:rounded-2xl overflow-hidden shadow-2xl max-w-4xl w-full">
+        <div class="px-4 sm:px-5 py-3 sm:py-3.5 border-b border-ytBorder/60 flex items-center justify-between bg-[#111]">
             <div class="flex items-center gap-2">
                 <span class="material-symbols-outlined text-ytBlue text-[20px]">play_circle</span>
                 <h4 id="quickVideoTitle" class="text-[14px] font-bold text-ytText font-mono">Video Preview</h4>
             </div>
-            <button type="button" onclick="closeVideoModal()" class="text-ytMuted hover:text-ytText p-1 rounded-full hover:bg-ytHover transition-colors">
-                <span class="material-symbols-outlined text-[20px]">close</span>
+            <button type="button" onclick="closeVideoModal()" class="text-ytMuted hover:text-ytText p-1.5 rounded-full hover:bg-ytHover transition-colors flex items-center justify-center">
+                <span class="material-symbols-outlined text-[22px]">close</span>
             </button>
         </div>
-        <div class="aspect-video bg-black relative flex items-center justify-center">
+        <div class="aspect-video bg-black relative flex items-center justify-center w-full">
             <!-- Modal Loading Buffer Indicator -->
             <div id="quickVideoLoader" class="absolute inset-0 flex flex-col items-center justify-center bg-black/60 z-10 transition-opacity duration-300 pointer-events-none">
                 <div class="relative w-10 h-10 flex items-center justify-center">
