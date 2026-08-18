@@ -2286,6 +2286,55 @@ class Projects extends BaseController
 
         return view('projects/analysis', $data);
     }
+
+    /**
+     * AJAX: Assign or Update Project Supervisor
+     */
+    public function updateSupervisor($id)
+    {
+        if (!has_any_role(['site_manager', 'admin', 'project_manager'])) {
+            return $this->response->setJSON(['success' => false, 'error' => 'Unauthorized'])->setStatusCode(403);
+        }
+
+        $supervisorId = $this->request->getPost('supervisor_id');
+        $supervisorId = !empty($supervisorId) ? (int)$supervisorId : null;
+
+        $this->projectModel->update($id, ['supervisor_id' => $supervisorId]);
+
+        $user = $supervisorId ? (new \App\Models\UserModel())->find($supervisorId) : null;
+
+        return $this->response->setJSON([
+            'success'         => true,
+            'message'         => 'Project Supervisor updated successfully',
+            'supervisor_name' => $user ? $user->name : 'Unassigned',
+            'supervisor_id'   => $supervisorId
+        ]);
+    }
+
+    /**
+     * AJAX: Assign or Update Sequence Supervisor
+     */
+    public function updateSequenceSupervisor($id)
+    {
+        if (!has_any_role(['site_manager', 'admin', 'project_manager']) && !is_sequence_supervisor($id)) {
+            return $this->response->setJSON(['success' => false, 'error' => 'Unauthorized'])->setStatusCode(403);
+        }
+
+        $supervisorId = $this->request->getPost('supervisor_id');
+        $supervisorId = !empty($supervisorId) ? (int)$supervisorId : null;
+
+        $sequenceModel = new \App\Models\SequenceModel();
+        $sequenceModel->update($id, ['supervisor_id' => $supervisorId]);
+
+        $user = $supervisorId ? (new \App\Models\UserModel())->find($supervisorId) : null;
+
+        return $this->response->setJSON([
+            'success'         => true,
+            'message'         => 'Sequence Supervisor updated successfully',
+            'supervisor_name' => $user ? $user->name : 'Unassigned',
+            'supervisor_id'   => $supervisorId
+        ]);
+    }
 }
 
 

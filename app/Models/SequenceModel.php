@@ -14,6 +14,7 @@ class SequenceModel extends Model
     protected $protectFields    = true;
     protected $allowedFields    = [
         'project_id',
+        'supervisor_id',
         'name',
         'description'
     ];

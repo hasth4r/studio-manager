@@ -76,6 +76,8 @@ $routes->group('admin', ['filter' => 'auth', 'namespace' => 'App\Controllers\Adm
     $routes->post('projects/deleteTaskAjax', 'Projects::deleteTaskAjax');
     $routes->post('projects/saveAutoThumbnailAjax', 'Projects::saveAutoThumbnailAjax');
     $routes->post('projects/updateAgreedBudget', 'Projects::updateAgreedBudget');
+    $routes->post('projects/updateSupervisor/(:num)', 'Projects::updateSupervisor/$1');
+    $routes->post('projects/updateSequenceSupervisor/(:num)', 'Projects::updateSequenceSupervisor/$1');
     $routes->get('projects/(:num)/analysis', 'Projects::analysis/$1');
     $routes->get('projects/(:num)/briefing', '\App\Controllers\Client\Briefing::index/$1');
 

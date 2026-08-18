@@ -9,15 +9,28 @@
             <a href="/admin/projects" class="p-2 hover:bg-ytHover rounded-full transition-colors flex items-center justify-center text-ytMuted shrink-0">
                 <span class="material-symbols-outlined">arrow_back</span>
             </a>
-            <div class="min-w-0">
-                <div class="flex items-center space-x-2 md:space-x-3 truncate">
-                    <h2 class="text-[18px] md:text-[24px] font-bold md:font-medium text-ytText truncate leading-tight"><?= esc($project->name) ?></h2>
-                    <button onclick="openModal('projectSettingsModal')" class="p-1 text-ytMuted hover:text-ytText transition-colors shrink-0" title="Project Settings">
-                        <span class="material-symbols-outlined text-[18px] md:text-[20px]">settings</span>
-                    </button>
-                    <span class="bg-[#1a1a1a] text-ytMuted border border-ytBorder/50 px-1.5 py-0.5 rounded text-[10px] md:text-[11px] font-mono shrink-0"><?= esc($project->project_code) ?></span>
+            <div>
+                <div class="flex items-center gap-2">
+                    <h2 class="text-[18px] md:text-[24px] font-bold text-ytText"><?= esc($project->name) ?></h2>
+                    <span class="text-[10px] md:text-[11px] font-mono bg-ytCard border border-ytBorder px-1.5 py-0.5 rounded text-ytBlue font-semibold shrink-0"><?= esc($project->project_code) ?></span>
                 </div>
-                <p class="text-[11px] md:text-[13px] text-ytMuted mt-0.5 truncate">Client: <span class="text-ytBlue font-semibold"><?= esc($project->client_name) ?></span> &bull; <?= esc($project->project_type_name) ?></p>
+                <div class="flex flex-wrap items-center gap-2 mt-1">
+                    <p class="text-[11px] md:text-[13px] text-ytMuted truncate">Client: <span class="text-ytBlue font-semibold"><?= esc($project->client_name) ?></span> &bull; <?= esc($project->project_type_name) ?></p>
+                    <span class="text-ytBorder hidden sm:inline">&bull;</span>
+                    <!-- Project Supervisor Inline Selector -->
+                    <div class="flex items-center gap-1 bg-[#141418] border border-ytBorder/80 px-2 py-0.5 rounded-lg text-[11px] font-mono shadow-xs">
+                        <span class="material-symbols-outlined text-[14px] text-amber-400">shield_person</span>
+                        <span class="text-ytMuted text-[10px]">Supervisor:</span>
+                        <select onchange="updateProjectSupervisor(<?= $project->id ?>, this.value)" class="bg-transparent text-amber-300 font-bold focus:outline-none cursor-pointer hover:text-amber-200 text-[11px]">
+                            <option value="" class="bg-ytCard text-ytText">(Unassigned)</option>
+                            <?php foreach($users as $u): ?>
+                                <option value="<?= $u->id ?>" <?= ($project->supervisor_id ?? '') == $u->id ? 'selected' : '' ?> class="bg-ytCard text-ytText">
+                                    <?= esc($u->name) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -98,25 +111,25 @@
                 <span class="material-symbols-outlined text-[18px]">movie</span> Sequences &amp; Shots
             </button>
             <button onclick="switchTab('tab-assets')" id="btn-tab-assets" class="border-transparent text-ytMuted hover:text-ytText border-b-2 py-2.5 md:py-3 px-1 text-[13px] md:text-[14px] font-medium outline-none flex items-center gap-1.5 transition-colors">
-                <span class="material-symbols-outlined text-[18px]">view_in_ar</span> 3D Assets
+                <span class="material-symbols-outlined text-[18px]">token</span> 3D Assets
             </button>
             <button onclick="switchTab('tab-benchmarks')" id="btn-tab-benchmarks" class="border-transparent text-ytMuted hover:text-ytText border-b-2 py-2.5 md:py-3 px-1 text-[13px] md:text-[14px] font-medium outline-none flex items-center gap-1.5 transition-colors">
-                <span class="material-symbols-outlined text-[18px]">timer</span> Benchmarks
+                <span class="material-symbols-outlined text-[18px]">tune</span> Benchmarks
             </button>
         </nav>
     </div>
 </div>
 
-<!-- TAB: Sequences & Shots -->
-<div id="tab-sequences" class="block pt-4">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-        <h3 class="text-[15px] md:text-[16px] font-bold md:font-medium text-ytText">Production Sequences</h3>
-        <div class="flex items-center gap-2 overflow-x-auto pb-1 max-w-full flex-nowrap custom-scrollbar shrink-0 -mx-4 px-4 sm:mx-0 sm:px-0">
-            <a href="/admin/projects/<?= $project->id ?>/analysis" class="bg-[#181818] border border-purple-500/40 hover:border-purple-400 text-purple-200 px-3 py-1.5 rounded-full font-semibold text-[11px] md:text-[12px] hover:bg-purple-950/40 transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(168,85,247,0.15)] shrink-0" title="Open Complete Production, Financial & Risk Analysis">
-                <span class="material-symbols-outlined text-[15px] text-purple-400">analytics</span>
-                <span>Analysis</span>
-            </a>
-            <a href="/admin/projects/<?= $project->id ?>/breakdown" class="bg-[#181818] border border-ytBlue/50 hover:border-ytBlue text-ytText px-3.5 py-1.5 rounded-full font-semibold text-[11px] md:text-[12px] hover:bg-ytHover transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(23,123,207,0.15)] shrink-0">
+<!-- TAB 1: Sequences & Shots -->
+<div id="tab-sequences" class="tab-content block pt-4">
+    <div class="flex items-center justify-between gap-3 mb-4 flex-wrap">
+        <div>
+            <h3 class="text-[16px] font-bold text-ytText">Sequences &amp; Shots</h3>
+            <p class="text-[12px] text-ytMuted">Grouped shots breakdown with live progress tracking</p>
+        </div>
+
+        <div class="flex items-center gap-2 flex-wrap">
+            <a href="/admin/projects/<?= $project->id ?>/breakdown" class="bg-ytCard border border-ytBorder hover:border-ytBlue text-ytText hover:text-ytBlue px-3.5 py-1.5 rounded-full font-bold text-[11px] md:text-[12px] transition-all flex items-center gap-1.5 shrink-0 shadow-xs">
                 <span class="material-symbols-outlined text-[15px] text-ytBlue">table_chart</span>
                 <span>Matrix</span>
             </a>
@@ -231,10 +244,30 @@
 
     <?php foreach($sequences as $seq): ?>
         <div class="mb-8">
-            <h4 class="text-[15px] text-ytText mb-3 font-medium bg-[#1a1a1a] px-4 py-2 rounded border border-ytBorder/50 flex items-center">
-                <span class="material-symbols-outlined text-ytMuted mr-2 text-[18px]">folder</span>
-                <?= esc($seq->name) ?>
-                <div class="ml-auto flex items-center space-x-2">
+            <div class="mb-3 bg-[#161616] px-4 py-2.5 rounded-xl border border-ytBorder/60 flex flex-wrap items-center justify-between gap-2 shadow-sm">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-ytBlue text-[20px]">folder</span>
+                    <span class="font-bold text-[15px] text-ytText"><?= esc($seq->name) ?></span>
+                    <?php if(!empty($seq->description)): ?>
+                        <span class="text-[12px] text-ytMuted truncate max-w-xs">(&ldquo;<?= esc($seq->description) ?>&rdquo;)</span>
+                    <?php endif; ?>
+                </div>
+                
+                <div class="flex items-center gap-2 ml-auto">
+                    <!-- Sequence Lead / Supervisor Selector -->
+                    <div class="flex items-center gap-1 bg-[#101014] border border-ytBorder/70 px-2 py-0.5 rounded-lg text-[11px] font-mono">
+                        <span class="material-symbols-outlined text-[13px] text-blue-400">person</span>
+                        <span class="text-ytMuted text-[10px]">Lead:</span>
+                        <select onchange="updateSequenceSupervisor(<?= $seq->id ?>, this.value)" class="bg-transparent text-blue-300 font-bold focus:outline-none cursor-pointer hover:text-blue-200 text-[11px]">
+                            <option value="" class="bg-ytCard text-ytText">(Unassigned)</option>
+                            <?php foreach($users as $u): ?>
+                                <option value="<?= $u->id ?>" <?= ($seq->supervisor_id ?? '') == $u->id ? 'selected' : '' ?> class="bg-ytCard text-ytText">
+                                    <?= esc($u->name) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
                     <button onclick="editSequence(<?= $seq->id ?>, <?= htmlspecialchars(json_encode($seq->name), ENT_QUOTES, 'UTF-8') ?>, <?= htmlspecialchars(json_encode($seq->description), ENT_QUOTES, 'UTF-8') ?>)" class="flex items-center gap-1 bg-[#1a1a1a] border border-ytBorder hover:border-ytText hover:text-ytText transition-colors px-3 py-1 rounded-full text-[12px] font-medium text-ytMuted" title="Edit Sequence">
                         <span class="material-symbols-outlined text-[16px]">edit</span> Edit
                     </button>
@@ -242,7 +275,8 @@
                         <span class="material-symbols-outlined text-[16px]">movie_edit</span> Lineup Editor
                     </a>
                 </div>
-            </h4>
+            </div>
+            
             <?php if(empty($groupedShots[$seq->id])): ?>
                 <p class="text-[13px] text-ytMuted italic px-4">No shots in this sequence yet.</p>
             <?php else: ?>
@@ -1417,19 +1451,64 @@
     // Quick Actions Dropdown Toggle
     function toggleQuickActionsMenu() {
         const menu = document.getElementById('quickActionsDropdownMenu');
-        if (menu) {
-            menu.classList.toggle('hidden');
+    // Supervisor Instant Ajax Updates
+    async function updateProjectSupervisor(projectId, supervisorId) {
+        const formData = new FormData();
+        formData.append('<?= csrf_token() ?>', '<?= csrf_hash() ?>');
+        formData.append('supervisor_id', supervisorId);
+
+        try {
+            const res = await fetch(`/admin/projects/updateSupervisor/${projectId}`, {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            const data = await res.json();
+            if (data.success) {
+                showFloatingToast(`Project Supervisor updated: ${data.supervisor_name}`);
+            }
+        } catch (e) {
+            console.error('Error updating project supervisor:', e);
         }
     }
 
-    // Close Quick Actions dropdown when clicking outside
-    document.addEventListener('click', function(e) {
-        const container = document.getElementById('quickActionsDropdownContainer');
-        const menu = document.getElementById('quickActionsDropdownMenu');
-        if (container && menu && !container.contains(e.target)) {
-            menu.classList.add('hidden');
+    async function updateSequenceSupervisor(sequenceId, supervisorId) {
+        const formData = new FormData();
+        formData.append('<?= csrf_token() ?>', '<?= csrf_hash() ?>');
+        formData.append('supervisor_id', supervisorId);
+
+        try {
+            const res = await fetch(`/admin/projects/updateSequenceSupervisor/${sequenceId}`, {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            const data = await res.json();
+            if (data.success) {
+                showFloatingToast(`Sequence Lead updated: ${data.supervisor_name}`);
+            }
+        } catch (e) {
+            console.error('Error updating sequence supervisor:', e);
         }
-    });
+    }
+
+    function showFloatingToast(msg) {
+        let toast = document.getElementById('projectFloatingToast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'projectFloatingToast';
+            toast.className = 'fixed bottom-6 right-6 z-50 bg-[#064e3b] border border-emerald-500/40 text-emerald-200 px-4 py-2 rounded-xl shadow-2xl text-[12px] font-mono flex items-center gap-2 transition-all opacity-0 pointer-events-none transform translate-y-2';
+            toast.innerHTML = '<span class="material-symbols-outlined text-[16px] text-emerald-400">check_circle</span> <span id="toastMsgText"></span>';
+            document.body.appendChild(toast);
+        }
+        document.getElementById('toastMsgText').textContent = msg;
+        toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-2');
+        toast.classList.add('opacity-100', 'translate-y-0');
+        setTimeout(() => {
+            toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-2');
+            toast.classList.remove('opacity-100', 'translate-y-0');
+        }, 2200);
+    }
 </script>
 
 <!-- Quick Video Player Modal: 100% Fullscreen Immersive Player -->

@@ -41,24 +41,39 @@ class Auth extends BaseController
 
         if ($user && password_verify($password, $user->password_hash)) {
             
-            // RBAC Check for Admin Login Route
-            if ($type === 'ADMIN' && $user->global_role !== 'admin') {
-                return redirect()->back()->withInput()->with('error', 'Unauthorized. Admin access required.');
+            // Extract Multi-Roles
+            $roles = [];
+            if (!empty($user->roles)) {
+                $decoded = json_decode($user->roles, true);
+                if (is_array($decoded)) {
+                    $roles = $decoded;
+                }
             }
+            if (empty($roles)) {
+                $roles = [$user->global_role ?? 'artist'];
+            }
+
+            // RBAC Check for Admin Login Route
+            if ($type === 'ADMIN' && !in_array('admin', $roles) && !in_array('site_manager', $roles)) {
+                return redirect()->back()->withInput()->with('error', 'Unauthorized. Admin or Site Manager access required.');
+            }
+
+            $primaryRole = $roles[0] ?? $user->global_role;
 
             // Set Session Data
             $session = session();
             $session->set([
                 'userId'     => $user->id,
-                'userRole'   => $user->global_role,
+                'userRole'   => $primaryRole,
+                'userRoles'  => $roles,
                 'userName'   => $user->name,
                 'clientId'   => $user->client_id ?? null,
                 'isLoggedIn' => true,
             ]);
 
-            if (in_array($user->global_role, ['admin', 'project_manager'])) {
+            if (in_array('site_manager', $roles) || in_array('admin', $roles) || in_array('project_manager', $roles)) {
                 return redirect()->to('/admin/dashboard');
-            } elseif ($user->global_role === 'client') {
+            } elseif (in_array('client', $roles)) {
                 return redirect()->to('/client/dashboard');
             } else {
                 return redirect()->to('/user/dashboard');

@@ -17,13 +17,13 @@ class Users extends BaseController
 
     public function index()
     {
-        // Only Admin should manage users
-        if (session()->get('userRole') !== 'admin') {
-            return redirect()->to('/dashboard')->with('error', 'Unauthorized access. Admins only.');
+        // Only Site Manager, Admin, or HR can manage users
+        if (!has_any_role(['site_manager', 'admin', 'hr'])) {
+            return redirect()->to('/dashboard')->with('error', 'Unauthorized access.');
         }
 
         $data = [
-            'pageTitle' => 'Team Management',
+            'pageTitle' => 'Team & Roles Management',
             'users'     => $this->userModel->orderBy('name', 'ASC')->findAll(),
         ];
 
@@ -32,7 +32,7 @@ class Users extends BaseController
 
     public function store()
     {
-        if (session()->get('userRole') !== 'admin') {
+        if (!has_any_role(['site_manager', 'admin', 'hr'])) {
             return redirect()->to('/dashboard')->with('error', 'Unauthorized access.');
         }
 
@@ -40,20 +40,30 @@ class Users extends BaseController
             'name'             => 'required|min_length[2]|max_length[255]',
             'email'            => 'required|valid_email|is_unique[users.email]',
             'password'         => 'required|min_length[5]',
-            'global_role'      => 'required|in_list[admin,project_manager,artist,client]',
-            'experience_level' => 'permit_empty|in_list[Junior,Mid,Senior]'
+            'experience_level' => 'permit_empty'
         ];
 
         if (! $this->validate($rules)) {
             return redirect()->back()->withInput()->with('error', 'Validation failed. Please check the fields or ensure the email is unique.');
         }
 
+        $postedRoles = $this->request->getPost('roles');
+        if (empty($postedRoles)) {
+            $fallbackRole = $this->request->getPost('global_role') ?: 'artist';
+            $postedRoles = [$fallbackRole];
+        } elseif (!is_array($postedRoles)) {
+            $postedRoles = [$postedRoles];
+        }
+
+        $primaryRole = $postedRoles[0];
         $hourlyRate = $this->request->getPost('hourly_rate');
+
         $data = [
             'name'             => $this->request->getPost('name'),
             'email'            => $this->request->getPost('email'),
             'password_hash'    => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT),
-            'global_role'      => $this->request->getPost('global_role'),
+            'global_role'      => $primaryRole,
+            'roles'            => json_encode($postedRoles),
             'experience_level' => $this->request->getPost('experience_level') ?: 'Mid',
             'hourly_rate'      => $hourlyRate !== '' && $hourlyRate !== null ? (float)$hourlyRate : 500.00,
             'status'           => 'active',
@@ -68,15 +78,14 @@ class Users extends BaseController
 
     public function update($id)
     {
-        if (session()->get('userRole') !== 'admin') {
+        if (!has_any_role(['site_manager', 'admin', 'hr'])) {
             return redirect()->to('/admin/dashboard')->with('error', 'Unauthorized access.');
         }
 
         $rules = [
             'name'             => 'required|min_length[2]|max_length[255]',
             'email'            => 'required|valid_email',
-            'global_role'      => 'required|in_list[admin,project_manager,artist,client]',
-            'experience_level' => 'permit_empty|in_list[Junior,Mid,Senior]',
+            'experience_level' => 'permit_empty',
             'status'           => 'required|in_list[active,inactive]'
         ];
 
@@ -89,11 +98,22 @@ class Users extends BaseController
             return redirect()->back()->withInput()->with('error', 'Validation failed. Please check the fields.');
         }
 
+        $postedRoles = $this->request->getPost('roles');
+        if (empty($postedRoles)) {
+            $fallbackRole = $this->request->getPost('global_role') ?: 'artist';
+            $postedRoles = [$fallbackRole];
+        } elseif (!is_array($postedRoles)) {
+            $postedRoles = [$postedRoles];
+        }
+
+        $primaryRole = $postedRoles[0];
         $hourlyRate = $this->request->getPost('hourly_rate');
+
         $data = [
             'name'             => $this->request->getPost('name'),
             'email'            => $this->request->getPost('email'),
-            'global_role'      => $this->request->getPost('global_role'),
+            'global_role'      => $primaryRole,
+            'roles'            => json_encode($postedRoles),
             'experience_level' => $this->request->getPost('experience_level') ?: 'Mid',
             'hourly_rate'      => $hourlyRate !== '' && $hourlyRate !== null ? (float)$hourlyRate : 500.00,
             'status'           => $this->request->getPost('status'),

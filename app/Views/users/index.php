@@ -68,15 +68,41 @@
                             </td>
                             <td class="px-6 py-4 text-ytMuted"><?= esc($user->email) ?></td>
                             <td class="px-6 py-4">
-                                <?php if($user->global_role === 'admin'): ?>
-                                    <span class="bg-[#2a1215] text-red-400 border border-red-900/50 px-2 py-0.5 rounded text-[11px] uppercase tracking-wider font-medium">Admin</span>
-                                <?php elseif($user->global_role === 'project_manager'): ?>
-                                    <span class="bg-[#121c2a] text-blue-400 border border-blue-900/50 px-2 py-0.5 rounded text-[11px] uppercase tracking-wider font-medium">PM</span>
-                                <?php elseif($user->global_role === 'client'): ?>
-                                    <span class="bg-[#1a2e1f] text-green-400 border border-green-900/50 px-2 py-0.5 rounded text-[11px] uppercase tracking-wider font-medium">Client</span>
-                                <?php else: ?>
-                                    <span class="bg-[#1a1a1a] text-ytMuted border border-ytBorder/50 px-2 py-0.5 rounded text-[11px] uppercase tracking-wider font-medium">Artist</span>
-                                <?php endif; ?>
+                                <?php 
+                                    $userRoles = [];
+                                    if (!empty($user->roles)) {
+                                        $decoded = json_decode($user->roles, true);
+                                        if (is_array($decoded)) $userRoles = $decoded;
+                                    }
+                                    if (empty($userRoles)) {
+                                        $userRoles = [$user->global_role ?? 'artist'];
+                                    }
+                                ?>
+                                <div class="flex flex-wrap items-center gap-1.5">
+                                    <?php foreach($userRoles as $r): ?>
+                                        <?php if($r === 'site_manager'): ?>
+                                            <span class="bg-[#24122e] text-purple-300 border border-purple-800/60 px-2 py-0.5 rounded text-[10px] font-mono uppercase font-bold">Site Mgr</span>
+                                        <?php elseif($r === 'admin'): ?>
+                                            <span class="bg-[#2a1215] text-red-400 border border-red-900/50 px-2 py-0.5 rounded text-[10px] font-mono uppercase font-bold">Admin</span>
+                                        <?php elseif($r === 'project_manager'): ?>
+                                            <span class="bg-[#121c2a] text-blue-400 border border-blue-900/50 px-2 py-0.5 rounded text-[10px] font-mono uppercase font-bold">PM</span>
+                                        <?php elseif($r === 'artist'): ?>
+                                            <span class="bg-[#181818] text-slate-300 border border-ytBorder/60 px-2 py-0.5 rounded text-[10px] font-mono uppercase font-bold">Artist</span>
+                                        <?php elseif($r === 'freelancer'): ?>
+                                            <span class="bg-[#2a1d12] text-amber-300 border border-amber-800/50 px-2 py-0.5 rounded text-[10px] font-mono uppercase font-bold">Freelancer</span>
+                                        <?php elseif($r === 'collaborator'): ?>
+                                            <span class="bg-[#1c182a] text-indigo-300 border border-indigo-800/50 px-2 py-0.5 rounded text-[10px] font-mono uppercase font-bold">Collaborator</span>
+                                        <?php elseif($r === 'client'): ?>
+                                            <span class="bg-[#1a2e1f] text-green-400 border border-green-900/50 px-2 py-0.5 rounded text-[10px] font-mono uppercase font-bold">Client</span>
+                                        <?php elseif($r === 'hr'): ?>
+                                            <span class="bg-[#2e1a27] text-pink-300 border border-pink-800/50 px-2 py-0.5 rounded text-[10px] font-mono uppercase font-bold">HR</span>
+                                        <?php elseif($r === 'it'): ?>
+                                            <span class="bg-[#12282e] text-cyan-300 border border-cyan-800/50 px-2 py-0.5 rounded text-[10px] font-mono uppercase font-bold">IT</span>
+                                        <?php else: ?>
+                                            <span class="bg-[#1a1a1a] text-ytMuted border border-ytBorder/50 px-2 py-0.5 rounded text-[10px] font-mono uppercase font-bold"><?= esc($r) ?></span>
+                                        <?php endif; ?>
+                                    <?php endforeach; ?>
+                                </div>
                             </td>
                             <td class="px-6 py-4">
                                 <span class="bg-[#1a1a1a] text-ytText border border-ytBorder px-2 py-0.5 rounded text-[11px] tracking-wider font-medium"><?= esc($user->experience_level ?? 'Mid') ?></span>
@@ -134,24 +160,56 @@
                 <input type="text" name="password" required class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-3 py-2 text-[13px] focus:outline-none focus:border-ytBlue" placeholder="Must be at least 5 characters">
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-[12px] font-medium text-ytText mb-1">Global Role <span class="text-ytRed">*</span></label>
-                    <select name="global_role" required class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-3 py-2 text-[13px] focus:outline-none focus:border-ytBlue">
-                        <option value="artist">Artist / Freelancer</option>
-                        <option value="project_manager">Project Manager</option>
-                        <option value="client">Client</option>
-                        <option value="admin">Administrator</option>
-                    </select>
+            <!-- Assigned Roles Checkboxes (Multi-Role) -->
+            <div>
+                <label class="block text-[12px] font-medium text-ytText mb-1.5">Assigned Roles (Select All That Apply) <span class="text-ytRed">*</span></label>
+                <div class="grid grid-cols-3 gap-2 bg-[#121212] border border-ytBorder/80 rounded-xl p-3 text-[12px]">
+                    <label class="flex items-center gap-1.5 text-ytText cursor-pointer hover:text-white">
+                        <input type="checkbox" name="roles[]" value="artist" checked class="rounded border-ytBorder bg-ytBg text-ytBlue focus:ring-0">
+                        <span>Artist</span>
+                    </label>
+                    <label class="flex items-center gap-1.5 text-ytText cursor-pointer hover:text-white">
+                        <input type="checkbox" name="roles[]" value="project_manager" class="rounded border-ytBorder bg-ytBg text-ytBlue focus:ring-0">
+                        <span>Project Mgr</span>
+                    </label>
+                    <label class="flex items-center gap-1.5 text-ytText cursor-pointer hover:text-white">
+                        <input type="checkbox" name="roles[]" value="admin" class="rounded border-ytBorder bg-ytBg text-ytBlue focus:ring-0">
+                        <span>Admin</span>
+                    </label>
+                    <label class="flex items-center gap-1.5 text-ytText cursor-pointer hover:text-white">
+                        <input type="checkbox" name="roles[]" value="freelancer" class="rounded border-ytBorder bg-ytBg text-ytBlue focus:ring-0">
+                        <span>Freelancer</span>
+                    </label>
+                    <label class="flex items-center gap-1.5 text-ytText cursor-pointer hover:text-white">
+                        <input type="checkbox" name="roles[]" value="collaborator" class="rounded border-ytBorder bg-ytBg text-ytBlue focus:ring-0">
+                        <span>Collaborator</span>
+                    </label>
+                    <label class="flex items-center gap-1.5 text-ytText cursor-pointer hover:text-white">
+                        <input type="checkbox" name="roles[]" value="client" class="rounded border-ytBorder bg-ytBg text-ytBlue focus:ring-0">
+                        <span>Client</span>
+                    </label>
+                    <label class="flex items-center gap-1.5 text-ytText cursor-pointer hover:text-white">
+                        <input type="checkbox" name="roles[]" value="hr" class="rounded border-ytBorder bg-ytBg text-ytBlue focus:ring-0">
+                        <span>HR</span>
+                    </label>
+                    <label class="flex items-center gap-1.5 text-ytText cursor-pointer hover:text-white">
+                        <input type="checkbox" name="roles[]" value="it" class="rounded border-ytBorder bg-ytBg text-ytBlue focus:ring-0">
+                        <span>IT</span>
+                    </label>
+                    <label class="flex items-center gap-1.5 text-ytText cursor-pointer hover:text-white">
+                        <input type="checkbox" name="roles[]" value="site_manager" class="rounded border-ytBorder bg-ytBg text-ytBlue focus:ring-0">
+                        <span>Site Mgr</span>
+                    </label>
                 </div>
-                <div>
-                    <label class="block text-[12px] font-medium text-ytText mb-1">Experience Level</label>
-                    <select name="experience_level" class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-3 py-2 text-[13px] focus:outline-none focus:border-ytBlue">
-                        <option value="Junior">Junior (1.5x Multiplier)</option>
-                        <option value="Mid" selected>Mid (1.0x Benchmark)</option>
-                        <option value="Senior">Senior (0.8x Fast)</option>
-                    </select>
-                </div>
+            </div>
+
+            <div>
+                <label class="block text-[12px] font-medium text-ytText mb-1">Experience Level</label>
+                <select name="experience_level" class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-3 py-2 text-[13px] focus:outline-none focus:border-ytBlue">
+                    <option value="Junior">Junior (1.5x Multiplier)</option>
+                    <option value="Mid" selected>Mid (1.0x Benchmark)</option>
+                    <option value="Senior">Senior (0.8x Fast)</option>
+                </select>
             </div>
 
             <!-- Person Compensation & Monthly Pay Converter Box -->
@@ -223,9 +281,25 @@
         // Populate fields
         document.getElementById('edit_name').value = user.name;
         document.getElementById('edit_email').value = user.email;
-        document.getElementById('edit_global_role').value = user.global_role;
         document.getElementById('edit_experience_level').value = user.experience_level || 'Mid';
+        document.getElementById('edit_status').value = user.status;
         
+        // Populate multi-role checkboxes
+        let userRoles = [];
+        if (user.roles) {
+            try {
+                userRoles = typeof user.roles === 'string' ? JSON.parse(user.roles) : user.roles;
+            } catch(e) {}
+        }
+        if (!userRoles || userRoles.length === 0) {
+            userRoles = [user.global_role || 'artist'];
+        }
+
+        const roleCheckboxes = form.querySelectorAll('input[name="roles[]"]');
+        roleCheckboxes.forEach(cb => {
+            cb.checked = userRoles.includes(cb.value);
+        });
+
         const rate = user.hourly_rate || 500;
         document.getElementById('edit_hourly_rate').value = rate;
         document.getElementById('edit_calc_preview').textContent = `₹${Number(rate).toLocaleString()} / hr`;
@@ -233,8 +307,6 @@
         // Reverse estimate monthly salary for preview if not set
         document.getElementById('edit_monthly_salary').value = Math.round(rate * 22 * 8);
 
-        document.getElementById('edit_status').value = user.status;
-        
         // Clear password field
         document.getElementById('edit_password').value = '';
         
@@ -248,7 +320,7 @@
         <div class="px-6 py-4 border-b border-ytBorder/50 flex justify-between items-center bg-[#141414]">
             <div class="flex items-center gap-2">
                 <span class="material-symbols-outlined text-ytBlue text-[20px]">edit</span>
-                <h3 class="text-[16px] font-semibold text-ytText">Edit Team Member &amp; Rates</h3>
+                <h3 class="text-[16px] font-semibold text-ytText">Edit Team Member &amp; Roles</h3>
             </div>
             <button type="button" onclick="closeModal('editUserModal')" class="text-ytMuted hover:text-ytText"><span class="material-symbols-outlined">close</span></button>
         </div>
@@ -271,16 +343,50 @@
                 <input type="text" name="password" id="edit_password" class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-3 py-2 text-[13px] focus:outline-none focus:border-ytBlue" placeholder="Leave blank to keep current password">
             </div>
 
-            <div class="grid grid-cols-3 gap-4">
-                <div>
-                    <label class="block text-[12px] font-medium text-ytText mb-1">Global Role <span class="text-ytRed">*</span></label>
-                    <select name="global_role" id="edit_global_role" required class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-3 py-2 text-[13px] focus:outline-none focus:border-ytBlue">
-                        <option value="artist">Artist / Freelancer</option>
-                        <option value="project_manager">Project Manager</option>
-                        <option value="client">Client</option>
-                        <option value="admin">Administrator</option>
-                    </select>
+            <!-- Multi-Role Checkboxes for Edit -->
+            <div>
+                <label class="block text-[12px] font-medium text-ytText mb-1.5">Assigned Roles <span class="text-ytRed">*</span></label>
+                <div class="grid grid-cols-3 gap-2 bg-[#121212] border border-ytBorder/80 rounded-xl p-3 text-[12px]">
+                    <label class="flex items-center gap-1.5 text-ytText cursor-pointer hover:text-white">
+                        <input type="checkbox" name="roles[]" value="artist" class="rounded border-ytBorder bg-ytBg text-ytBlue focus:ring-0">
+                        <span>Artist</span>
+                    </label>
+                    <label class="flex items-center gap-1.5 text-ytText cursor-pointer hover:text-white">
+                        <input type="checkbox" name="roles[]" value="project_manager" class="rounded border-ytBorder bg-ytBg text-ytBlue focus:ring-0">
+                        <span>Project Mgr</span>
+                    </label>
+                    <label class="flex items-center gap-1.5 text-ytText cursor-pointer hover:text-white">
+                        <input type="checkbox" name="roles[]" value="admin" class="rounded border-ytBorder bg-ytBg text-ytBlue focus:ring-0">
+                        <span>Admin</span>
+                    </label>
+                    <label class="flex items-center gap-1.5 text-ytText cursor-pointer hover:text-white">
+                        <input type="checkbox" name="roles[]" value="freelancer" class="rounded border-ytBorder bg-ytBg text-ytBlue focus:ring-0">
+                        <span>Freelancer</span>
+                    </label>
+                    <label class="flex items-center gap-1.5 text-ytText cursor-pointer hover:text-white">
+                        <input type="checkbox" name="roles[]" value="collaborator" class="rounded border-ytBorder bg-ytBg text-ytBlue focus:ring-0">
+                        <span>Collaborator</span>
+                    </label>
+                    <label class="flex items-center gap-1.5 text-ytText cursor-pointer hover:text-white">
+                        <input type="checkbox" name="roles[]" value="client" class="rounded border-ytBorder bg-ytBg text-ytBlue focus:ring-0">
+                        <span>Client</span>
+                    </label>
+                    <label class="flex items-center gap-1.5 text-ytText cursor-pointer hover:text-white">
+                        <input type="checkbox" name="roles[]" value="hr" class="rounded border-ytBorder bg-ytBg text-ytBlue focus:ring-0">
+                        <span>HR</span>
+                    </label>
+                    <label class="flex items-center gap-1.5 text-ytText cursor-pointer hover:text-white">
+                        <input type="checkbox" name="roles[]" value="it" class="rounded border-ytBorder bg-ytBg text-ytBlue focus:ring-0">
+                        <span>IT</span>
+                    </label>
+                    <label class="flex items-center gap-1.5 text-ytText cursor-pointer hover:text-white">
+                        <input type="checkbox" name="roles[]" value="site_manager" class="rounded border-ytBorder bg-ytBg text-ytBlue focus:ring-0">
+                        <span>Site Mgr</span>
+                    </label>
                 </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="block text-[12px] font-medium text-ytText mb-1">Status <span class="text-ytRed">*</span></label>
                     <select name="status" id="edit_status" required class="w-full bg-ytBg border border-ytBorder text-ytText rounded px-3 py-2 text-[13px] focus:outline-none focus:border-ytBlue">

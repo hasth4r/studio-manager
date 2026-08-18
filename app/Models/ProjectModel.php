@@ -16,6 +16,7 @@ class ProjectModel extends Model
         'name',
         'project_code',
         'client_id',
+        'supervisor_id',
         'collaborator_id',
         'project_type_id',
         'status',

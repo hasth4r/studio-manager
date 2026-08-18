@@ -96,9 +96,9 @@
     <!-- Mobile Bottom Navigation (EnsoFlow Theme) -->
     <nav class="md:hidden fixed bottom-0 w-full z-40 bg-[#000107]/95 backdrop-blur-xl border-t border-ytBorder flex justify-around items-center h-16 pb-safe">
         <?php 
-            $dashLink = '/admin/dashboard';
-            if (session()->get('userRole') === 'client') $dashLink = '/client/dashboard';
-            elseif (session()->get('userRole') === 'internal_artist') $dashLink = '/user/dashboard';
+            $dashLink = '/user/dashboard';
+            if (has_any_role(['site_manager', 'admin', 'project_manager'])) $dashLink = '/admin/dashboard';
+            elseif (has_role('client')) $dashLink = '/client/dashboard';
             $isActiveDash = (strpos(uri_string(), ltrim($dashLink, '/')) === 0 || uri_string() === '' || uri_string() === 'admin');
         ?>
         <a href="<?= $dashLink ?>" class="flex flex-col items-center justify-center w-full h-full space-y-1 <?= $isActiveDash ? 'text-ytBlue font-bold' : 'text-ytMuted hover:text-ytText' ?>">
@@ -106,7 +106,7 @@
             <span class="text-[10px] tracking-tight">Dashboard</span>
         </a>
         
-        <?php if(session()->get('userRole') !== 'client'): ?>
+        <?php if(!has_role('client') || has_any_role(['site_manager', 'admin', 'project_manager'])): ?>
         <?php $isActiveProj = (strpos(uri_string(), 'admin/projects') === 0 || strpos(uri_string(), 'admin/shots') === 0); ?>
         <a href="/admin/projects" class="flex flex-col items-center justify-center w-full h-full space-y-1 <?= $isActiveProj ? 'text-ytBlue font-bold' : 'text-ytMuted hover:text-ytText' ?>">
             <span class="material-symbols-outlined text-[22px]">video_library</span>
@@ -119,11 +119,13 @@
             <span class="text-[10px] tracking-tight">Reviews</span>
         </a>
 
+        <?php if(has_any_role(['site_manager', 'admin'])): ?>
         <?php $isActiveBudget = (strpos(uri_string(), 'admin/budgeting') === 0); ?>
         <a href="/admin/budgeting" class="flex flex-col items-center justify-center w-full h-full space-y-1 <?= $isActiveBudget ? 'text-ytBlue font-bold' : 'text-ytMuted hover:text-ytText' ?>">
             <span class="material-symbols-outlined text-[22px]">payments</span>
             <span class="text-[10px] tracking-tight">Economics</span>
         </a>
+        <?php endif; ?>
         <?php endif; ?>
 
         <button type="button" onclick="document.getElementById('mobileTopMenuToggle').click()" class="flex flex-col items-center justify-center w-full h-full space-y-1 text-ytMuted hover:text-ytText">
@@ -185,7 +187,7 @@
                 </div>
             </div>
 
-            <nav class="flex-1 px-3 mt-4 space-y-6">
+            <nav class="flex-1 px-3 mt-4 space-y-6 overflow-y-auto custom-scrollbar">
                 <?php $currentUri = uri_string(); ?>
                 
                 <!-- Main Navigation Group -->
@@ -193,29 +195,41 @@
                     <p class="section-title px-4 text-[11px] font-bold uppercase tracking-wider text-ytMuted mb-2">Main</p>
                     <div class="space-y-0.5">
                         <?php 
-                            $dashLink = '/admin/dashboard';
-                            if (session()->get('userRole') === 'client') $dashLink = '/client/dashboard';
-                            elseif (session()->get('userRole') === 'internal_artist') $dashLink = '/user/dashboard';
-                            $isActive = (strpos($currentUri, ltrim($dashLink, '/')) === 0);
+                            $dashLink = '/user/dashboard';
+                            if (has_any_role(['site_manager', 'admin', 'project_manager'])) $dashLink = '/admin/dashboard';
+                            elseif (has_role('client')) $dashLink = '/client/dashboard';
+                            $isActive = (strpos($currentUri, ltrim($dashLink, '/')) === 0 || $currentUri === '' || $currentUri === 'admin');
                         ?>
                         <a href="<?= $dashLink ?>" class="<?= $isActive ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors" title="Dashboard">
                             <span class="material-symbols-outlined <?= $isActive ? 'text-ytBlue' : 'text-ytMuted' ?>">dashboard</span>
                             <span class="nav-text">Dashboard</span>
                         </a>
+
+                        <?php if(has_any_role(['artist', 'freelancer']) && !has_any_role(['admin', 'site_manager'])): ?>
+                        <?php $isActive = (strpos($currentUri, 'user/dashboard') === 0); ?>
+                        <a href="/user/dashboard" class="<?= $isActive ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors" title="My Tasks Workbench">
+                            <span class="material-symbols-outlined <?= $isActive ? 'text-ytBlue' : 'text-ytMuted' ?>">task_alt</span>
+                            <span class="nav-text">My Tasks</span>
+                        </a>
+                        <?php endif; ?>
                         
-                        <?php if(session()->get('userRole') !== 'client'): ?>
+                        <?php if(has_any_role(['site_manager', 'admin', 'project_manager', 'collaborator'])): ?>
                         <?php $isActive = (strpos($currentUri, 'admin/projects') === 0 || strpos($currentUri, 'admin/shots') === 0); ?>
                         <a href="/admin/projects" class="<?= $isActive ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors" title="Projects">
                             <span class="material-symbols-outlined <?= $isActive ? 'text-ytBlue' : 'text-ytMuted' ?>">video_library</span>
                             <span class="nav-text">Projects</span>
                         </a>
+                        <?php endif; ?>
                         
+                        <?php if(has_any_role(['site_manager', 'admin', 'project_manager', 'collaborator', 'artist'])): ?>
                         <?php $isActive = (strpos($currentUri, 'admin/reviews') === 0); ?>
                         <a href="/admin/reviews" class="<?= $isActive ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors relative" title="Review Inbox">
                             <span class="material-symbols-outlined <?= $isActive ? 'text-ytBlue' : 'text-ytMuted' ?>">rate_review</span>
                             <span class="nav-text">Review Inbox</span>
-                            <!-- We can add a notification badge here later if needed -->
                         </a>
+                        <?php endif; ?>
+
+                        <?php if(has_any_role(['site_manager', 'admin', 'project_manager', 'hr'])): ?>
                         <?php $isActive = (strpos($currentUri, 'admin/scheduling') === 0); ?>
                         <a href="/admin/scheduling" class="<?= $isActive ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors relative" title="AI Scheduler">
                             <span class="material-symbols-outlined <?= $isActive ? 'text-ytBlue' : 'text-ytMuted' ?>">view_timeline</span>
@@ -225,16 +239,20 @@
                     </div>
                 </div>
 
-                <?php if(session()->get('userRole') === 'admin'): ?>
-                <!-- Admin Settings Group -->
+                <?php if(has_any_role(['site_manager', 'admin', 'hr', 'it'])): ?>
+                <!-- Management & Operations Group -->
                 <div class="nav-section">
-                    <p class="section-title px-4 text-[11px] font-bold uppercase tracking-wider text-ytMuted mb-2">Settings</p>
+                    <p class="section-title px-4 text-[11px] font-bold uppercase tracking-wider text-ytMuted mb-2">Operations</p>
                     <div class="space-y-0.5">
+                        <?php if(has_any_role(['site_manager', 'admin', 'hr'])): ?>
                         <?php $isActive = (strpos($currentUri, 'admin/users') === 0); ?>
-                        <a href="/admin/users" class="<?= $isActive ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors" title="Team & Freelancers">
+                        <a href="/admin/users" class="<?= $isActive ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors" title="Team & Roles">
                             <span class="material-symbols-outlined <?= $isActive ? 'text-ytBlue' : 'text-ytMuted' ?>">manage_accounts</span>
-                            <span class="nav-text">Team &amp; Rates</span>
+                            <span class="nav-text">Team &amp; Roles</span>
                         </a>
+                        <?php endif; ?>
+
+                        <?php if(has_any_role(['site_manager', 'admin'])): ?>
                         <?php $isActive = (strpos($currentUri, 'admin/budgeting') === 0); ?>
                         <a href="/admin/budgeting" class="<?= $isActive ? 'active-nav-item bg-ytHover text-green-400' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors" title="Studio Budgeting & Monthly Bills">
                             <span class="material-symbols-outlined <?= $isActive ? 'text-green-400' : 'text-green-400/80' ?>">payments</span>
@@ -250,56 +268,58 @@
                             <span class="material-symbols-outlined <?= $isActive ? 'text-ytBlue' : 'text-ytMuted' ?>">category</span>
                             <span class="nav-text">Project Types</span>
                         </a>
+                        <?php endif; ?>
+
+                        <?php if(has_any_role(['site_manager', 'it'])): ?>
                         <?php $isActive = (strpos($currentUri, 'admin/database') === 0); ?>
                         <a href="/admin/database" class="<?= $isActive ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors" title="Database Manager">
                             <span class="material-symbols-outlined <?= $isActive ? 'text-ytBlue' : 'text-ytMuted' ?>">storage</span>
-                            <span class="nav-text">Database Manager</span>
+                            <span class="nav-text">Database Center</span>
                         </a>
+                        <?php endif; ?>
+
+                        <?php if(has_any_role(['site_manager', 'admin'])): ?>
                         <?php $isActive = (strpos($currentUri, 'admin/notifications/generate') === 0); ?>
                         <a href="/admin/notifications/generate" class="<?= $isActive ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors" title="Notification Tools">
                             <span class="material-symbols-outlined <?= $isActive ? 'text-ytBlue' : 'text-ytMuted' ?>">notifications_active</span>
                             <span class="nav-text">Notification Tools</span>
-                        </a>
-                    </div>
-                </div>
-                <?php endif; ?>
-
-                <?php if(in_array(session()->get('userRole'), ['admin', 'project_manager', 'internal_artist'])): ?>
-                <!-- Studio Group -->
-                <div class="nav-section">
-                    <p class="section-title px-4 text-[11px] font-bold uppercase tracking-wider text-ytMuted mb-2">Studio</p>
-                    <div class="space-y-0.5">
-                        <?php $isActive = (strpos($currentUri, 'admin/chat') === 0); ?>
-                        <a href="#" class="<?= $isActive ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors" title="Studio Chat">
-                            <span class="material-symbols-outlined <?= $isActive ? 'text-ytBlue' : 'text-ytMuted' ?>">forum</span>
-                            <span class="nav-text">Studio Chat</span>
-                        </a>
-                        
-                        <?php if(session()->get('userRole') === 'admin' || session()->get('userRole') === 'project_manager'): ?>
-                        <?php $isActive = (strpos($currentUri, 'admin/media') === 0); ?>
-                        <a href="/admin/media" class="<?= $isActive ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors" title="Media Explorer">
-                            <span class="material-symbols-outlined <?= $isActive ? 'text-ytBlue' : 'text-ytMuted' ?>">folder_open</span>
-                            <span class="nav-text">Media Explorer</span>
                         </a>
                         <?php endif; ?>
                     </div>
                 </div>
                 <?php endif; ?>
 
+                <?php if(has_any_role(['site_manager', 'admin', 'project_manager'])): ?>
+                <!-- Studio Group -->
+                <div class="nav-section">
+                    <p class="section-title px-4 text-[11px] font-bold uppercase tracking-wider text-ytMuted mb-2">Studio</p>
+                    <div class="space-y-0.5">
+                        <?php $isActive = (strpos($currentUri, 'admin/media') === 0); ?>
+                        <a href="/admin/media" class="<?= $isActive ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors" title="Media Explorer">
+                            <span class="material-symbols-outlined <?= $isActive ? 'text-ytBlue' : 'text-ytMuted' ?>">folder_open</span>
+                            <span class="nav-text">Media Explorer</span>
+                        </a>
+                    </div>
+                </div>
+                <?php endif; ?>
+
             </nav>
             
-            <div class="p-3 mt-auto">
-                <!-- User Profile -->
-                <div class="flex items-center justify-between px-3 py-3 mb-2 rounded-lg hover:bg-ytHover transition-colors cursor-pointer group">
+            <div class="p-3 mt-auto border-t border-ytBorder/40">
+                <!-- User Profile & Roles -->
+                <div class="flex items-center justify-between px-3 py-2 mb-1 rounded-lg hover:bg-ytHover transition-colors cursor-pointer group">
                     <div class="flex items-center space-x-3 overflow-hidden">
                         <img src="https://ui-avatars.com/api/?name=<?= urlencode(session()->get('userName')) ?>&background=8b5cf6&color=fff&size=64&rounded=true" alt="Profile" class="h-9 w-9 rounded-full flex-shrink-0">
-                        <div class="nav-text flex flex-col overflow-hidden">
-                            <span class="text-[14px] font-medium text-ytText truncate leading-tight"><?= esc(session()->get('userName')) ?></span>
-                            <span class="text-[11px] text-ytMuted uppercase truncate leading-tight mt-0.5"><?= esc(str_replace('_', ' ', session()->get('userRole'))) ?></span>
+                        <div class="nav-text flex flex-col overflow-hidden min-w-0">
+                            <span class="text-[13px] font-medium text-ytText truncate leading-tight"><?= esc(session()->get('userName')) ?></span>
+                            <?php $rolesList = get_user_roles(); ?>
+                            <span class="text-[10px] text-ytBlue font-mono uppercase truncate leading-tight mt-0.5" title="<?= esc(implode(', ', $rolesList)) ?>">
+                                <?= esc(str_replace('_', ' ', implode(' • ', $rolesList))) ?>
+                            </span>
                         </div>
                     </div>
-                    <a href="/logout" class="nav-text text-ytMuted hover:text-ytRed transition-colors ml-2 flex-shrink-0 opacity-0 group-hover:opacity-100" title="Sign Out">
-                        <span class="material-symbols-outlined text-[20px]">logout</span>
+                    <a href="/logout" class="nav-text text-ytMuted hover:text-ytRed transition-colors ml-2 flex-shrink-0" title="Sign Out">
+                        <span class="material-symbols-outlined text-[18px]">logout</span>
                     </a>
                 </div>
 
@@ -308,15 +328,15 @@
                     $currentUserTG = $db->table('users')->where('id', session()->get('userId'))->get()->getRow();
                     $isTelegramLinked = !empty($currentUserTG->telegram_chat_id);
                 ?>
-                <a href="/telegram/link" target="_blank" class="flex items-center space-x-4 px-4 py-2.5 rounded-lg transition-colors <?= $isTelegramLinked ? 'text-green-400 hover:bg-green-400/10' : 'text-[#1DA1F2] hover:bg-[#1DA1F2]/10' ?>" title="<?= $isTelegramLinked ? 'Telegram Connected' : 'Connect Telegram' ?>">
-                    <span class="material-symbols-outlined"><?= $isTelegramLinked ? 'check_circle' : 'send' ?></span>
+                <a href="/telegram/link" target="_blank" class="flex items-center space-x-4 px-4 py-2 rounded-lg transition-colors <?= $isTelegramLinked ? 'text-green-400 hover:bg-green-400/10' : 'text-[#1DA1F2] hover:bg-[#1DA1F2]/10' ?> text-[13px]" title="<?= $isTelegramLinked ? 'Telegram Connected' : 'Connect Telegram' ?>">
+                    <span class="material-symbols-outlined text-[18px]"><?= $isTelegramLinked ? 'check_circle' : 'send' ?></span>
                     <span class="nav-text"><?= $isTelegramLinked ? 'Telegram Connected' : 'Connect Telegram' ?></span>
                 </a>
 
-                <?php if(session()->get('userRole') === 'admin'): ?>
-                <a href="/admin/settings" class="<?= (current_url() == site_url('settings')) ? 'bg-ytHover text-white font-medium' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg transition-colors mt-1" title="Settings">
-                    <span class="material-symbols-outlined text-ytMuted">settings</span>
-                    <span class="nav-text">Server Settings</span>
+                <?php if(has_role('site_manager')): ?>
+                <a href="/admin/settings" class="<?= (current_url() == site_url('settings')) ? 'bg-ytHover text-white font-medium' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2 rounded-lg transition-colors mt-0.5 text-[13px]" title="Server Settings">
+                    <span class="material-symbols-outlined text-ytMuted text-[18px]">settings</span>
+                    <span class="nav-text">Site Settings</span>
                 </a>
                 <?php endif; ?>
             </div>
