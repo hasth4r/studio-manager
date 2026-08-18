@@ -1,3 +1,7 @@
+# Deployment & Live Environment Rules
+
+- **Live Server Deployment**: We are actively fixing and testing directly against the LIVE site. Every single code change, fix, or refactor MUST be immediately committed and pushed (`git add -A; git commit -m "..."; git push origin main`) so changes reflect on the live environment instantly. Never leave changes unpushed.
+
 # UI Guidelines
 
 ## Inline Editing
