@@ -3,35 +3,38 @@
 <?= $this->section('content') ?>
 
 <!-- Sticky Header & Action Bar -->
-<div class="sticky top-0 z-40 bg-ytBg/95 backdrop-blur-md pt-3 md:pt-4 pb-2.5 md:pb-3 border-b border-ytBorder/60 space-y-2 md:space-y-3">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 md:gap-3">
-        <div class="flex items-center space-x-2.5 md:space-x-3 min-w-0">
-            <a href="/admin/projects/<?= esc($project->id) ?>" class="p-1.5 md:p-2 hover:bg-ytHover rounded-full transition-colors flex items-center justify-center text-ytMuted hover:text-ytText shrink-0" title="Back to Project View">
-                <span class="material-symbols-outlined text-[20px] md:text-[24px]">arrow_back</span>
+<div class="sticky top-0 z-40 bg-ytBg/95 backdrop-blur-md pt-4 pb-3 border-b border-ytBorder/60 space-y-3">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center space-x-3">
+            <a href="/admin/projects/<?= esc($project->id) ?>" class="p-2 hover:bg-ytHover rounded-full transition-colors flex items-center justify-center text-ytMuted hover:text-ytText" title="Back to Project View">
+                <span class="material-symbols-outlined">arrow_back</span>
             </a>
-            <div class="min-w-0 flex-1">
-                <div class="flex items-center gap-2 truncate">
-                    <h2 class="text-[17px] md:text-[20px] font-bold md:font-semibold text-ytText leading-tight truncate"><?= esc($project->name) ?></h2>
-                    <span class="bg-ytCard border border-ytBorder text-ytBlue px-2 py-0.5 rounded-full text-[10px] md:text-[11px] font-mono font-medium shrink-0">Matrix</span>
+            <div>
+                <div class="flex items-center gap-2.5">
+                    <h2 class="text-[20px] font-semibold text-ytText leading-tight"><?= esc($project->name) ?></h2>
+                    <span class="bg-ytCard border border-ytBorder text-ytBlue px-2.5 py-0.5 rounded-full text-[11px] font-mono font-medium">Shot Breakdown Matrix</span>
                 </div>
-                <!-- Horizontal Mobile Stats Bar -->
-                <div class="flex items-center gap-2 overflow-x-auto text-[11px] md:text-[12px] text-ytMuted mt-1 font-mono whitespace-nowrap custom-scrollbar pb-0.5">
-                    <span class="bg-[#141414] px-2 py-0.5 rounded border border-ytBorder/50 shrink-0">Shots: <b class="text-ytText"><?= count($shots) ?></b></span>
-                    <span class="bg-[#141414] px-2 py-0.5 rounded border border-ytBorder/50 shrink-0">Seq: <b class="text-ytText"><?= count($sequences) ?></b></span>
-                    <span class="bg-[#141414] px-2 py-0.5 rounded border border-ytBorder/50 shrink-0">Est: <b class="text-ytBlue font-bold" id="headerProjTotalHours"><?= round($totalProjectHours, 1) ?>h</b></span>
-                    <span class="bg-[#141414] border border-ytBorder text-ytText px-2 py-0.5 rounded font-mono text-[11px] flex items-center gap-1 shadow-sm shrink-0" title="Standard Benchmark Project Quote">
+                <div class="flex flex-wrap items-center gap-2.5 text-[12px] text-ytMuted mt-0.5 font-mono">
+                    <span>Shots: <b class="text-ytText"><?= count($shots) ?></b></span>
+                    <span>&bull;</span>
+                    <span>Sequences: <b class="text-ytText"><?= count($sequences) ?></b></span>
+                    <span>&bull;</span>
+                    <span>Total Est: <b class="text-ytBlue font-bold" id="headerProjTotalHours"><?= round($totalProjectHours, 1) ?></b> hrs</span>
+                    <span>&bull;</span>
+                    <span class="bg-[#141414] border border-ytBorder text-ytText px-2 py-0.5 rounded font-mono text-[11px] flex items-center gap-1 shadow-sm" title="Standard Benchmark Project Quote (Artist: <?= esc($studioCurrency) ?><?= number_format($totalArtistCost, 0) ?> | Ops: <?= esc($studioCurrency) ?><?= number_format($totalOpsCost, 0) ?> | Margin: <?= esc($studioCurrency) ?><?= number_format($totalProfitMargin, 0) ?>)">
                         <span class="text-ytMuted">Benchmark:</span>
                         <b id="headerProjTotalBudget" class="text-ytBlue font-bold"><?= esc($studioCurrency) ?><?= number_format($totalClientBudget, 0) ?></b>
                     </span>
+                    <span>&bull;</span>
                     <!-- Agreed / Locked Client Budget Input Box -->
-                    <div class="flex items-center gap-1 bg-green-950/40 border border-green-700/60 rounded-lg px-2 py-0.5 shadow-sm shrink-0" title="Client Locked Budget">
-                        <span class="material-symbols-outlined text-[13px] text-green-400">lock</span>
-                        <span class="text-[10px] text-green-400 uppercase font-bold">Locked:</span>
-                        <span class="text-[11px] font-bold text-green-300 font-mono"><?= esc($studioCurrency) ?></span>
-                        <input type="number" step="1000" min="0" id="projectAgreedBudgetInput" value="<?= esc($agreedBudget > 0 ? $agreedBudget : '') ?>" placeholder="40000"
+                    <div class="flex items-center gap-1.5 bg-green-950/40 border border-green-700/60 rounded-lg px-2.5 py-0.5 shadow-sm" title="Client Locked / Agreed Fixed Budget for this project. System scales shot allocations proportionally.">
+                        <span class="material-symbols-outlined text-[15px] text-green-400">lock</span>
+                        <span class="text-[11px] text-green-400 uppercase font-bold">Locked:</span>
+                        <span class="text-[12px] font-bold text-green-300 font-mono"><?= esc($studioCurrency) ?></span>
+                        <input type="number" step="1000" min="0" id="projectAgreedBudgetInput" value="<?= esc($agreedBudget > 0 ? $agreedBudget : '') ?>" placeholder="e.g. 40000"
                                onchange="saveProjectAgreedBudget(this.value, <?= $project->id ?>)"
-                               class="w-16 md:w-24 bg-transparent border-b border-dashed border-green-500/60 focus:border-green-300 text-green-200 font-mono font-bold text-[11px] md:text-[12px] focus:outline-none px-1 py-0.2">
-                        <span class="text-[9px] md:text-[10px] font-mono bg-green-900/80 border border-green-600/50 text-green-300 px-1 py-0.2 rounded font-bold" id="scalePercentBadge">
+                               class="w-24 bg-transparent border-b border-dashed border-green-500/60 focus:border-green-300 text-green-200 font-mono font-bold text-[12px] focus:outline-none px-1 py-0.2">
+                        <span class="text-[10px] font-mono bg-green-900/80 border border-green-600/50 text-green-300 px-1.5 py-0.2 rounded font-bold" id="scalePercentBadge" title="Proportional share of benchmark quote">
                             <?= round($scaleFactor * 100, 1) ?>%
                         </span>
                     </div>
@@ -39,106 +42,102 @@
             </div>
         </div>
 
-        <div class="flex items-center gap-2 overflow-x-auto pb-1 max-w-full flex-nowrap custom-scrollbar shrink-0 -mx-2 px-2 md:mx-0 md:px-0">
-            <a href="/admin/projects/<?= $project->id ?>/analysis" class="bg-[#181818] border border-purple-500/40 hover:border-purple-400 text-purple-200 px-3 py-1.5 rounded-lg font-medium text-[12px] hover:bg-purple-950/40 transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(168,85,247,0.15)] shrink-0" title="Open Complete Production, Financial & Risk Analysis">
+        <div class="flex items-center gap-2">
+            <a href="/admin/projects/<?= $project->id ?>/analysis" class="bg-[#181818] border border-purple-500/40 hover:border-purple-400 text-purple-200 px-3 py-1.5 rounded-lg font-medium text-[12px] hover:bg-purple-950/40 transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(168,85,247,0.15)]" title="Open Complete Production, Financial & Risk Analysis">
                 <span class="material-symbols-outlined text-[16px] text-purple-400">analytics</span>
                 <span>Analysis</span>
             </a>
-            <a href="/admin/projects/<?= $project->id ?>/briefing" class="bg-[#181818] border border-indigo-500/40 hover:border-indigo-400 text-indigo-200 px-3 py-1.5 rounded-lg font-medium text-[12px] hover:bg-indigo-950/40 transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(99,102,241,0.15)] shrink-0" title="Open Client Shot Briefing & Reference Matrix">
+            <a href="/admin/projects/<?= $project->id ?>/briefing" class="bg-[#181818] border border-indigo-500/40 hover:border-indigo-400 text-indigo-200 px-3 py-1.5 rounded-lg font-medium text-[12px] hover:bg-indigo-950/40 transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(99,102,241,0.15)]" title="Open Client Shot Briefing & Reference Matrix">
                 <span class="material-symbols-outlined text-[16px] text-indigo-400">edit_note</span>
                 <span>Shot Briefing</span>
             </a>
-            <button type="button" onclick="autoGenerateAllThumbnails()" class="bg-[#181818] border border-purple-500/40 hover:border-purple-400 text-purple-200 px-3 py-1.5 rounded-lg font-medium text-[12px] hover:bg-purple-950/40 transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(168,85,247,0.15)] shrink-0" title="Auto-extract crisp mid-frame WebP thumbnails from all shot videos">
+            <button type="button" onclick="autoGenerateAllThumbnails()" class="bg-[#181818] border border-purple-500/40 hover:border-purple-400 text-purple-200 px-3 py-1.5 rounded-lg font-medium text-[12px] hover:bg-purple-950/40 transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(168,85,247,0.15)]" title="Auto-extract crisp mid-frame WebP thumbnails from all shot videos">
                 <span class="material-symbols-outlined text-[16px] text-purple-400">photo_camera</span>
                 <span>Auto-Gen WebP</span>
             </button>
-            <button type="button" id="toggleMetaBtn" onclick="toggleMetadataColumns()" class="bg-ytCard border border-ytBorder hover:border-ytText text-ytText px-3.5 py-1.5 rounded-lg font-medium text-[12px] hover:bg-ytHover transition-all flex items-center gap-1.5 shrink-0">
+            <button type="button" id="toggleMetaBtn" onclick="toggleMetadataColumns()" class="bg-ytCard border border-ytBorder hover:border-ytText text-ytText px-3.5 py-1.5 rounded-lg font-medium text-[12px] hover:bg-ytHover transition-all flex items-center gap-1.5">
                 <span class="material-symbols-outlined text-[16px] text-ytBlue" id="toggleMetaIcon">visibility_off</span>
                 <span id="toggleMetaText">Hide Metadata</span>
             </button>
-            <form action="/admin/tasks/bulkRecalculate/<?= $project->id ?>" method="POST" class="m-0 shrink-0">
+            <form action="/admin/tasks/bulkRecalculate/<?= $project->id ?>" method="POST" class="m-0">
                 <?= csrf_field() ?>
                 <button type="submit" title="Recalculate benchmark hours for all shot tasks" class="bg-ytCard border border-ytBorder hover:border-ytBlue text-ytText px-3.5 py-1.5 rounded-lg font-medium text-[12px] hover:bg-ytHover transition-colors flex items-center gap-1.5">
                     <span class="material-symbols-outlined text-[16px] text-ytBlue">calculate</span> Recalc Hours
                 </button>
             </form>
-            <a href="/admin/projects/<?= $project->id ?>" class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] text-white shadow-[0_0_15px_rgba(23,123,207,0.3)] border border-[#177bcf]/40 px-4 py-1.5 rounded-lg font-medium text-[12px] hover:shadow-[0_0_25px_rgba(23,123,207,0.6)] hover:from-[#0d346e] hover:to-[#238bf2] transition-all flex items-center gap-1 shrink-0">
+            <a href="/admin/projects/<?= $project->id ?>" class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] text-white shadow-[0_0_15px_rgba(23,123,207,0.3)] border border-[#177bcf]/40 px-4 py-1.5 rounded-lg font-medium text-[12px] hover:shadow-[0_0_25px_rgba(23,123,207,0.6)] hover:from-[#0d346e] hover:to-[#238bf2] transition-all flex items-center gap-1">
                 <span class="material-symbols-outlined text-[16px]">grid_view</span> Card View
             </a>
         </div>
     </div>
 
     <!-- Filters & Bulk Operations Toolbar -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-2.5 pt-1">
+    <div class="flex flex-wrap items-center justify-between gap-2.5 pt-1">
         <!-- Search & Filters -->
-        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1 max-w-xl">
+        <div class="flex items-center gap-2 flex-1 max-w-xl">
             <div class="relative flex-1">
                 <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-ytMuted text-[16px]">search</span>
                 <input type="text" id="shotSearchInput" oninput="filterShotsTable()" placeholder="Search shots, comp name, description..." class="w-full bg-ytCard border border-ytBorder text-ytText rounded-lg pl-8 pr-3 py-1.5 text-[12px] focus:outline-none focus:border-ytBlue placeholder:text-ytMuted/50 font-mono">
             </div>
-            <div class="flex items-center gap-2">
-                <select id="sequenceFilterSelect" onchange="filterShotsTable()" class="bg-ytCard border border-ytBorder text-ytText rounded-lg px-3 py-1.5 text-[12px] focus:outline-none focus:border-ytBlue font-mono flex-1 sm:flex-none">
-                    <option value="">All Sequences (<?= count($sequences) ?>)</option>
-                    <?php foreach($sequences as $seq): ?>
-                        <option value="<?= esc($seq->id) ?>"><?= esc($seq->name) ?></option>
-                    <?php endforeach; ?>
-                </select>
-                <select id="taskStatusFilterSelect" onchange="filterShotsTable()" class="bg-ytCard border border-ytBorder text-ytText rounded-lg px-3 py-1.5 text-[12px] focus:outline-none focus:border-ytBlue font-mono flex-1 sm:flex-none">
-                    <option value="all">All Shots</option>
-                    <option value="no_tasks">0 Tasks</option>
-                    <option value="unassigned">Unassigned</option>
-                </select>
-            </div>
+            <select id="sequenceFilterSelect" onchange="filterShotsTable()" class="bg-ytCard border border-ytBorder text-ytText rounded-lg px-3 py-1.5 text-[12px] focus:outline-none focus:border-ytBlue font-mono">
+                <option value="">All Sequences (<?= count($sequences) ?>)</option>
+                <?php foreach($sequences as $seq): ?>
+                    <option value="<?= esc($seq->id) ?>"><?= esc($seq->name) ?></option>
+                <?php endforeach; ?>
+            </select>
+            <select id="taskStatusFilterSelect" onchange="filterShotsTable()" class="bg-ytCard border border-ytBorder text-ytText rounded-lg px-3 py-1.5 text-[12px] focus:outline-none focus:border-ytBlue font-mono">
+                <option value="all">All Shots</option>
+                <option value="no_tasks">Shots With 0 Tasks</option>
+                <option value="unassigned">Shots With Unassigned Tasks</option>
+            </select>
         </div>
 
         <!-- Bulk Action Bar (Visible when >= 1 shot selected) -->
-        <div id="bulkActionBar" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-[#181818] border border-ytBlue/40 p-2 sm:px-3 sm:py-1 rounded-xl shadow-sm max-w-full">
-            <div class="flex items-center justify-between sm:justify-start gap-2">
-                <span class="text-[12px] text-ytText font-mono font-medium flex items-center gap-1 shrink-0">
-                    <span class="material-symbols-outlined text-ytBlue text-[16px]">check_circle</span>
-                    <span id="selectedShotsCounter">0</span> selected
-                </span>
-                <span class="hidden sm:inline text-ytBorder">|</span>
-            </div>
+        <div id="bulkActionBar" class="flex items-center gap-2 bg-[#181818] border border-ytBlue/40 px-3 py-1 rounded-lg shadow-sm">
+            <span class="text-[12px] text-ytText font-mono font-medium flex items-center gap-1">
+                <span class="material-symbols-outlined text-ytBlue text-[16px]">check_circle</span>
+                <span id="selectedShotsCounter">0</span> selected
+            </span>
+            <span class="text-ytBorder">|</span>
             
             <!-- Bulk Add Task Form -->
-            <form id="bulkAddTasksForm" onsubmit="submitBulkAssign(event)" class="flex flex-wrap sm:flex-nowrap items-center gap-1.5 m-0 w-full sm:w-auto">
+            <form id="bulkAddTasksForm" onsubmit="submitBulkAssign(event)" class="flex items-center gap-2 m-0">
                 <?= csrf_field() ?>
                 <input type="hidden" name="project_id" value="<?= $project->id ?>">
                 
-                <select name="task_type_id" required class="bg-ytBg border border-ytBorder text-ytText rounded px-2 py-1.5 text-[11px] focus:outline-none focus:border-ytBlue flex-1 sm:flex-none">
+                <select name="task_type_id" required class="bg-ytBg border border-ytBorder text-ytText rounded px-2 py-1 text-[11px] focus:outline-none focus:border-ytBlue">
                     <option value="">+ Select Task Type...</option>
                     <?php foreach($taskTypes as $tt): ?>
                         <option value="<?= $tt->id ?>"><?= esc($tt->name) ?></option>
                     <?php endforeach; ?>
                 </select>
 
-                <select name="complexity" class="bg-ytBg border border-ytBorder text-ytText rounded px-2 py-1.5 text-[11px] focus:outline-none focus:border-ytBlue shrink-0">
+                <select name="complexity" class="bg-ytBg border border-ytBorder text-ytText rounded px-2 py-1 text-[11px] focus:outline-none focus:border-ytBlue">
                     <option value="Simple">Simple</option>
                     <option value="Medium" selected>Medium</option>
                     <option value="Complex">Complex</option>
                 </select>
 
-                <select name="assigned_to" class="bg-ytBg border border-ytBorder text-ytText rounded px-2 py-1.5 text-[11px] focus:outline-none focus:border-ytBlue flex-1 sm:flex-none">
+                <select name="assigned_to" class="bg-ytBg border border-ytBorder text-ytText rounded px-2 py-1 text-[11px] focus:outline-none focus:border-ytBlue">
                     <option value="">(Unassigned)</option>
                     <?php foreach($users as $u): ?>
                         <option value="<?= $u->id ?>"><?= esc($u->name) ?> (<?= esc($u->experience_level ?? 'mid') ?>)</option>
                     <?php endforeach; ?>
                 </select>
 
-                <button type="submit" id="btnBulkApply" class="bg-ytBlue hover:bg-blue-600 text-white font-medium px-3 py-1.5 rounded text-[11px] flex items-center justify-center gap-1 transition-colors shadow-sm w-full sm:w-auto shrink-0">
-                    <span class="material-symbols-outlined text-[14px]">bolt</span> Apply
+                <button type="submit" id="btnBulkApply" class="bg-ytBlue hover:bg-blue-600 text-white font-medium px-3 py-1 rounded text-[11px] flex items-center gap-1 transition-colors shadow-sm">
+                    <span class="material-symbols-outlined text-[14px]">bolt</span> Apply to Selected
                 </button>
             </form>
         </div>
     </div>
 </div>
 
-<!-- Interactive Breakdown Matrix Spreadsheet Container -->
-<div class="mt-3 md:mt-4 pb-20">
-    <div class="bg-ytCard border border-ytBorder rounded-2xl shadow-xl overflow-hidden">
-        <div class="overflow-x-auto max-h-[calc(100vh-190px)] overflow-y-auto custom-scrollbar">
-            <table class="min-w-full text-left border-collapse" id="breakdownTable">
+<!-- Spreadsheet Container -->
+<div class="mt-4 pb-20">
+    <div class="bg-ytCard border border-ytBorder rounded-xl shadow-xl overflow-hidden">
+        <div class="overflow-x-auto max-h-[calc(100vh-210px)] overflow-y-auto">
+            <table class="w-full text-left border-collapse" id="breakdownTable">
                 <thead class="sticky top-0 z-30 bg-[#141414] border-b border-ytBorder/80 text-[11px] uppercase tracking-wider text-ytMuted font-semibold select-none">
                     <tr>
                         <th class="py-2.5 px-2 w-8 text-center shrink-0">
@@ -198,76 +197,126 @@
 
                         <!-- 2. Thumbnail & Floating Video Preview Trigger -->
                         <td class="py-1.5 px-1.5 text-center align-middle w-14 shrink-0">
-                            <div class="relative w-12 h-8 rounded bg-[#111] border border-ytBorder/50 overflow-hidden mx-auto group/thumb cursor-pointer"
-                                 onclick="window.location.href='/admin/shots/<?= $shot->id ?>'">
+                            <div class="w-14 h-9 bg-[#111] rounded border border-ytBorder/60 overflow-hidden relative group/thumb cursor-pointer shrink-0 inline-block align-middle"
+                                 onmouseenter="showFloatingPreview(event, '<?= !empty($shot->preview_video_path) ? media_cdn_url(esc($shot->preview_video_path)) : '' ?>', '<?= !empty($shot->thumbnail_path) ? media_cdn_url(esc($shot->thumbnail_path)) : '' ?>', '<?= esc($shot->shot_number) ?>')"
+                                 onmouseleave="hideFloatingPreview()"
+                                 onclick="openVideoModal('<?= !empty($shot->preview_video_path) ? media_cdn_url(esc($shot->preview_video_path)) : '' ?>', '<?= esc($shot->shot_number) ?>')"
+                                 title="Click to open full player">
                                 <?php if($shot->thumbnail_path): ?>
                                     <img src="<?= media_cdn_url(esc($shot->thumbnail_path)) ?>" loading="lazy" class="shot-thumb-img-<?= $shot->id ?> w-full h-full object-cover">
                                 <?php else: ?>
                                     <div class="w-full h-full flex items-center justify-center text-ytMuted">
-                                        <span class="material-symbols-outlined text-[14px]">image</span>
+                                        <span class="material-symbols-outlined text-[16px]">image</span>
                                     </div>
                                 <?php endif; ?>
 
                                 <?php if(!empty($shot->preview_video_path)): ?>
-                                    <button type="button" 
-                                            onclick="openVideoModal(event, '<?= media_cdn_url(esc($shot->preview_video_path)) ?>', '<?= esc($shot->shot_number) ?>')" 
-                                            class="absolute inset-0 bg-black/50 hover:bg-blue-600/80 text-white flex items-center justify-center opacity-0 group-hover/thumb:opacity-100 transition-opacity z-10"
-                                            title="Click to play proxy video">
-                                        <span class="material-symbols-outlined text-[16px]">play_circle</span>
-                                    </button>
+                                    <span class="thumb-play-tag absolute bottom-0.5 right-0.5 bg-blue-600 hover:bg-blue-500 text-white text-[8px] font-bold px-1 rounded flex items-center shadow-md">
+                                        ▶
+                                    </span>
                                 <?php endif; ?>
                             </div>
                         </td>
 
-                        <!-- 3. Shot Number & Sequence Tag -->
-                        <td class="py-1.5 px-2 align-middle w-28 shrink-0">
-                            <div class="flex flex-col">
-                                <a href="/admin/shots/<?= $shot->id ?>" class="font-bold text-ytText hover:text-ytBlue transition-colors truncate font-mono text-[13px] flex items-center gap-1">
-                                    <span><?= esc($shot->shot_number) ?></span>
-                                    <?php if(!empty($shot->description)): ?>
-                                        <span class="material-symbols-outlined text-[13px] text-ytMuted hover:text-ytText cursor-help" title="<?= esc($shot->description) ?>">info</span>
-                                    <?php endif; ?>
-                                </a>
-                                <span class="text-[10px] text-ytMuted font-mono truncate">
-                                    <?= !empty($shot->sequence_name) ? esc($shot->sequence_name) : '<span class="italic text-ytMuted/60">Independent</span>' ?>
+                        <!-- 3. Shot Number & Sequence (Compact Stack) with Client Info trigger -->
+                        <td class="py-1.5 px-2 align-middle w-28 shrink-0 whitespace-nowrap">
+                            <div class="flex flex-col justify-center">
+                                <div class="flex items-center gap-1">
+                                    <input type="text" value="<?= esc($shot->shot_number) ?>" 
+                                           onchange="inlineUpdateShot(<?= $shot->id ?>, 'shot_number', this.value)"
+                                           class="bg-transparent border-b border-transparent hover:border-ytBorder focus:border-ytBlue text-ytText font-bold text-[12px] px-1 py-0 rounded focus:bg-ytBg w-16 focus:outline-none transition-all font-mono leading-tight">
+                                    
+                                    <?php 
+                                        $hasBrief = !empty(trim($shot->description ?? '')) || !empty(trim($shot->client_notes ?? ''));
+                                        $refArr = !empty($shot->reference_images) ? json_decode($shot->reference_images, true) : [];
+                                        $hasRefs = !empty($refArr);
+                                    ?>
+                                    <button type="button" 
+                                            onclick='openClientInfoModal(<?= (int)$shot->id ?>, <?= json_encode($shot->shot_number) ?>, <?= json_encode($shot->description ?? "") ?>, <?= json_encode($shot->client_notes ?? "") ?>, <?= json_encode(is_array($refArr) ? $refArr : []) ?>)'
+                                            class="p-0.5 rounded transition-all flex items-center justify-center <?= ($hasBrief || $hasRefs) ? "text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20" : "text-ytMuted/40 hover:text-ytMuted hover:bg-ytHover" ?>"
+                                            title="Client Brief & References (Click to view)">
+                                        <span class="material-symbols-outlined text-[15px]">info</span>
+                                    </button>
+                                </div>
+                                <span class="text-[10px] text-ytMuted font-mono px-1 truncate max-w-[100px] inline-flex items-center gap-1 mt-0.5" title="<?= esc($shot->sequence_name ?? 'Independent') ?>">
+                                    <span class="material-symbols-outlined text-[12px] text-ytMuted shrink-0">folder</span>
+                                    <span><?= esc($shot->sequence_name ?? 'Independent') ?></span>
                                 </span>
                             </div>
                         </td>
 
-                        <!-- 4. Extended Metadata Columns (Collapsible) -->
-                        <td class="py-1.5 px-1 align-middle text-center meta-col w-14 shrink-0">
-                            <input type="number" value="<?= esc($shot->frame_in ?? '') ?>" onchange="inlineUpdateShot(<?= $shot->id ?>, 'frame_in', this.value)" placeholder="-" class="w-12 bg-transparent hover:bg-[#111] focus:bg-ytBg border border-transparent hover:border-ytBorder focus:border-ytBlue text-ytText rounded px-1 py-0.5 text-center font-mono text-[11px] outline-none">
-                        </td>
-                        <td class="py-1.5 px-1 align-middle text-center meta-col w-14 shrink-0">
-                            <input type="number" value="<?= esc($shot->frame_out ?? '') ?>" onchange="inlineUpdateShot(<?= $shot->id ?>, 'frame_out', this.value)" placeholder="-" class="w-12 bg-transparent hover:bg-[#111] focus:bg-ytBg border border-transparent hover:border-ytBorder focus:border-ytBlue text-ytText rounded px-1 py-0.5 text-center font-mono text-[11px] outline-none">
-                        </td>
-                        <td class="py-1.5 px-1 align-middle text-center meta-col w-12 shrink-0">
-                            <input type="number" value="<?= esc($shot->frame_count ?? '') ?>" onchange="inlineUpdateShot(<?= $shot->id ?>, 'frame_count', this.value)" placeholder="-" class="w-10 bg-transparent hover:bg-[#111] focus:bg-ytBg border border-transparent hover:border-ytBorder focus:border-ytBlue text-ytBlue font-bold rounded px-1 py-0.5 text-center font-mono text-[11px] outline-none">
-                        </td>
-                        <td class="py-1.5 px-1 align-middle text-center meta-col w-10 shrink-0">
-                            <input type="number" value="<?= esc($shot->fps ?? $project->fps ?? 24) ?>" onchange="inlineUpdateShot(<?= $shot->id ?>, 'fps', this.value)" placeholder="24" class="w-9 bg-transparent hover:bg-[#111] focus:bg-ytBg border border-transparent hover:border-ytBorder focus:border-ytBlue text-ytMuted rounded px-0.5 py-0.5 text-center font-mono text-[11px] outline-none">
-                        </td>
-                        <td class="py-1.5 px-1.5 align-middle text-center meta-col w-24 shrink-0 font-mono text-[10px] text-ytMuted">
-                            <?= !empty($shot->timecode_in) ? esc($shot->timecode_in) . ' &ndash; ' . esc($shot->timecode_out) : '-' ?>
-                        </td>
-                        <td class="py-1.5 px-1.5 align-middle text-center meta-col w-20 shrink-0 font-mono text-[10px] text-ytMuted">
-                            <?= !empty($shot->width) ? esc($shot->width) . 'x' . esc($shot->height) : '-' ?>
-                        </td>
-                        <td class="py-1.5 px-2 align-middle meta-col w-28 shrink-0 font-mono text-[10px] text-ytMuted truncate" title="<?= esc($shot->comp_name ?? '') ?>">
-                            <?= esc($shot->comp_name ?? '-') ?>
+                        <!-- 4. Frame In (Meta) -->
+                        <td class="py-1.5 px-1 align-middle meta-col text-center w-14 shrink-0">
+                            <input type="number" value="<?= esc($shot->frame_in ?? '') ?>" 
+                                    placeholder="1001"
+                                    onchange="inlineUpdateShot(<?= $shot->id ?>, 'frame_in', this.value)"
+                                    class="bg-ytBg/60 border border-ytBorder/40 hover:border-ytBorder focus:border-ytBlue text-ytText text-[11px] font-mono px-1 py-0.5 rounded w-13 focus:outline-none text-center">
                         </td>
 
-                        <!-- Compact Meta summary -->
-                        <td class="py-1.5 px-3 align-middle meta-summary-col hidden w-36 shrink-0 font-mono text-[11px] text-ytMuted leading-tight">
-                            <div><span class="text-ytText font-bold"><?= esc($shot->frame_count ?? '-') ?></span> fr &bull; <?= esc($shot->fps ?? $project->fps ?? 24) ?> fps</div>
-                            <div class="text-[10px] text-ytMuted/70"><?= !empty($shot->width) ? esc($shot->width) . 'x' . esc($shot->height) : '-' ?></div>
+                        <!-- 5. Frame Out (Meta) -->
+                        <td class="py-1.5 px-1 align-middle meta-col text-center w-14 shrink-0">
+                            <input type="number" value="<?= esc($shot->frame_out ?? '') ?>" 
+                                    placeholder="1075"
+                                    onchange="inlineUpdateShot(<?= $shot->id ?>, 'frame_out', this.value)"
+                                    class="bg-ytBg/60 border border-ytBorder/40 hover:border-ytBorder focus:border-ytBlue text-ytText text-[11px] font-mono px-1 py-0.5 rounded w-13 focus:outline-none text-center">
                         </td>
 
-                        <!-- 5. Task Pipeline Matrix -->
+                        <!-- 6. Frames Count (Meta) -->
+                        <td class="py-1.5 px-1 align-middle meta-col text-center w-12 shrink-0">
+                            <input type="number" value="<?= esc($shot->frame_count ?? '') ?>" 
+                                    placeholder="75"
+                                    onchange="inlineUpdateShot(<?= $shot->id ?>, 'frame_count', this.value)"
+                                    class="bg-ytBg border border-ytBorder/60 hover:border-ytBlue focus:border-ytBlue text-ytText font-semibold text-[11px] font-mono px-1 py-0.5 rounded w-11 focus:outline-none text-center">
+                        </td>
+
+                        <!-- 7. FPS (Meta) -->
+                        <td class="py-1.5 px-1 align-middle meta-col text-center w-10 shrink-0">
+                            <input type="number" value="<?= esc($shot->fps ?? $project->fps ?? 24) ?>" 
+                                    placeholder="25"
+                                    onchange="inlineUpdateShot(<?= $shot->id ?>, 'fps', this.value)"
+                                    class="bg-ytBg/60 border border-ytBorder/40 hover:border-ytBorder focus:border-ytBlue text-ytText text-[11px] font-mono px-1 py-0.5 rounded w-10 focus:outline-none text-center">
+                        </td>
+
+                        <!-- 8. Timecode In/Out (Meta) -->
+                        <td class="py-1.5 px-1.5 align-middle meta-col text-[10px] font-mono text-ytMuted space-y-0.5 w-24 shrink-0">
+                            <input type="text" value="<?= esc($shot->timecode_in ?? '') ?>" placeholder="00:00:00:00"
+                                    onchange="inlineUpdateShot(<?= $shot->id ?>, 'timecode_in', this.value)"
+                                    class="bg-transparent border-b border-transparent hover:border-ytBorder focus:border-ytBlue text-ytText text-[10px] font-mono px-1 py-0 w-20 focus:bg-ytBg focus:outline-none block">
+                            <input type="text" value="<?= esc($shot->timecode_out ?? '') ?>" placeholder="00:00:03:00"
+                                    onchange="inlineUpdateShot(<?= $shot->id ?>, 'timecode_out', this.value)"
+                                    class="bg-transparent border-b border-transparent hover:border-ytBorder focus:border-ytBlue text-ytText text-[10px] font-mono px-1 py-0 w-20 focus:bg-ytBg focus:outline-none block">
+                        </td>
+
+                        <!-- 9. Resolution (Meta) -->
+                        <td class="py-1.5 px-1.5 align-middle meta-col text-[11px] font-mono text-ytText text-center w-20 shrink-0">
+                            <?php if(!empty($shot->width) && !empty($shot->height)): ?>
+                                <span><?= esc($shot->width) ?>&times;<?= esc($shot->height) ?></span>
+                            <?php else: ?>
+                                <span class="text-ytMuted">-</span>
+                            <?php endif; ?>
+                        </td>
+
+                        <!-- 10. AE Comp Name (Meta) -->
+                        <td class="py-1.5 px-2 align-middle meta-col text-[11px] font-mono text-ytMuted truncate max-w-[120px] w-28 shrink-0" title="<?= esc($shot->comp_name ?? '') ?>">
+                            <?= esc($shot->comp_name ?: '-') ?>
+                        </td>
+
+                        <!-- Compact Meta Summary (Shown when columns collapsed) -->
+                        <td class="py-1.5 px-3 align-middle meta-summary-col hidden text-[11px] font-mono space-y-1 w-36 shrink-0">
+                            <div class="text-ytText font-medium">
+                                <?= !empty($shot->frame_in) && !empty($shot->frame_out) ? esc($shot->frame_in) . '–' . esc($shot->frame_out) : '' ?>
+                                <span class="text-ytBlue">(<?= esc($shot->frame_count ?? '-') ?> fr)</span>
+                            </div>
+                            <div class="text-ytMuted text-[10px]">
+                                <?= esc($shot->fps ?? $project->fps ?? 24) ?> FPS &bull; <?= esc($shot->width && $shot->height ? $shot->width . 'x' . $shot->height : '') ?>
+                            </div>
+                        </td>
+
+                        <!-- 11. Assigned Tasks Matrix Column -->
                         <td class="py-1.5 px-3 align-middle">
-                            <div class="flex flex-wrap items-center gap-1.5" id="shot-tasks-container-<?= $shot->id ?>">
+                            <div class="space-y-1" id="shot-tasks-container-<?= $shot->id ?>">
                                 <?php if(empty($shotTasks)): ?>
-                                    <span class="text-[11px] text-ytMuted/60 italic no-tasks-label">No tasks added yet</span>
+                                    <span class="text-[10px] text-ytMuted italic no-tasks-label">No tasks assigned.</span>
                                 <?php else: ?>
                                     <?php foreach($shotTasks as $task): ?>
                                         <div class="flex flex-wrap items-center gap-1.5 bg-[#121212] border border-ytBorder/50 rounded px-2 py-0.5 text-[11px] group/task hover:border-ytBorder transition-all" id="task-item-<?= $task->id ?>">
@@ -320,9 +369,9 @@
                             </div>
 
                             <!-- Row-Level Add Task Quick Dropdown -->
-                            <div class="mt-1 flex items-center gap-2">
-                                <select onchange="if(this.value){ addTaskAjax(<?= $shot->id ?>, this.value); this.value=''; }" class="bg-transparent hover:bg-[#181818] border border-dashed border-ytBorder/40 hover:border-ytBlue text-ytMuted hover:text-ytText rounded px-2 py-0.5 text-[10px] focus:outline-none cursor-pointer transition-colors">
-                                    <option value="">+ Add Task...</option>
+                            <div class="mt-1 flex items-center gap-1">
+                                <select onchange="handleRowQuickAddTask(this, <?= $shot->id ?>, <?= $project->id ?>)" class="bg-transparent border border-dashed border-ytBorder/60 hover:border-ytBlue text-ytMuted hover:text-ytText rounded px-1.5 py-0.5 text-[9px] focus:outline-none focus:bg-ytBg transition-colors cursor-pointer">
+                                    <option value="" selected>+ Add task...</option>
                                     <?php foreach($taskTypes as $tt): ?>
                                         <option value="<?= $tt->id ?>"><?= esc($tt->name) ?></option>
                                     <?php endforeach; ?>
@@ -330,13 +379,15 @@
                             </div>
                         </td>
 
-                        <!-- 6. Aggregate Shot Hours & Budget Summary -->
-                        <td class="py-1.5 px-3 align-middle text-right w-32 shrink-0 font-mono text-[11px]">
-                            <div class="flex flex-col items-end">
-                                <span class="font-bold text-ytBlue" id="shot-total-hours-<?= $shot->id ?>"><?= round($shotTotal, 1) ?>h</span>
-                                <div class="flex flex-col items-end text-[10px]">
-                                    <span class="text-ytMuted" id="shot-ideal-budget-<?= $shot->id ?>" title="Standard Quote">
-                                        <?= esc($studioCurrency) ?><?= number_format($shotIdealBudgets[$shot->id] ?? 0, 0) ?>
+                        <!-- 12. Shot Total Hours & Proportional Budget Sum -->
+                        <td class="py-1.5 px-3 text-right align-middle shrink-0">
+                            <div class="flex flex-col items-end gap-0.5">
+                                <span class="text-[11px] font-bold font-mono text-ytText bg-[#111] px-2 py-0.5 rounded border border-ytBorder/40 inline-block" id="shot-total-hours-<?= $shot->id ?>">
+                                    <?= round($shotTotal, 1) ?>h
+                                </span>
+                                <div class="flex items-center gap-1 text-[10px] font-mono">
+                                    <span class="text-ytMuted" id="shot-ideal-budget-<?= $shot->id ?>" title="Standard benchmark quote">
+                                        <?= esc($studioCurrency) ?><?= number_format($shotTotalBudgets[$shot->id] ?? 0, 0) ?>
                                     </span>
                                     <span class="text-green-400 font-bold bg-green-950/70 border border-green-700/40 px-1 rounded <?= $agreedBudget > 0 ? '' : 'hidden' ?>" id="shot-allocated-budget-<?= $shot->id ?>" title="Proportional allocated share of locked budget (<?= round($scaleFactor * 100, 1) ?>%)">
                                         <?= esc($studioCurrency) ?><?= number_format($shotAllocatedBudgets[$shot->id] ?? 0, 0) ?>
@@ -741,11 +792,9 @@
                 loader.classList.add('opacity-100');
             }
         };
-         video.src = videoUrl;
+
+        video.src = videoUrl;
         modal.classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
-        const mainEl = document.getElementById('main-content');
-        if (mainEl) mainEl.style.overflow = 'hidden';
         video.play().catch(() => {});
     }
 
@@ -765,9 +814,6 @@
             loader.classList.add('opacity-0', 'pointer-events-none');
         }
         modal.classList.add('hidden');
-        document.body.style.overflow = '';
-        const mainEl = document.getElementById('main-content');
-        if (mainEl) mainEl.style.overflow = '';
     }
 
     // 11. Auto-Generate WebP Thumbnails from Video Mid-Frames
@@ -1111,31 +1157,30 @@
     <div id="globalHoverTag" class="absolute bottom-1.5 left-2 bg-black/85 backdrop-blur-md text-blue-300 font-bold text-[10px] font-mono px-2 py-0.5 rounded border border-blue-500/30 z-30 shadow-lg"></div>
 </div>
 
-<!-- Quick Video Player Modal: 100% Fullscreen Immersive Player -->
-<div id="quickVideoModal" class="fixed inset-0 z-[9999] hidden bg-black w-screen h-screen flex flex-col justify-between overflow-hidden">
-    <!-- Top Bar Header -->
-    <div class="px-4 md:px-6 py-3 bg-[#0c0f18]/95 border-b border-ytBorder/40 flex items-center justify-between z-20 backdrop-blur-md shrink-0">
-        <div class="flex items-center gap-2.5 min-w-0">
-            <span class="material-symbols-outlined text-ytBlue text-[22px] shrink-0">play_circle</span>
-            <h4 id="quickVideoTitle" class="text-[14px] font-bold text-ytText font-mono truncate">Video Preview</h4>
-        </div>
-        <button type="button" onclick="closeVideoModal()" class="text-ytMuted hover:text-white p-2 rounded-full hover:bg-ytHover transition-colors flex items-center justify-center bg-[#151928] border border-ytBorder/60 shrink-0" title="Close Preview">
-            <span class="material-symbols-outlined text-[24px]">close</span>
-        </button>
-    </div>
-
-    <!-- Center Video Screen (Fills Full Viewport Height & Width) -->
-    <div class="flex-1 w-full h-full bg-black relative flex items-center justify-center overflow-hidden">
-        <!-- Modal Loading Buffer Indicator -->
-        <div id="quickVideoLoader" class="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-10 transition-opacity duration-300 pointer-events-none">
-            <div class="relative w-12 h-12 flex items-center justify-center">
-                <div class="absolute inset-0 rounded-full border-2 border-blue-500/20"></div>
-                <div class="absolute inset-0 rounded-full border-2 border-t-blue-400 border-r-transparent border-b-transparent border-l-transparent animate-spin"></div>
-                <span class="material-symbols-outlined text-[20px] text-blue-400">smart_display</span>
+<!-- Quick Video Player Modal with Loading Animation -->
+<div id="quickVideoModal" class="fixed inset-0 z-50 hidden bg-black/85 backdrop-blur-md flex items-center justify-center p-4" onclick="if(event.target===this) closeVideoModal()">
+    <div class="bg-ytCard border border-ytBorder rounded-2xl overflow-hidden shadow-2xl max-w-3xl w-full">
+        <div class="px-5 py-3.5 border-b border-ytBorder/60 flex items-center justify-between bg-[#111]">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-ytBlue text-[20px]">play_circle</span>
+                <h4 id="quickVideoTitle" class="text-[14px] font-bold text-ytText font-mono">Video Preview</h4>
             </div>
-            <span class="text-[12px] text-blue-300 font-mono mt-2.5 tracking-wider">Loading Video Stream...</span>
+            <button type="button" onclick="closeVideoModal()" class="text-ytMuted hover:text-ytText p-1 rounded-full hover:bg-ytHover transition-colors">
+                <span class="material-symbols-outlined text-[20px]">close</span>
+            </button>
         </div>
-        <video id="quickVideoPlayer" controls playsinline class="w-full h-full max-h-full max-w-full object-contain"></video>
+        <div class="aspect-video bg-black relative flex items-center justify-center">
+            <!-- Modal Loading Buffer Indicator -->
+            <div id="quickVideoLoader" class="absolute inset-0 flex flex-col items-center justify-center bg-black/60 z-10 transition-opacity duration-300 pointer-events-none">
+                <div class="relative w-10 h-10 flex items-center justify-center">
+                    <div class="absolute inset-0 rounded-full border-2 border-blue-500/20"></div>
+                    <div class="absolute inset-0 rounded-full border-2 border-t-blue-400 border-r-transparent border-b-transparent border-l-transparent animate-spin"></div>
+                    <span class="material-symbols-outlined text-[16px] text-blue-400">smart_display</span>
+                </div>
+                <span class="text-[11px] text-blue-300 font-mono mt-2 tracking-wider">Loading Video Stream...</span>
+            </div>
+            <video id="quickVideoPlayer" controls playsinline class="w-full h-full object-contain"></video>
+        </div>
     </div>
 </div>
 
