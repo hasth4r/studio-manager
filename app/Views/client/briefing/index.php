@@ -127,8 +127,9 @@
                             <td class="py-3 px-3 align-top pt-3">
                                 <div class="relative">
                                     <textarea 
+                                        id="brief_textarea_<?= $shot->id ?>"
                                         oninput="handleBriefInput(<?= $shot->id ?>)"
-                                        onchange="saveBrief(<?= $shot->id ?>)"
+                                        onchange="saveBriefing(<?= $shot->id ?>)"
                                         rows="3"
                                         placeholder="Add creative notes, art direction, framing guidance, VFX requirements..." 
                                         class="w-full bg-[#111114] border border-ytBorder hover:border-ytBlue/50 focus:border-ytBlue text-ytText rounded-xl p-3 text-[13px] focus:outline-none placeholder:text-ytMuted/40 resize-y transition-all leading-relaxed custom-scrollbar font-sans"><?= esc($shot->description ?? '') ?></textarea>
@@ -244,14 +245,33 @@
 </div>
 
 <script>
-    // 1. Debounced Auto-Save for Briefing Textareas
+    // Toast notification engine
+    function showToast(msg) {
+        const toast = document.getElementById('briefToast');
+        const text = document.getElementById('briefToastText');
+        if (!toast) return;
+        if (text) text.textContent = msg;
+        toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-2');
+        toast.classList.add('opacity-100', 'translate-y-0');
+        setTimeout(() => {
+            toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-2');
+            toast.classList.remove('opacity-100', 'translate-y-0');
+        }, 2400);
+    }
+
+    // 1. Debounced Live Auto-Save for Briefing Textareas
     const debounceTimers = {};
 
     function handleBriefInput(shotId) {
+        const badge = document.getElementById(`save_badge_${shotId}`);
+        if (badge) {
+            badge.innerHTML = '<span class="material-symbols-outlined text-[12px] animate-spin">sync</span> Saving...';
+            badge.className = 'absolute bottom-2.5 right-2.5 text-[10px] font-mono px-2 py-0.5 rounded transition-opacity pointer-events-none bg-black/90 text-amber-400 border border-amber-500/30 flex items-center gap-1 opacity-100';
+        }
         if (debounceTimers[shotId]) clearTimeout(debounceTimers[shotId]);
         debounceTimers[shotId] = setTimeout(() => {
             saveBriefing(shotId);
-        }, 800);
+        }, 600);
     }
 
     async function saveBriefing(shotId) {
@@ -263,6 +283,7 @@
 
         try {
             const formData = new FormData();
+            formData.append('<?= csrf_token() ?>', '<?= csrf_hash() ?>');
             formData.append('shot_id', shotId);
             formData.append('description', description);
 
@@ -275,12 +296,23 @@
             const data = await res.json();
             if (data.success) {
                 if (badge) {
-                    badge.classList.remove('opacity-0');
-                    setTimeout(() => badge.classList.add('opacity-0'), 1800);
+                    badge.innerHTML = '<span class="material-symbols-outlined text-[12px]">check</span> Saved';
+                    badge.className = 'absolute bottom-2.5 right-2.5 text-[10px] font-mono px-2 py-0.5 rounded transition-opacity pointer-events-none bg-black/90 text-emerald-400 border border-emerald-500/30 flex items-center gap-1 opacity-100';
+                    setTimeout(() => badge.classList.add('opacity-0'), 2000);
+                }
+                showToast('Briefing auto-saved!');
+            } else {
+                if (badge) {
+                    badge.innerHTML = '<span class="material-symbols-outlined text-[12px]">error</span> Failed';
+                    badge.className = 'absolute bottom-2.5 right-2.5 text-[10px] font-mono px-2 py-0.5 rounded transition-opacity pointer-events-none bg-black/90 text-red-400 border border-red-500/30 flex items-center gap-1 opacity-100';
                 }
             }
         } catch (err) {
             console.error('Error auto-saving brief:', err);
+            if (badge) {
+                badge.innerHTML = '<span class="material-symbols-outlined text-[12px]">error</span> Error';
+                badge.className = 'absolute bottom-2.5 right-2.5 text-[10px] font-mono px-2 py-0.5 rounded transition-opacity pointer-events-none bg-black/90 text-red-400 border border-red-500/30 flex items-center gap-1 opacity-100';
+            }
         }
     }
 
@@ -292,6 +324,7 @@
         const container = document.getElementById(`ref_container_${shotId}`);
 
         const formData = new FormData();
+        formData.append('<?= csrf_token() ?>', '<?= csrf_hash() ?>');
         formData.append('shot_id', shotId);
         formData.append('reference_file', file);
 
@@ -351,6 +384,7 @@
 
         try {
             const formData = new FormData();
+            formData.append('<?= csrf_token() ?>', '<?= csrf_hash() ?>');
             formData.append('shot_id', shotId);
             formData.append('ref_path', refPath);
 
