@@ -16,8 +16,8 @@ class Dashboard extends BaseController
         $clientId = session()->get('clientId');
 
         // Fetch Currency
-        $settingsRow = $db->table('settings')->where('key', 'studio_currency')->get()->getRow();
-        $currency = $settingsRow ? $settingsRow->value : '$';
+        $settingsModel = new \App\Models\SettingsModel();
+        $currency = $settingsModel->getSetting('studio_currency', '$') ?? '$';
 
         // Fetch Client's Active Projects
         $projects = $db->table('projects')
