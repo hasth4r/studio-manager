@@ -37,6 +37,27 @@ class Projects extends BaseController
         $builder->join('project_types', 'project_types.id = projects.project_type_id', 'left');
         $builder->join('collaborators', 'collaborators.id = projects.collaborator_id', 'left');
         $builder->orderBy('projects.created_at', 'DESC');
+
+        // Dynamic Scope Filtering: If not Site Manager or Admin, only show projects they supervise or have tasks in
+        $userId = (int)session()->get('userId');
+        if (!has_any_role(['site_manager', 'admin'])) {
+            $supervisedProj = $db->table('projects')->select('id')->where('supervisor_id', $userId)->get()->getResultArray();
+            $supervisedSeq = $db->table('sequences')->select('project_id')->where('supervisor_id', $userId)->get()->getResultArray();
+            $assignedTasks = $db->table('tasks')->select('project_id')->where('assigned_to', $userId)->get()->getResultArray();
+            
+            $allowedIds = array_values(array_unique(array_filter(array_merge(
+                array_column($supervisedProj, 'id'),
+                array_column($supervisedSeq, 'project_id'),
+                array_column($assignedTasks, 'project_id')
+            ))));
+
+            if (!empty($allowedIds)) {
+                $builder->whereIn('projects.id', $allowedIds);
+            } else {
+                $builder->where('projects.id', -1);
+            }
+        }
+
         $projects = $builder->get()->getResult();
 
         $settingsModel = new \App\Models\SettingsModel();

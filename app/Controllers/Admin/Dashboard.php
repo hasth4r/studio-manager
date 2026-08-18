@@ -40,33 +40,61 @@ class Dashboard extends BaseController
         $studioCurrency = '₹';
 
         if (has_any_role(['site_manager', 'admin', 'project_manager', 'it'])) {
+            $userId = (int)session()->get('userId');
+            $isAdminScope = has_any_role(['site_manager', 'admin']);
+
+            // Determine allowed project IDs
+            $allowedProjIds = null;
+            if (!$isAdminScope) {
+                $supervisedProj = $db->table('projects')->select('id')->where('supervisor_id', $userId)->get()->getResultArray();
+                $supervisedSeq = $db->table('sequences')->select('project_id')->where('supervisor_id', $userId)->get()->getResultArray();
+                $assignedTasks = $db->table('tasks')->select('project_id')->where('assigned_to', $userId)->get()->getResultArray();
+                
+                $allowedProjIds = array_values(array_unique(array_filter(array_merge(
+                    array_column($supervisedProj, 'id'),
+                    array_column($supervisedSeq, 'project_id'),
+                    array_column($assignedTasks, 'project_id')
+                ))));
+                if (empty($allowedProjIds)) $allowedProjIds = [-1];
+            }
+
             // Active Projects
-            $activeProjectsCount = $db->table('projects')
-                ->where('status !=', 'completed')
-                ->countAllResults();
+            $activeProjectsBuilder = $db->table('projects')->where('status !=', 'completed');
+            if ($allowedProjIds !== null) {
+                $activeProjectsBuilder->whereIn('id', $allowedProjIds);
+            }
+            $activeProjectsCount = $activeProjectsBuilder->countAllResults();
 
             // Tasks Completed (Last 28 Days)
-            $completedTasksCount = $db->table('tasks')
-                ->where('status', 'approved') // assuming 'approved' is completed
-                ->where('updated_at >=', date('Y-m-d H:i:s', strtotime('-28 days')))
-                ->countAllResults();
+            $completedTasksBuilder = $db->table('tasks')
+                ->where('status', 'completed')
+                ->where('updated_at >=', date('Y-m-d H:i:s', strtotime('-28 days')));
+            if ($allowedProjIds !== null) {
+                $completedTasksBuilder->whereIn('project_id', $allowedProjIds);
+            }
+            $completedTasksCount = $completedTasksBuilder->countAllResults();
 
             // Pending Reviews
-            $pendingReviewsCount = $db->table('reviews')
-                ->where('status', 'pending')
-                ->countAllResults();
+            $pendingReviewsBuilder = $db->table('reviews')->where('status', 'pending');
+            if ($allowedProjIds !== null) {
+                $pendingReviewsBuilder->whereIn('project_id', $allowedProjIds);
+            }
+            $pendingReviewsCount = $pendingReviewsBuilder->countAllResults();
 
             // Top Projects (by number of tasks)
-            $topProjects = $db->table('projects p')
+            $topProjectsBuilder = $db->table('projects p')
                 ->select('p.id, p.name, COUNT(t.id) as task_count')
                 ->join('tasks t', 't.project_id = p.id', 'left')
                 ->groupBy('p.id, p.name')
                 ->orderBy('task_count', 'DESC')
-                ->limit(3)
-                ->get()->getResult();
+                ->limit(3);
+            if ($allowedProjIds !== null) {
+                $topProjectsBuilder->whereIn('p.id', $allowedProjIds);
+            }
+            $topProjects = $topProjectsBuilder->get()->getResult();
 
             // Latest Review
-            $latestReview = $db->table('reviews r')
+            $latestReviewBuilder = $db->table('reviews r')
                 ->select('r.*, p.name as project_name, u.name as artist_name, c.name as task_name, rf.proxy_path, rf.file_type')
                 ->join('projects p', 'p.id = r.project_id', 'left')
                 ->join('users u', 'u.id = r.user_id', 'left')
@@ -74,8 +102,11 @@ class Dashboard extends BaseController
                 ->join('task_types c', 'c.id = t.task_type_id', 'left')
                 ->join('review_files rf', 'rf.review_id = r.id', 'left')
                 ->orderBy('r.created_at', 'DESC')
-                ->limit(1)
-                ->get()->getRow();
+                ->limit(1);
+            if ($allowedProjIds !== null) {
+                $latestReviewBuilder->whereIn('r.project_id', $allowedProjIds);
+            }
+            $latestReview = $latestReviewBuilder->get()->getRow();
 
             // Budget & Pipeline Economics
             $settingsModel = new \App\Models\SettingsModel();
@@ -91,7 +122,11 @@ class Dashboard extends BaseController
                 $userRateMap[$u->id] = (float)($u->hourly_rate ?? $defaultArtistRate);
             }
 
-            $allProjects = $db->table('projects')->where('status !=', 'completed')->get()->getResult();
+            $allProjectsBuilder = $db->table('projects')->where('status !=', 'completed');
+            if ($allowedProjIds !== null) {
+                $allProjectsBuilder->whereIn('id', $allowedProjIds);
+            }
+            $allProjects = $allProjectsBuilder->get()->getResult();
 
             foreach ($allProjects as $p) {
                 if (!empty($p->agreed_budget) && (float)$p->agreed_budget > 0) {

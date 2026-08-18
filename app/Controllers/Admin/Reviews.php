@@ -25,7 +25,7 @@ class Reviews extends BaseController
         }
         
         // Fetch all pending reviews, joining necessary tables to get context
-        $query = $db->table('reviews r')
+        $builder = $db->table('reviews r')
             ->select('r.*, p.name as project_name, p.project_code, s.shot_number, s.thumbnail_path as shot_thumb, seq.name as seq_name, u.name as artist_name, vta.id as vfx_task_assignment_id, c.name as task_name, rf.proxy_path, rf.file_type')
             ->join('projects p', 'p.id = r.project_id', 'left')
             ->join('shots s', 's.id = r.shot_id', 'left')
@@ -33,10 +33,31 @@ class Reviews extends BaseController
             ->join('tasks vta', 'vta.id = r.vfx_task_assignment_id', 'left')
             ->join('task_types c', 'c.id = vta.task_type_id', 'left')
             ->join('users u', 'u.id = r.user_id', 'left')
-            ->join('review_files rf', 'rf.review_id = r.id', 'left') // Assume 1 file per review for now
-            ->where('r.status', 'pending')
-            ->orderBy('r.created_at', 'DESC')
-            ->get();
+            ->join('review_files rf', 'rf.review_id = r.id', 'left')
+            ->where('r.status', 'pending');
+
+        // Dynamic Scope Filtering: If not Site Manager or Admin, only show reviews in supervised projects or self-submitted
+        $userId = (int)session()->get('userId');
+        if (!has_any_role(['site_manager', 'admin'])) {
+            $supervisedProj = $db->table('projects')->select('id')->where('supervisor_id', $userId)->get()->getResultArray();
+            $supervisedSeq = $db->table('sequences')->select('project_id')->where('supervisor_id', $userId)->get()->getResultArray();
+            $allowedProjIds = array_values(array_unique(array_filter(array_merge(
+                array_column($supervisedProj, 'id'),
+                array_column($supervisedSeq, 'project_id')
+            ))));
+
+            if (!empty($allowedProjIds)) {
+                $builder->groupStart()
+                    ->whereIn('r.project_id', $allowedProjIds)
+                    ->orWhere('r.user_id', $userId)
+                ->groupEnd();
+            } else {
+                $builder->where('r.user_id', $userId);
+            }
+        }
+
+        $builder->orderBy('r.created_at', 'DESC');
+        $query = $builder->get();
 
         $data['pending_reviews'] = $query->getResult();
         $data['title'] = "Review Inbox";
