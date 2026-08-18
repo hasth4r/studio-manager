@@ -132,11 +132,10 @@
     </div>
 </div>
 
-<!-- Spreadsheet & Mobile Cards Container -->
-<div class="mt-4 pb-20">
-    <!-- Desktop Spreadsheet Table (Hidden on Mobile) -->
-    <div class="hidden md:block bg-ytCard border border-ytBorder rounded-xl shadow-xl overflow-hidden">
-        <div class="overflow-x-auto max-h-[calc(100vh-210px)] overflow-y-auto">
+<!-- Interactive Breakdown Matrix Spreadsheet Container -->
+<div class="mt-3 md:mt-4 pb-20">
+    <div class="bg-ytCard border border-ytBorder rounded-xl shadow-xl overflow-hidden -mx-4 sm:mx-0">
+        <div class="overflow-x-auto max-h-[calc(100vh-190px)] overflow-y-auto custom-scrollbar">
             <table class="w-full text-left border-collapse" id="breakdownTable">
                 <thead class="sticky top-0 z-30 bg-[#141414] border-b border-ytBorder/80 text-[11px] uppercase tracking-wider text-ytMuted font-semibold select-none">
                     <tr>
@@ -348,77 +347,6 @@
                 </tbody>
             </table>
         </div>
-    </div>
-
-    <!-- Mobile High-Density Shot Cards Grid (Visible on Mobile Only) -->
-    <div class="md:hidden space-y-2.5">
-        <?php if(empty($shots)): ?>
-            <div class="bg-ytCard border border-ytBorder rounded-2xl p-8 text-center text-ytMuted text-xs">
-                No shots found in this project.
-            </div>
-        <?php else: ?>
-            <?php foreach($shots as $shot): 
-                $shotTasks = $tasksByShot[$shot->id] ?? [];
-                $shotTotal = 0.0;
-                foreach($shotTasks as $st) {
-                    $shotTotal += (float)($st->estimated_hours ?? 0);
-                }
-            ?>
-            <div class="bg-[#0e1320] border border-slate-800/90 rounded-2xl p-3.5 shadow-md flex flex-col gap-2.5">
-                <div class="flex items-start gap-3">
-                    <!-- Thumbnail -->
-                    <div class="w-16 h-12 rounded-xl bg-[#050811] border border-slate-800 relative overflow-hidden shrink-0 flex items-center justify-center">
-                        <?php if($shot->thumbnail_path): ?>
-                            <img src="<?= media_cdn_url(esc($shot->thumbnail_path)) ?>" loading="lazy" class="w-full h-full object-cover">
-                        <?php else: ?>
-                            <span class="material-symbols-outlined text-[18px] text-slate-600">movie</span>
-                        <?php endif; ?>
-
-                        <?php if(!empty($shot->preview_video_path)): ?>
-                            <button type="button" onclick="openVideoModal(event, '<?= media_cdn_url(esc($shot->preview_video_path)) ?>', '<?= esc($shot->shot_number) ?>')" class="absolute inset-0 bg-black/60 flex items-center justify-center text-white">
-                                <span class="material-symbols-outlined text-[16px]">play_circle</span>
-                            </button>
-                        <?php endif; ?>
-                    </div>
-
-                    <!-- Meta -->
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center justify-between gap-1 mb-0.5">
-                            <a href="/admin/shots/<?= $shot->id ?>" class="font-bold text-white text-[14px] hover:text-blue-400 truncate font-mono">
-                                <?= esc($shot->shot_number) ?>
-                            </a>
-                            <span class="font-mono font-bold text-blue-400 text-xs">
-                                <?= round($shotTotal, 1) ?>h
-                            </span>
-                        </div>
-                        <div class="text-[11px] text-slate-400 flex items-center gap-1.5 truncate">
-                            <span><?= !empty($shot->sequence_name) ? esc($shot->sequence_name) : 'Independent' ?></span>
-                            <span>•</span>
-                            <span class="font-mono text-slate-300"><?= esc($shot->frame_count ?? '-') ?> fr</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Tasks pill row -->
-                <div class="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-800/80">
-                    <?php if(empty($shotTasks)): ?>
-                        <span class="text-[10px] text-slate-500 italic">0 tasks assigned</span>
-                    <?php else: ?>
-                        <?php foreach($shotTasks as $task): ?>
-                            <span class="bg-[#050811] border border-slate-800 text-[10px] px-2 py-0.5 rounded-full text-slate-300 font-mono flex items-center gap-1">
-                                <span class="w-1.5 h-1.5 rounded-full <?= $task->status === 'approved' ? 'bg-emerald-400' : ($task->status === 'in_progress' ? 'bg-blue-400' : 'bg-amber-400') ?>"></span>
-                                <?= esc($task->task_type_name) ?>: <?= round($task->estimated_hours ?? 0, 1) ?>h
-                            </span>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-
-                    <a href="/admin/shots/<?= $shot->id ?>" class="ml-auto text-[11px] font-bold text-blue-400 hover:underline flex items-center gap-0.5">
-                        Details &rarr;
-                    </a>
-                </div>
-            </div>
-            <?php endforeach; ?>
-        <?php endif; ?>
     </div>
 </div>
 
