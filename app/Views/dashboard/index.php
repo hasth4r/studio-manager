@@ -4,36 +4,36 @@
 
 <?php if (in_array($userRole, ['admin', 'project_manager'])): ?>
     
-    <!-- ==================== MOBILE VIEW (Exact Reference Match) ==================== -->
+    <!-- ==================== MOBILE VIEW (EnsoFlow Responsive Layout) ==================== -->
     <div class="md:hidden space-y-4 pb-6">
         
         <!-- Mobile Header Title -->
         <div class="flex items-center space-x-3 pt-2">
-            <div class="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center shadow-lg shadow-purple-950/50 flex-shrink-0">
+            <div class="p-2 bg-[#1a122a] rounded-xl flex items-center justify-center text-red-400 border border-red-900/50 flex-shrink-0">
                 <span class="material-symbols-outlined text-[22px]">dashboard</span>
             </div>
             <div>
-                <h1 class="text-[20px] font-extrabold text-white leading-tight">Studio dashboard</h1>
-                <p class="text-[11px] text-slate-400">Overview of your studio's activity</p>
+                <h1 class="text-[20px] font-bold text-ytText leading-tight">Dashboard</h1>
+                <p class="text-[11px] text-ytMuted">Overview of your studio's activity</p>
             </div>
         </div>
 
         <!-- Mobile Horizontal Underline Navigation Tabs -->
-        <div class="flex items-center space-x-6 border-b border-slate-800/80 text-[13px] font-semibold overflow-x-auto custom-scrollbar -mx-4 px-4 pt-1">
-            <button class="text-white border-b-2 border-white pb-2 shrink-0">Overview</button>
-            <a href="/admin/projects" class="text-slate-400 hover:text-white pb-2 shrink-0">Projects</a>
-            <a href="/admin/reviews" class="text-slate-400 hover:text-white pb-2 shrink-0">Reviews</a>
-            <a href="/admin/budgeting" class="text-slate-400 hover:text-white pb-2 shrink-0">Economics</a>
+        <div class="flex items-center space-x-6 border-b border-ytBorder/60 text-[13px] font-semibold overflow-x-auto custom-scrollbar -mx-4 px-4 pt-1">
+            <button class="text-ytBlue border-b-2 border-ytBlue pb-2 shrink-0">Overview</button>
+            <a href="/admin/projects" class="text-ytMuted hover:text-ytText pb-2 shrink-0">Projects</a>
+            <a href="/admin/reviews" class="text-ytMuted hover:text-ytText pb-2 shrink-0">Reviews</a>
+            <a href="/admin/budgeting" class="text-ytMuted hover:text-ytText pb-2 shrink-0">Economics</a>
         </div>
 
         <!-- Hero Featured Card Carousel -->
-        <div class="relative bg-gradient-to-b from-[#111625] to-[#0a0d18] border border-slate-800 rounded-2xl p-5 shadow-xl">
-            <span class="text-xs font-semibold text-slate-400">Total Project Pipeline</span>
+        <div class="bg-ytCard border border-ytBorder rounded-2xl p-5 shadow-xl">
+            <span class="text-xs font-semibold text-ytMuted">Total Project Pipeline</span>
             <div class="flex items-center gap-2 mt-1 mb-1">
-                <span class="text-[28px] font-extrabold text-white font-mono tracking-tight"><?= esc($studioCurrency) ?><?= number_format($totalPipelineBudget, 0) ?></span>
-                <span class="text-xl">💼</span>
+                <span class="text-[26px] font-extrabold text-ytBlue font-mono tracking-tight"><?= esc($studioCurrency) ?><?= number_format($totalPipelineBudget, 0) ?></span>
+                <span class="text-lg">💼</span>
             </div>
-            <p class="text-[11px] text-slate-400">Estimated value across <?= round($totalPipelineHours, 1) ?> production hrs</p>
+            <p class="text-[11px] text-ytMuted">Estimated value across <?= round($totalPipelineHours, 1) ?> production hrs</p>
             
             <div class="mt-3 flex items-center gap-1.5 text-amber-400 text-xs font-semibold">
                 <span class="material-symbols-outlined text-[16px]">trending_up</span>
@@ -42,94 +42,94 @@
 
             <!-- Dots Indicator -->
             <div class="flex justify-center items-center gap-1.5 mt-4">
-                <span class="w-2 h-2 rounded-full bg-white"></span>
-                <span class="w-1.5 h-1.5 rounded-full bg-slate-600"></span>
-                <span class="w-1.5 h-1.5 rounded-full bg-slate-600"></span>
+                <span class="w-2 h-2 rounded-full bg-ytBlue"></span>
+                <span class="w-1.5 h-1.5 rounded-full bg-ytBorder"></span>
+                <span class="w-1.5 h-1.5 rounded-full bg-ytBorder"></span>
             </div>
         </div>
 
         <!-- Platform Overview 2x2 Metric Grid -->
         <div>
             <div class="flex items-center justify-between mb-2.5">
-                <h3 class="text-[15px] font-bold text-white">Platform Overview</h3>
-                <span class="text-[11px] text-slate-500 font-medium">All time</span>
+                <h3 class="text-[14px] font-bold text-ytText">Platform Overview</h3>
+                <span class="text-[11px] text-ytMuted font-medium">All time</span>
             </div>
             
             <div class="grid grid-cols-2 gap-2.5">
                 <!-- Projects -->
-                <a href="/admin/projects" class="bg-[#0e1320] border border-slate-800/80 rounded-2xl p-3.5 flex flex-col justify-between hover:border-slate-700 transition-colors">
-                    <span class="text-xs text-slate-400 font-medium">Projects</span>
+                <a href="/admin/projects" class="bg-ytCard border border-ytBorder rounded-2xl p-3.5 flex flex-col justify-between hover:border-ytBlue transition-colors">
+                    <span class="text-xs text-ytMuted font-medium">Projects</span>
                     <div class="flex items-center justify-between mt-2">
-                        <span class="text-[22px] font-extrabold text-white"><?= isset($activeProjectsCount) ? $activeProjectsCount : 0 ?></span>
-                        <span class="material-symbols-outlined text-[18px] text-emerald-400">check_circle</span>
+                        <span class="text-[22px] font-extrabold text-ytText"><?= isset($activeProjectsCount) ? $activeProjectsCount : 0 ?></span>
+                        <span class="material-symbols-outlined text-[18px] text-green-500">check_circle</span>
                     </div>
                 </a>
 
                 <!-- Completed Tasks -->
-                <div class="bg-[#0e1320] border border-slate-800/80 rounded-2xl p-3.5 flex flex-col justify-between">
-                    <span class="text-xs text-slate-400 font-medium">Completed Tasks</span>
+                <div class="bg-ytCard border border-ytBorder rounded-2xl p-3.5 flex flex-col justify-between">
+                    <span class="text-xs text-ytMuted font-medium">Completed Tasks</span>
                     <div class="flex items-center justify-between mt-2">
-                        <span class="text-[22px] font-extrabold text-white"><?= isset($completedTasksCount) ? $completedTasksCount : 0 ?></span>
-                        <span class="material-symbols-outlined text-[18px] text-emerald-400">check_circle</span>
+                        <span class="text-[22px] font-extrabold text-ytText"><?= isset($completedTasksCount) ? $completedTasksCount : 0 ?></span>
+                        <span class="material-symbols-outlined text-[18px] text-green-500">check_circle</span>
                     </div>
                 </div>
 
                 <!-- Pipeline Hours -->
-                <div class="bg-[#0e1320] border border-slate-800/80 rounded-2xl p-3.5 flex flex-col justify-between">
-                    <span class="text-xs text-slate-400 font-medium">Pipeline Hours</span>
+                <div class="bg-ytCard border border-ytBorder rounded-2xl p-3.5 flex flex-col justify-between">
+                    <span class="text-xs text-ytMuted font-medium">Pipeline Hours</span>
                     <div class="flex items-center justify-between mt-2">
-                        <span class="text-[22px] font-extrabold text-white"><?= round($totalPipelineHours, 0) ?></span>
-                        <span class="material-symbols-outlined text-[18px] text-emerald-400">check_circle</span>
+                        <span class="text-[22px] font-extrabold text-ytText"><?= round($totalPipelineHours, 0) ?></span>
+                        <span class="material-symbols-outlined text-[18px] text-green-500">check_circle</span>
                     </div>
                 </div>
 
                 <!-- Pending Reviews -->
-                <a href="/admin/reviews" class="bg-[#0e1320] border border-slate-800/80 rounded-2xl p-3.5 flex flex-col justify-between hover:border-slate-700 transition-colors">
-                    <span class="text-xs text-slate-400 font-medium">Pending Reviews</span>
+                <a href="/admin/reviews" class="bg-ytCard border border-ytBorder rounded-2xl p-3.5 flex flex-col justify-between hover:border-ytBlue transition-colors">
+                    <span class="text-xs text-ytMuted font-medium">Pending Reviews</span>
                     <div class="flex items-center justify-between mt-2">
-                        <span class="text-[22px] font-extrabold text-white"><?= isset($pendingReviewsCount) ? $pendingReviewsCount : 0 ?></span>
-                        <span class="material-symbols-outlined text-[18px] text-emerald-400">check_circle</span>
+                        <span class="text-[22px] font-extrabold text-ytText"><?= isset($pendingReviewsCount) ? $pendingReviewsCount : 0 ?></span>
+                        <span class="material-symbols-outlined text-[18px] text-green-500">check_circle</span>
                     </div>
                 </a>
             </div>
         </div>
 
-        <!-- Latest Review Performance Card -->
-        <div class="bg-[#0e1320] border border-slate-800/80 rounded-2xl p-4 shadow-xl">
-            <h3 class="text-[14px] font-bold text-white mb-3 flex items-center gap-1.5">
+        <!-- Latest Review Submission Card -->
+        <div class="bg-ytCard border border-ytBorder rounded-2xl p-4 shadow-xl">
+            <h3 class="text-[14px] font-bold text-ytText mb-3 flex items-center gap-1.5">
                 <span class="material-symbols-outlined text-[18px] text-purple-400">rate_review</span> Latest Review Submission
             </h3>
 
             <?php if (isset($latestReview) && $latestReview): ?>
-                <div class="w-full h-36 bg-[#050811] rounded-xl mb-3 flex items-center justify-center border border-slate-800 relative overflow-hidden group">
+                <div class="w-full h-36 bg-[#121212] rounded-xl mb-3 flex items-center justify-center border border-ytBorder relative overflow-hidden group">
                     <?php if ($latestReview->file_type === 'video'): ?>
                         <video src="<?= media_cdn_url($latestReview->proxy_path) ?>" class="w-full h-full object-cover" muted loop playsinline></video>
-                        <div class="absolute bottom-2 right-2 bg-black/80 px-2 py-0.5 rounded text-[10px] text-white flex items-center gap-1">
+                        <div class="absolute bottom-2 right-2 bg-black/80 px-2 py-0.5 rounded text-[10px] text-ytText flex items-center gap-1">
                             <span class="material-symbols-outlined text-[12px]">movie</span> Video
                         </div>
                     <?php else: ?>
                         <img src="<?= media_cdn_url($latestReview->proxy_path) ?>" class="w-full h-full object-cover">
-                        <div class="absolute bottom-2 right-2 bg-black/80 px-2 py-0.5 rounded text-[10px] text-white flex items-center gap-1">
+                        <div class="absolute bottom-2 right-2 bg-black/80 px-2 py-0.5 rounded text-[10px] text-ytText flex items-center gap-1">
                             <span class="material-symbols-outlined text-[12px]">image</span> Image
                         </div>
                     <?php endif; ?>
                 </div>
 
-                <h4 class="text-[13px] font-bold text-white truncate mb-1"><?= esc($latestReview->project_name) ?> &mdash; <?= esc($latestReview->task_name) ?></h4>
+                <h4 class="text-[13px] font-bold text-ytText truncate mb-1"><?= esc($latestReview->project_name) ?> &mdash; <?= esc($latestReview->task_name) ?></h4>
                 
-                <div class="flex items-center justify-between text-[11px] text-slate-400 mb-3">
+                <div class="flex items-center justify-between text-[11px] text-ytMuted mb-3">
                     <span>By <?= esc($latestReview->artist_name) ?></span>
-                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold <?= $latestReview->status === 'approved' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20' ?> uppercase">
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold <?= $latestReview->status === 'approved' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20' ?> uppercase">
                         <?= esc($latestReview->status) ?>
                     </span>
                 </div>
 
-                <a href="/admin/reviews" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-md shadow-purple-900/30">
-                    <span>Launch Review Player</span>
-                    <span class="material-symbols-outlined text-[15px]">play_arrow</span>
+                <a href="/admin/reviews" class="w-full bg-[#181818] border border-ytBorder hover:border-ytBlue text-ytBlue hover:text-blue-400 font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-md text-center">
+                    <span>Go to Review Inbox</span>
+                    <span class="material-symbols-outlined text-[15px]">arrow_forward</span>
                 </a>
             <?php else: ?>
-                <div class="py-8 text-center text-slate-500 text-xs">
+                <div class="py-8 text-center text-ytMuted text-xs">
                     No recent review submissions.
                 </div>
             <?php endif; ?>
