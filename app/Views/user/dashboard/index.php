@@ -37,43 +37,43 @@ $review   = count(array_filter($myTasks ?? [], fn($t) => $t->status === 'ready_f
 $revision = count(array_filter($myTasks ?? [], fn($t) => $t->status === 'revision_needed'));
 $done     = count(array_filter($myTasks ?? [], fn($t) => $t->status === 'completed'));
 ?>
-<div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-    <div class="bg-ytCard border border-ytBorder rounded-xl p-4 flex flex-col gap-0.5">
-        <span class="text-ytMuted text-[11px] uppercase tracking-wider font-medium">Total</span>
-        <span class="text-2xl font-bold text-ytText"><?= $total ?></span>
+<!-- Summary Stats Row: Mobile Swipeable Horizontal Carousel / Desktop 5-Col Grid -->
+<div class="flex md:grid overflow-x-auto md:overflow-visible gap-2.5 md:gap-3 mb-4 md:mb-6 pb-2 md:pb-0 snap-x snap-mandatory scroll-smooth custom-scrollbar -mx-4 px-4 md:mx-0 md:px-0 md:grid-cols-5">
+    <div class="bg-ytCard border border-ytBorder rounded-2xl p-3.5 md:p-4 flex flex-col gap-0.5 shrink-0 w-[130px] sm:w-[150px] md:w-auto snap-start shadow-lg shadow-black/10">
+        <span class="text-ytMuted text-[10px] md:text-[11px] uppercase tracking-wider font-semibold">Total</span>
+        <span class="text-xl md:text-2xl font-bold text-ytText"><?= $total ?></span>
     </div>
-    <div class="bg-ytCard border border-yellow-900/40 rounded-xl p-4 flex flex-col gap-0.5">
-        <span class="text-yellow-400/70 text-[11px] uppercase tracking-wider font-medium">Not Started</span>
-        <span class="text-2xl font-bold text-yellow-400"><?= count(array_filter($myTasks ?? [], fn($t) => $t->status === 'pending')) ?></span>
+    <div class="bg-ytCard border border-yellow-900/40 rounded-2xl p-3.5 md:p-4 flex flex-col gap-0.5 shrink-0 w-[130px] sm:w-[150px] md:w-auto snap-start shadow-lg shadow-black/10">
+        <span class="text-yellow-400/80 text-[10px] md:text-[11px] uppercase tracking-wider font-semibold">Not Started</span>
+        <span class="text-xl md:text-2xl font-bold text-yellow-400"><?= count(array_filter($myTasks ?? [], fn($t) => $t->status === 'pending')) ?></span>
     </div>
-    <div class="bg-ytCard border border-blue-900/40 rounded-xl p-4 flex flex-col gap-0.5">
-        <span class="text-blue-400/70 text-[11px] uppercase tracking-wider font-medium">In Progress</span>
-        <span class="text-2xl font-bold text-blue-400"><?= $wip ?></span>
+    <div class="bg-ytCard border border-blue-900/40 rounded-2xl p-3.5 md:p-4 flex flex-col gap-0.5 shrink-0 w-[130px] sm:w-[150px] md:w-auto snap-start shadow-lg shadow-black/10">
+        <span class="text-blue-400/80 text-[10px] md:text-[11px] uppercase tracking-wider font-semibold">In Progress</span>
+        <span class="text-xl md:text-2xl font-bold text-blue-400"><?= $wip ?></span>
     </div>
-    <div class="bg-ytCard border border-purple-900/40 rounded-xl p-4 flex flex-col gap-0.5">
-        <span class="text-purple-400/70 text-[11px] uppercase tracking-wider font-medium">In Review</span>
-        <span class="text-2xl font-bold text-purple-400"><?= $review ?></span>
+    <div class="bg-ytCard border border-purple-900/40 rounded-2xl p-3.5 md:p-4 flex flex-col gap-0.5 shrink-0 w-[130px] sm:w-[150px] md:w-auto snap-start shadow-lg shadow-black/10">
+        <span class="text-purple-400/80 text-[10px] md:text-[11px] uppercase tracking-wider font-semibold">In Review</span>
+        <span class="text-xl md:text-2xl font-bold text-purple-400"><?= $review ?></span>
     </div>
-    <div class="bg-ytCard border border-green-900/40 rounded-xl p-4 flex flex-col gap-0.5">
-        <span class="text-green-400/70 text-[11px] uppercase tracking-wider font-medium">Completed</span>
-        <span class="text-2xl font-bold text-green-400"><?= $done ?></span>
+    <div class="bg-ytCard border border-green-900/40 rounded-2xl p-3.5 md:p-4 flex flex-col gap-0.5 shrink-0 w-[130px] sm:w-[150px] md:w-auto snap-start shadow-lg shadow-black/10">
+        <span class="text-green-400/80 text-[10px] md:text-[11px] uppercase tracking-wider font-semibold">Completed</span>
+        <span class="text-xl md:text-2xl font-bold text-green-400"><?= $done ?></span>
     </div>
 </div>
 
 <!-- Table Card -->
-<div class="bg-ytCard border border-ytBorder rounded-xl overflow-hidden">
+<div class="bg-ytCard border border-ytBorder rounded-2xl overflow-hidden shadow-xl shadow-black/10">
 
     <!-- Table Header / Filters -->
-    <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-ytBorder/50">
-        <h3 class="text-[15px] font-semibold text-ytText">My Assigned Tasks</h3>
-        <div class="flex flex-wrap items-center gap-2">
-            <span class="text-ytMuted text-[12px]">Filter:</span>
-            <button onclick="filterTasks('all')"              data-filter="all"              class="filter-btn px-3 py-1.5 rounded-full-lg text-[12px] font-medium border border-ytBorder bg-ytHover text-ytText transition-colors">All</button>
-            <button onclick="filterTasks('pending')"          data-filter="pending"          class="filter-btn px-3 py-1.5 rounded-full-lg text-[12px] font-medium border border-ytBorder text-ytMuted hover:bg-ytHover hover:text-ytText transition-colors">Not Started</button>
-            <button onclick="filterTasks('in_progress')"      data-filter="in_progress"      class="filter-btn px-3 py-1.5 rounded-full-lg text-[12px] font-medium border border-ytBorder text-ytMuted hover:bg-ytHover hover:text-ytText transition-colors">In Progress</button>
-            <button onclick="filterTasks('ready_for_review')" data-filter="ready_for_review" class="filter-btn px-3 py-1.5 rounded-full-lg text-[12px] font-medium border border-ytBorder text-ytMuted hover:bg-ytHover hover:text-ytText transition-colors">In Review</button>
-            <button onclick="filterTasks('revision_needed')"  data-filter="revision_needed"  class="filter-btn px-3 py-1.5 rounded-full-lg text-[12px] font-medium border border-ytBorder text-ytMuted hover:bg-ytHover hover:text-ytText transition-colors">Revision</button>
-            <button onclick="filterTasks('completed')"        data-filter="completed"        class="filter-btn px-3 py-1.5 rounded-full-lg text-[12px] font-medium border border-ytBorder text-ytMuted hover:bg-ytHover hover:text-ytText transition-colors">Completed</button>
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 md:px-5 py-3.5 md:py-4 border-b border-ytBorder/50">
+        <h3 class="text-[14px] md:text-[15px] font-bold text-ytText">My Assigned Tasks</h3>
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full flex-nowrap custom-scrollbar">
+            <button onclick="filterTasks('all')"              data-filter="all"              class="filter-btn px-3 py-1 rounded-full text-[11px] font-semibold border border-ytBorder bg-ytHover text-ytText transition-colors shrink-0">All</button>
+            <button onclick="filterTasks('pending')"          data-filter="pending"          class="filter-btn px-3 py-1 rounded-full text-[11px] font-semibold border border-ytBorder text-ytMuted hover:bg-ytHover hover:text-ytText transition-colors shrink-0">Not Started</button>
+            <button onclick="filterTasks('in_progress')"      data-filter="in_progress"      class="filter-btn px-3 py-1 rounded-full text-[11px] font-semibold border border-ytBorder text-ytMuted hover:bg-ytHover hover:text-ytText transition-colors shrink-0">In Progress</button>
+            <button onclick="filterTasks('ready_for_review')" data-filter="ready_for_review" class="filter-btn px-3 py-1 rounded-full text-[11px] font-semibold border border-ytBorder text-ytMuted hover:bg-ytHover hover:text-ytText transition-colors shrink-0">In Review</button>
+            <button onclick="filterTasks('revision_needed')"  data-filter="revision_needed"  class="filter-btn px-3 py-1 rounded-full text-[11px] font-semibold border border-ytBorder text-ytMuted hover:bg-ytHover hover:text-ytText transition-colors shrink-0">Revision</button>
+            <button onclick="filterTasks('completed')"        data-filter="completed"        class="filter-btn px-3 py-1 rounded-full text-[11px] font-semibold border border-ytBorder text-ytMuted hover:bg-ytHover hover:text-ytText transition-colors shrink-0">Completed</button>
         </div>
     </div>
 

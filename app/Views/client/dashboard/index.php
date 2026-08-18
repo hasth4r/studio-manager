@@ -24,40 +24,40 @@
     </div>
 </div>
 
-<!-- 1. Executive Summary KPI Cards -->
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+<!-- 1. Executive Summary KPI Cards: Mobile Horizontal Swipe Carousel / Desktop Grid -->
+<div class="flex md:grid overflow-x-auto md:overflow-visible gap-3 md:gap-4 mb-5 md:mb-6 pb-2.5 md:pb-0 snap-x snap-mandatory scroll-smooth custom-scrollbar -mx-4 px-4 md:mx-0 md:px-0 md:grid-cols-2 lg:grid-cols-4">
     
     <!-- KPI 1: Agreed / Allocated Budget -->
-    <div class="bg-ytCard border border-ytBorder/80 rounded-2xl p-4 flex flex-col justify-between hover:border-blue-500/40 transition-colors shadow-lg shadow-black/20">
-        <div class="flex items-center justify-between mb-3">
-            <span class="text-xs font-semibold text-ytMuted uppercase tracking-wider">Allocated Budget</span>
-            <div class="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center">
-                <span class="material-symbols-outlined text-[18px]">payments</span>
+    <div class="bg-ytCard border border-ytBorder/80 rounded-2xl p-4 flex flex-col justify-between hover:border-blue-500/40 transition-colors shadow-lg shadow-black/20 shrink-0 w-[230px] sm:w-[260px] md:w-auto snap-start">
+        <div class="flex items-center justify-between mb-2 md:mb-3">
+            <span class="text-[11px] md:text-xs font-semibold text-ytMuted uppercase tracking-wider">Allocated Budget</span>
+            <div class="w-7 h-7 md:w-8 md:h-8 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center">
+                <span class="material-symbols-outlined text-[16px] md:text-[18px]">payments</span>
             </div>
         </div>
         <div>
-            <div class="text-[24px] font-bold text-white tracking-tight">
+            <div class="text-[20px] md:text-[24px] font-bold text-white tracking-tight">
                 <?= esc($currency) ?><?= number_format($kpis['total_agreed_budget'], 0) ?>
             </div>
-            <p class="text-[11px] text-ytMuted mt-1 flex items-center gap-1">
-                <span class="text-emerald-400 font-semibold">Agreed Scope</span> across active projects
+            <p class="text-[10px] md:text-[11px] text-ytMuted mt-1 flex items-center gap-1">
+                <span class="text-emerald-400 font-semibold">Agreed Scope</span> across projects
             </p>
         </div>
     </div>
 
     <!-- KPI 2: Production Hours & Turnaround -->
-    <div class="bg-ytCard border border-ytBorder/80 rounded-2xl p-4 flex flex-col justify-between hover:border-blue-500/40 transition-colors shadow-lg shadow-black/20">
-        <div class="flex items-center justify-between mb-3">
-            <span class="text-xs font-semibold text-ytMuted uppercase tracking-wider">Estimated Time</span>
-            <div class="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center">
-                <span class="material-symbols-outlined text-[18px]">schedule</span>
+    <div class="bg-ytCard border border-ytBorder/80 rounded-2xl p-4 flex flex-col justify-between hover:border-blue-500/40 transition-colors shadow-lg shadow-black/20 shrink-0 w-[230px] sm:w-[260px] md:w-auto snap-start">
+        <div class="flex items-center justify-between mb-2 md:mb-3">
+            <span class="text-[11px] md:text-xs font-semibold text-ytMuted uppercase tracking-wider">Estimated Time</span>
+            <div class="w-7 h-7 md:w-8 md:h-8 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center">
+                <span class="material-symbols-outlined text-[16px] md:text-[18px]">schedule</span>
             </div>
         </div>
         <div>
-            <div class="text-[24px] font-bold text-white tracking-tight flex items-baseline gap-2">
+            <div class="text-[20px] md:text-[24px] font-bold text-white tracking-tight flex items-baseline gap-1.5">
                 <span><?= number_format($kpis['total_estimated_hours'], 0) ?> <span class="text-xs font-semibold text-ytMuted font-sans">hrs</span></span>
             </div>
-            <p class="text-[11px] text-ytMuted mt-1 flex items-center justify-between">
+            <p class="text-[10px] md:text-[11px] text-ytMuted mt-1 flex items-center justify-between">
                 <span><?= number_format($kpis['total_completed_hours'], 0) ?> hrs done</span>
                 <span class="text-indigo-400 font-semibold"><?= number_format($kpis['hours_remaining'], 0) ?> hrs left</span>
             </p>
@@ -65,17 +65,17 @@
     </div>
 
     <!-- KPI 3: Task Progress & Velocity -->
-    <div class="bg-ytCard border border-ytBorder/80 rounded-2xl p-4 flex flex-col justify-between hover:border-blue-500/40 transition-colors shadow-lg shadow-black/20">
-        <div class="flex items-center justify-between mb-3">
-            <span class="text-xs font-semibold text-ytMuted uppercase tracking-wider">Task Completion</span>
-            <div class="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center">
-                <span class="material-symbols-outlined text-[18px]">task_alt</span>
+    <div class="bg-ytCard border border-ytBorder/80 rounded-2xl p-4 flex flex-col justify-between hover:border-blue-500/40 transition-colors shadow-lg shadow-black/20 shrink-0 w-[230px] sm:w-[260px] md:w-auto snap-start">
+        <div class="flex items-center justify-between mb-2 md:mb-3">
+            <span class="text-[11px] md:text-xs font-semibold text-ytMuted uppercase tracking-wider">Task Completion</span>
+            <div class="w-7 h-7 md:w-8 md:h-8 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center">
+                <span class="material-symbols-outlined text-[16px] md:text-[18px]">task_alt</span>
             </div>
         </div>
         <div>
-            <div class="flex items-center justify-between text-[24px] font-bold text-white tracking-tight">
+            <div class="flex items-center justify-between text-[20px] md:text-[24px] font-bold text-white tracking-tight">
                 <span><?= $kpis['overall_progress'] ?>%</span>
-                <span class="text-xs font-semibold text-ytMuted font-sans"><?= $kpis['completed_tasks'] ?> / <?= $kpis['total_tasks'] ?> Done</span>
+                <span class="text-[10px] md:text-xs font-semibold text-ytMuted font-sans"><?= $kpis['completed_tasks'] ?> / <?= $kpis['total_tasks'] ?> Done</span>
             </div>
             <div class="w-full bg-[#111111] rounded-full h-1.5 border border-ytBorder/50 mt-2 overflow-hidden">
                 <div class="bg-gradient-to-r from-blue-600 to-indigo-500 h-1.5 rounded-full" style="width: <?= $kpis['overall_progress'] ?>%"></div>
@@ -84,19 +84,19 @@
     </div>
 
     <!-- KPI 4: Shots & Deliveries -->
-    <div class="bg-ytCard border border-ytBorder/80 rounded-2xl p-4 flex flex-col justify-between hover:border-blue-500/40 transition-colors shadow-lg shadow-black/20">
-        <div class="flex items-center justify-between mb-3">
-            <span class="text-xs font-semibold text-ytMuted uppercase tracking-wider">Shots & Lineups</span>
-            <div class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center">
-                <span class="material-symbols-outlined text-[18px]">movie</span>
+    <div class="bg-ytCard border border-ytBorder/80 rounded-2xl p-4 flex flex-col justify-between hover:border-blue-500/40 transition-colors shadow-lg shadow-black/20 shrink-0 w-[230px] sm:w-[260px] md:w-auto snap-start">
+        <div class="flex items-center justify-between mb-2 md:mb-3">
+            <span class="text-[11px] md:text-xs font-semibold text-ytMuted uppercase tracking-wider">Shots & Lineups</span>
+            <div class="w-7 h-7 md:w-8 md:h-8 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center">
+                <span class="material-symbols-outlined text-[16px] md:text-[18px]">movie</span>
             </div>
         </div>
         <div>
-            <div class="text-[24px] font-bold text-white tracking-tight">
+            <div class="text-[20px] md:text-[24px] font-bold text-white tracking-tight">
                 <?= $kpis['total_shots'] ?> <span class="text-xs font-semibold text-ytMuted font-sans">Shots</span>
             </div>
-            <p class="text-[11px] text-ytMuted mt-1 flex items-center gap-1.5">
-                <span class="text-amber-400 font-semibold"><?= $kpis['in_review_tasks'] ?> in review</span> • <?= $kpis['in_progress_tasks'] ?> in production
+            <p class="text-[10px] md:text-[11px] text-ytMuted mt-1 flex items-center gap-1.5">
+                <span class="text-amber-400 font-semibold"><?= $kpis['in_review_tasks'] ?> in review</span> • <?= $kpis['in_progress_tasks'] ?> in prod
             </p>
         </div>
     </div>
