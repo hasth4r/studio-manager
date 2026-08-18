@@ -2293,33 +2293,51 @@ class Projects extends BaseController
      */
     public function updateSupervisor($id)
     {
-        if (!has_any_role(['site_manager', 'admin', 'project_manager'])) {
-            return $this->response->setJSON(['success' => false, 'error' => 'Unauthorized'])->setStatusCode(403);
-        }
-
-        $supervisorId = $this->request->getPost('supervisor_id');
-        $supervisorId = !empty($supervisorId) ? (int)$supervisorId : null;
-
-        $db = \Config\Database::connect();
-        
-        // Ensure supervisor_id column exists
         try {
-            $check = $db->query("SHOW COLUMNS FROM `projects` LIKE 'supervisor_id'")->getRow();
-            if (!$check) {
-                $db->query("ALTER TABLE `projects` ADD COLUMN `supervisor_id` INT UNSIGNED NULL AFTER `client_id`");
+            if (!has_any_role(['site_manager', 'admin', 'project_manager'])) {
+                return $this->response->setJSON(['success' => false, 'error' => 'Unauthorized'])->setStatusCode(403);
             }
-        } catch (\Throwable $e) {}
 
-        $db->table('projects')->where('id', $id)->update(['supervisor_id' => $supervisorId]);
+            $supervisorId = $this->request->getPost('supervisor_id');
+            $supervisorId = (!empty($supervisorId) && is_numeric($supervisorId)) ? (int)$supervisorId : null;
 
-        $user = $supervisorId ? (new \App\Models\UserModel())->find($supervisorId) : null;
+            $db = \Config\Database::connect();
+            
+            // 1. Ensure supervisor_id column exists on projects table
+            try {
+                $check = $db->query("SHOW COLUMNS FROM `projects` LIKE 'supervisor_id'")->getRow();
+                if (!$check) {
+                    $db->query("ALTER TABLE `projects` ADD COLUMN `supervisor_id` INT UNSIGNED NULL");
+                }
+            } catch (\Throwable $colEx) {
+                log_message('error', 'Auto-add supervisor_id failed: ' . $colEx->getMessage());
+            }
 
-        return $this->response->setJSON([
-            'success'         => true,
-            'message'         => 'Project Supervisor updated successfully',
-            'supervisor_name' => $user ? $user->name : 'Unassigned',
-            'supervisor_id'   => $supervisorId
-        ]);
+            // 2. Perform direct update
+            $db->table('projects')->where('id', (int)$id)->update(['supervisor_id' => $supervisorId]);
+
+            // 3. Get user name
+            $userName = 'Unassigned';
+            if ($supervisorId) {
+                $userRow = $db->table('users')->where('id', $supervisorId)->get()->getRow();
+                if ($userRow) {
+                    $userName = $userRow->name;
+                }
+            }
+
+            return $this->response->setJSON([
+                'success'         => true,
+                'message'         => 'Project Supervisor updated successfully',
+                'supervisor_name' => $userName,
+                'supervisor_id'   => $supervisorId
+            ]);
+        } catch (\Throwable $e) {
+            log_message('error', 'updateSupervisor error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'error'   => $e->getMessage()
+            ])->setStatusCode(500);
+        }
     }
 
     /**
@@ -2327,33 +2345,51 @@ class Projects extends BaseController
      */
     public function updateSequenceSupervisor($id)
     {
-        if (!has_any_role(['site_manager', 'admin', 'project_manager']) && !is_sequence_supervisor($id)) {
-            return $this->response->setJSON(['success' => false, 'error' => 'Unauthorized'])->setStatusCode(403);
-        }
-
-        $supervisorId = $this->request->getPost('supervisor_id');
-        $supervisorId = !empty($supervisorId) ? (int)$supervisorId : null;
-
-        $db = \Config\Database::connect();
-        
-        // Ensure supervisor_id column exists
         try {
-            $check = $db->query("SHOW COLUMNS FROM `sequences` LIKE 'supervisor_id'")->getRow();
-            if (!$check) {
-                $db->query("ALTER TABLE `sequences` ADD COLUMN `supervisor_id` INT UNSIGNED NULL AFTER `project_id`");
+            if (!has_any_role(['site_manager', 'admin', 'project_manager']) && !is_sequence_supervisor($id)) {
+                return $this->response->setJSON(['success' => false, 'error' => 'Unauthorized'])->setStatusCode(403);
             }
-        } catch (\Throwable $e) {}
 
-        $db->table('sequences')->where('id', $id)->update(['supervisor_id' => $supervisorId]);
+            $supervisorId = $this->request->getPost('supervisor_id');
+            $supervisorId = (!empty($supervisorId) && is_numeric($supervisorId)) ? (int)$supervisorId : null;
 
-        $user = $supervisorId ? (new \App\Models\UserModel())->find($supervisorId) : null;
+            $db = \Config\Database::connect();
+            
+            // 1. Ensure supervisor_id column exists on sequences table
+            try {
+                $check = $db->query("SHOW COLUMNS FROM `sequences` LIKE 'supervisor_id'")->getRow();
+                if (!$check) {
+                    $db->query("ALTER TABLE `sequences` ADD COLUMN `supervisor_id` INT UNSIGNED NULL");
+                }
+            } catch (\Throwable $colEx) {
+                log_message('error', 'Auto-add sequence supervisor_id failed: ' . $colEx->getMessage());
+            }
 
-        return $this->response->setJSON([
-            'success'         => true,
-            'message'         => 'Sequence Supervisor updated successfully',
-            'supervisor_name' => $user ? $user->name : 'Unassigned',
-            'supervisor_id'   => $supervisorId
-        ]);
+            // 2. Perform direct update
+            $db->table('sequences')->where('id', (int)$id)->update(['supervisor_id' => $supervisorId]);
+
+            // 3. Get user name
+            $userName = 'Unassigned';
+            if ($supervisorId) {
+                $userRow = $db->table('users')->where('id', $supervisorId)->get()->getRow();
+                if ($userRow) {
+                    $userName = $userRow->name;
+                }
+            }
+
+            return $this->response->setJSON([
+                'success'         => true,
+                'message'         => 'Sequence Supervisor updated successfully',
+                'supervisor_name' => $userName,
+                'supervisor_id'   => $supervisorId
+            ]);
+        } catch (\Throwable $e) {
+            log_message('error', 'updateSequenceSupervisor error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'error'   => $e->getMessage()
+            ])->setStatusCode(500);
+        }
     }
 }
 
