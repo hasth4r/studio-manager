@@ -70,10 +70,10 @@ $routes->group('admin', ['filter' => 'role:site_manager,admin,hr', 'namespace' =
 });
 
 // ==========================================
-// 3. Project Production & Operations Area (Site Manager, Admin, PM, Collaborator, Artist)
+// 3. Clean Production & Operations Routes (Projects, Shots, Reviews, Scheduling, Media)
 // Scoped by Controller & can_manage_project guards
 // ==========================================
-$routes->group('admin', ['filter' => 'auth', 'namespace' => 'App\Controllers\Admin'], function($routes) {
+$routes->group('', ['filter' => 'auth', 'namespace' => 'App\Controllers\Admin'], function($routes) {
     // Projects Management
     $routes->get('projects', 'Projects::index');
     $routes->get('projects/create', 'Projects::create');
@@ -151,6 +151,15 @@ $routes->group('admin', ['filter' => 'auth', 'namespace' => 'App\Controllers\Adm
     $routes->get('media/tree', 'MediaManager::getTreeData');
     $routes->post('media/replaceMedia/(:num)', 'MediaManager::replaceMedia/$1');
 });
+
+// Backward compatibility redirects from /admin/* to clean top-level routes
+$routes->addRedirect('admin/projects', 'projects');
+$routes->addRedirect('admin/projects/(:num)', 'projects/$1');
+$routes->addRedirect('admin/projects/(:num)/breakdown', 'projects/$1/breakdown');
+$routes->addRedirect('admin/reviews', 'reviews');
+$routes->addRedirect('admin/reviews/player/(:num)', 'reviews/player/$1');
+$routes->addRedirect('admin/scheduling', 'scheduling');
+$routes->addRedirect('admin/media', 'media');
 
 // Secure Media Serving Route
 $routes->get('media/serve/(.+)', 'Media::serve/$1');

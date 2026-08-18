@@ -224,24 +224,24 @@
                         <?php endif; ?>
                         
                         <?php if(has_any_role(['site_manager', 'admin', 'project_manager', 'collaborator']) || is_any_supervisor()): ?>
-                        <?php $isActive = (strpos($currentUri, 'admin/projects') === 0 || strpos($currentUri, 'admin/shots') === 0); ?>
-                        <a href="/admin/projects" class="<?= $isActive ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors" title="Projects">
+                        <?php $isActive = (strpos($currentUri, 'projects') === 0 || strpos($currentUri, 'shots') === 0); ?>
+                        <a href="/projects" class="<?= $isActive ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors" title="Projects">
                             <span class="material-symbols-outlined <?= $isActive ? 'text-ytBlue' : 'text-ytMuted' ?>">video_library</span>
                             <span class="nav-text">Projects</span>
                         </a>
                         <?php endif; ?>
                         
                         <?php if(has_any_role(['site_manager', 'admin', 'project_manager', 'collaborator', 'artist'])): ?>
-                        <?php $isActive = (strpos($currentUri, 'admin/reviews') === 0); ?>
-                        <a href="/admin/reviews" class="<?= $isActive ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors relative" title="Review Inbox">
+                        <?php $isActive = (strpos($currentUri, 'reviews') === 0); ?>
+                        <a href="/reviews" class="<?= $isActive ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors relative" title="Review Inbox">
                             <span class="material-symbols-outlined <?= $isActive ? 'text-ytBlue' : 'text-ytMuted' ?>">rate_review</span>
                             <span class="nav-text">Review Inbox</span>
                         </a>
                         <?php endif; ?>
 
                         <?php if(has_any_role(['site_manager', 'admin', 'project_manager', 'hr'])): ?>
-                        <?php $isActive = (strpos($currentUri, 'admin/scheduling') === 0); ?>
-                        <a href="/admin/scheduling" class="<?= $isActive ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors relative" title="AI Scheduler">
+                        <?php $isActive = (strpos($currentUri, 'scheduling') === 0); ?>
+                        <a href="/scheduling" class="<?= $isActive ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors relative" title="AI Scheduler">
                             <span class="material-symbols-outlined <?= $isActive ? 'text-ytBlue' : 'text-ytMuted' ?>">view_timeline</span>
                             <span class="nav-text">AI Scheduler</span>
                         </a>
