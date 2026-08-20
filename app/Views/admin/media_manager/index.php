@@ -151,7 +151,7 @@
         const root = document.getElementById('tree-root');
         root.innerHTML = '<div class="flex items-center text-ytMuted text-sm"><span class="material-symbols-outlined animate-spin mr-2">sync</span> Reloading...</div>';
         
-        fetch('/admin/media/tree')
+        fetch('/media/tree')
             .then(res => res.json())
             .then(data => {
                 root.innerHTML = '';

@@ -84,10 +84,10 @@
                     </div>
 
                     <div class="grid grid-cols-2 gap-2 mt-5 pt-3 border-t border-ytBorder/50">
-                        <a href="/admin/projects/<?= $p->id ?>" class="text-center bg-ytHover hover:bg-ytBorder text-ytText text-[12px] font-medium py-2 rounded-xl transition-colors">
+                        <a href="/projects/<?= $p->id ?>" class="text-center bg-ytHover hover:bg-ytBorder text-ytText text-[12px] font-medium py-2 rounded-xl transition-colors">
                             Project View
                         </a>
-                        <a href="/admin/projects/<?= $p->id ?>/breakdown" class="text-center bg-gradient-to-r from-amber-500/20 to-yellow-500/20 hover:from-amber-500/30 hover:to-yellow-500/30 text-amber-300 border border-amber-500/40 text-[12px] font-bold py-2 rounded-xl transition-all flex items-center justify-center gap-1">
+                        <a href="/projects/<?= $p->id ?>/breakdown" class="text-center bg-gradient-to-r from-amber-500/20 to-yellow-500/20 hover:from-amber-500/30 hover:to-yellow-500/30 text-amber-300 border border-amber-500/40 text-[12px] font-bold py-2 rounded-xl transition-all flex items-center justify-center gap-1">
                             <span>Matrix</span>
                             <span class="material-symbols-outlined text-[15px]">table_chart</span>
                         </a>
@@ -106,7 +106,7 @@
             <span class="material-symbols-outlined text-purple-400 text-[20px]">rate_review</span>
             <span>Awaiting Your Review (<?= count($pendingReviews) ?>)</span>
         </h3>
-        <a href="/admin/reviews" class="text-ytBlue hover:underline text-[12px]">View All Reviews &rarr;</a>
+        <a href="/reviews" class="text-ytBlue hover:underline text-[12px]">View All Reviews &rarr;</a>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -126,7 +126,7 @@
                         <span class="text-[10px] text-ytMuted">By <?= esc($r->artist_name) ?></span>
                     </div>
                 </div>
-                <a href="/admin/reviews/player/<?= $r->id ?>" class="mt-3 w-full bg-purple-900/20 hover:bg-purple-900/40 border border-purple-700/50 text-purple-300 font-bold text-xs py-1.5 rounded-lg text-center transition-colors">
+                <a href="/reviews/player/<?= $r->id ?>" class="mt-3 w-full bg-purple-900/20 hover:bg-purple-900/40 border border-purple-700/50 text-purple-300 font-bold text-xs py-1.5 rounded-lg text-center transition-colors">
                     Review Version
                 </a>
             </div>

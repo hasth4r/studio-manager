@@ -6,7 +6,7 @@
 <div class="sticky top-0 z-40 bg-ytBg/95 backdrop-blur-md pt-4 pb-3 border-b border-ytBorder/60 space-y-3">
     <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center space-x-3">
-            <a href="/admin/projects/<?= esc($project->id) ?>" class="p-2 hover:bg-ytHover rounded-full transition-colors flex items-center justify-center text-ytMuted hover:text-ytText" title="Back to Project View">
+            <a href="/projects/<?= esc($project->id) ?>" class="p-2 hover:bg-ytHover rounded-full transition-colors flex items-center justify-center text-ytMuted hover:text-ytText" title="Back to Project View">
                 <span class="material-symbols-outlined">arrow_back</span>
             </a>
             <div>
@@ -43,11 +43,11 @@
         </div>
 
         <div class="flex items-center gap-2">
-            <a href="/admin/projects/<?= $project->id ?>/analysis" class="bg-[#181818] border border-purple-500/40 hover:border-purple-400 text-purple-200 px-3 py-1.5 rounded-lg font-medium text-[12px] hover:bg-purple-950/40 transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(168,85,247,0.15)]" title="Open Complete Production, Financial & Risk Analysis">
+            <a href="/projects/<?= $project->id ?>/analysis" class="bg-[#181818] border border-purple-500/40 hover:border-purple-400 text-purple-200 px-3 py-1.5 rounded-lg font-medium text-[12px] hover:bg-purple-950/40 transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(168,85,247,0.15)]" title="Open Complete Production, Financial & Risk Analysis">
                 <span class="material-symbols-outlined text-[16px] text-purple-400">analytics</span>
                 <span>Analysis</span>
             </a>
-            <a href="/admin/projects/<?= $project->id ?>/briefing" class="bg-[#181818] border border-indigo-500/40 hover:border-indigo-400 text-indigo-200 px-3 py-1.5 rounded-lg font-medium text-[12px] hover:bg-indigo-950/40 transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(99,102,241,0.15)]" title="Open Client Shot Briefing & Reference Matrix">
+            <a href="/projects/<?= $project->id ?>/briefing" class="bg-[#181818] border border-indigo-500/40 hover:border-indigo-400 text-indigo-200 px-3 py-1.5 rounded-lg font-medium text-[12px] hover:bg-indigo-950/40 transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(99,102,241,0.15)]" title="Open Client Shot Briefing & Reference Matrix">
                 <span class="material-symbols-outlined text-[16px] text-indigo-400">edit_note</span>
                 <span>Shot Briefing</span>
             </a>
@@ -60,14 +60,14 @@
                 <span id="toggleMetaText">Hide Metadata</span>
             </button>
             <?php if (can_manage_project($project->id)): ?>
-            <form action="/admin/tasks/bulkRecalculate/<?= $project->id ?>" method="POST" class="m-0">
+            <form action="/tasks/bulkRecalculate/<?= $project->id ?>" method="POST" class="m-0">
                 <?= csrf_field() ?>
                 <button type="submit" title="Recalculate benchmark hours for all shot tasks" class="bg-ytCard border border-ytBorder hover:border-ytBlue text-ytText px-3.5 py-1.5 rounded-lg font-medium text-[12px] hover:bg-ytHover transition-colors flex items-center gap-1.5">
                     <span class="material-symbols-outlined text-[16px] text-ytBlue">calculate</span> Recalc Hours
                 </button>
             </form>
             <?php endif; ?>
-            <a href="/admin/projects/<?= $project->id ?>" class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] text-white shadow-[0_0_15px_rgba(23,123,207,0.3)] border border-[#177bcf]/40 px-4 py-1.5 rounded-lg font-medium text-[12px] hover:shadow-[0_0_25px_rgba(23,123,207,0.6)] hover:from-[#0d346e] hover:to-[#238bf2] transition-all flex items-center gap-1">
+            <a href="/projects/<?= $project->id ?>" class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] text-white shadow-[0_0_15px_rgba(23,123,207,0.3)] border border-[#177bcf]/40 px-4 py-1.5 rounded-lg font-medium text-[12px] hover:shadow-[0_0_25px_rgba(23,123,207,0.6)] hover:from-[#0d346e] hover:to-[#238bf2] transition-all flex items-center gap-1">
                 <span class="material-symbols-outlined text-[16px]">grid_view</span> Card View
             </a>
         </div>
@@ -523,7 +523,7 @@
         btn.disabled = true;
 
         try {
-            const res = await fetch('/admin/projects/bulkAssignTasks', {
+            const res = await fetch('/projects/bulkAssignTasks', {
                 method: 'POST',
                 body: formData,
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -554,7 +554,7 @@
         formData.append('<?= csrf_token() ?>', '<?= csrf_hash() ?>');
 
         try {
-            const res = await fetch('/admin/projects/inlineUpdateTask', {
+            const res = await fetch('/projects/inlineUpdateTask', {
                 method: 'POST',
                 body: formData,
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -603,7 +603,7 @@
         formData.append('<?= csrf_token() ?>', '<?= csrf_hash() ?>');
 
         try {
-            const res = await fetch('/admin/projects/updateAgreedBudget', {
+            const res = await fetch('/projects/updateAgreedBudget', {
                 method: 'POST',
                 body: formData,
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -664,7 +664,7 @@
         formData.append('<?= csrf_token() ?>', '<?= csrf_hash() ?>');
 
         try {
-            const res = await fetch('/admin/projects/inlineUpdateShot', {
+            const res = await fetch('/projects/inlineUpdateShot', {
                 method: 'POST',
                 body: formData,
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -703,7 +703,7 @@
         selectEl.disabled = true;
 
         try {
-            const res = await fetch('/admin/projects/inlineAddTask', {
+            const res = await fetch('/projects/inlineAddTask', {
                 method: 'POST',
                 body: formData,
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -730,7 +730,7 @@
         formData.append('<?= csrf_token() ?>', '<?= csrf_hash() ?>');
 
         try {
-            const res = await fetch('/admin/projects/deleteTaskAjax', {
+            const res = await fetch('/projects/deleteTaskAjax', {
                 method: 'POST',
                 body: formData,
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -863,7 +863,7 @@
                     formData.append('shot_id', item.id);
                     formData.append('image_data', dataUrl);
 
-                    const res = await fetch('/admin/projects/saveAutoThumbnailAjax', {
+                    const res = await fetch('/projects/saveAutoThumbnailAjax', {
                         method: 'POST',
                         body: formData,
                         headers: { 'X-Requested-With': 'XMLHttpRequest' }

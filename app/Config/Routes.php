@@ -45,8 +45,13 @@ $routes->group('admin', ['filter' => 'role:site_manager,admin', 'namespace' => '
     // Project Types Management
     $routes->get('project-types', 'ProjectTypes::index');
     $routes->post('project-types/store', 'ProjectTypes::store');
+});
 
-    // Database Manager (Site Manager & Admin Only)
+// ==========================================
+// 1b. IT, Systems & Database Management Area (Site Manager, Admin, IT)
+// ==========================================
+$routes->group('admin', ['filter' => 'role:site_manager,admin,it', 'namespace' => 'App\Controllers\Admin'], function($routes) {
+    // Database Manager
     $routes->get('database', 'DatabaseManager::index');
     $routes->match(['get', 'post'], 'database/migrate', 'DatabaseManager::runMigrations');
     $routes->post('database/backup', 'DatabaseManager::createBackup');

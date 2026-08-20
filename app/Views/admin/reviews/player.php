@@ -1,5 +1,5 @@
 <?php
-$routePrefix = (isset($userRole) && $userRole === 'client') ? 'client' : 'admin';
+$routePrefix = (isset($userRole) && $userRole === 'client') ? 'client' : '';
 if (!function_exists('renderCommentBox')) {
     function renderCommentBox($comment, $isReply = false) {
         $marginClass = $isReply ? 'mt-2' : 'mt-4';
@@ -147,9 +147,9 @@ if (!function_exists('renderCommentBox')) {
 
             <!-- Decision & Share Buttons: Admin/Supervisor only -->
             <?php 
-                $isAdminOrPM = in_array(strtolower($userRole ?? ''), ['admin', 'project_manager', 'system admin', 'project manager', 'supervisor']);
+                $isAdminOrPM = has_any_role(['site_manager', 'admin', 'project_manager']) || is_any_supervisor();
             ?>
-            <?php if(isset($isSequenceMode) && $isSequenceMode && (isset($sequence->id) || isset($review->seq_id))): ?>
+            <?php if ($isAdminOrPM && isset($isSequenceMode) && $isSequenceMode && (isset($sequence->id) || isset($review->seq_id))): ?>
                 <?php $seqId = $sequence->id ?? $review->seq_id ?? 0; ?>
                 <button type="button" onclick="openShareModal(<?= $seqId ?>)" class="flex items-center gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:shadow-[0_0_20px_rgba(59,130,246,0.5)] border border-blue-400/40 px-3.5 py-1.5 rounded-full text-[13px] font-semibold transition-all">
                     <span class="material-symbols-outlined text-[16px]">share</span> Share Lineup
@@ -157,7 +157,7 @@ if (!function_exists('renderCommentBox')) {
             <?php endif; ?>
 
             <?php if($isAdminOrPM && (!isset($isSequenceMode) || !$isSequenceMode)): ?>
-            <form action="/<?= $routePrefix ?>/reviews/updateStatus/<?= $review->id ?>" method="POST" class="m-0 flex gap-2">
+            <form action="<?= base_url(($routePrefix ? $routePrefix . '/' : '') . 'reviews/updateStatus/' . $review->id) ?>" method="POST" class="m-0 flex gap-2">
                 <input type="hidden" name="task_id" value="<?= $review->vfx_task_assignment_id ?>">
                 <input type="hidden" name="<?= csrf_token() ?>" id="decisionCsrf" value="<?= csrf_hash() ?>">
                 
@@ -648,7 +648,7 @@ if (!function_exists('renderCommentBox')) {
             formData.append('<?= csrf_token() ?>', getCsrfToken());
             
             try {
-                const response = await fetch('<?= base_url($routePrefix . '/reviews/uploadReference') ?>', {
+                const response = await fetch('<?= base_url(($routePrefix ? $routePrefix . '/' : '') . 'reviews/uploadReference') ?>', {
                     method: 'POST',
                     body: formData,
                     headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -1405,7 +1405,7 @@ if (!function_exists('renderCommentBox')) {
                 const origHtml = btn.innerHTML;
                 btn.innerHTML = 'Saving...';
                 
-                const response = await fetch('<?= base_url($routePrefix . '/reviews/saveAnnotation/') ?>/' + activeReviewId, {
+                const response = await fetch('<?= base_url(($routePrefix ? $routePrefix . '/' : '') . 'reviews/saveAnnotation/') ?>' + activeReviewId, {
                     method: 'POST',
                     body: formData,
                     headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -1500,7 +1500,7 @@ if (!function_exists('renderCommentBox')) {
             try {
                 const formData = new FormData();
                 formData.append('<?= csrf_token() ?>', getCsrfToken());
-                const res = await fetch('<?= base_url($routePrefix . '/reviews/deleteComment/') ?>' + id, {
+                const res = await fetch('<?= base_url(($routePrefix ? $routePrefix . '/' : '') . 'reviews/deleteComment/') ?>' + id, {
                     method: 'POST', body: formData, headers: {'X-Requested-With': 'XMLHttpRequest'}
                 });
                 const data = await res.json();
@@ -1559,7 +1559,7 @@ if (!function_exists('renderCommentBox')) {
                 if (parentId) formData.append('parent_id', parentId);
                 formData.append('<?= csrf_token() ?>', getCsrfToken());
                 
-                const res = await fetch('<?= base_url($routePrefix . '/reviews/updateComment/') ?>' + id, {
+                const res = await fetch('<?= base_url(($routePrefix ? $routePrefix . '/' : '') . 'reviews/updateComment/') ?>' + id, {
                     method: 'POST', body: formData, headers: {'X-Requested-With': 'XMLHttpRequest'}
                 });
                 const data = await res.json();
@@ -1602,7 +1602,7 @@ if (!function_exists('renderCommentBox')) {
                 formData.append('watermark_text', watermarkText);
                 formData.append('<?= csrf_token() ?>', getCsrfToken());
 
-                const res = await fetch('<?= base_url('admin/reviews/createShareLink') ?>', {
+                const res = await fetch('<?= base_url('reviews/createShareLink') ?>', {
                     method: 'POST',
                     body: formData,
                     headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -1645,7 +1645,7 @@ if (!function_exists('renderCommentBox')) {
             container.innerHTML = '<div class="text-xs text-ytMuted py-2 flex items-center gap-1.5"><span class="material-symbols-outlined text-[14px] animate-spin">progress_activity</span> Loading active links...</div>';
             
             try {
-                const res = await fetch('<?= base_url('admin/reviews/getShareLinks/') ?>' + sequenceId, {
+                const res = await fetch('<?= base_url('reviews/getShareLinks/') ?>' + sequenceId, {
                     headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 });
                 const data = await res.json();
@@ -1689,7 +1689,7 @@ if (!function_exists('renderCommentBox')) {
                 formData.append('token_id', tokenId);
                 formData.append('<?= csrf_token() ?>', getCsrfToken());
 
-                const res = await fetch('<?= base_url('admin/reviews/revokeShareLink') ?>', {
+                const res = await fetch('<?= base_url('reviews/revokeShareLink') ?>', {
                     method: 'POST',
                     body: formData,
                     headers: { 'X-Requested-With': 'XMLHttpRequest' }

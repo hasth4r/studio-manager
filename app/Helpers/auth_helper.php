@@ -51,11 +51,14 @@ if (!function_exists('get_user_roles')) {
 if (!function_exists('has_role')) {
     /**
      * Check if the logged-in user possesses a specific global role.
-     * Site Managers possess all role permissions by default.
+     * Site Managers possess all internal studio permissions by default.
      */
     function has_role(string $role): bool
     {
         $userRoles = get_user_roles();
+        if ($role === 'client') {
+            return in_array('client', $userRoles);
+        }
         if (in_array('site_manager', $userRoles)) {
             return true;
         }
@@ -70,6 +73,9 @@ if (!function_exists('has_any_role')) {
     function has_any_role(array $roles): bool
     {
         $userRoles = get_user_roles();
+        if (count($roles) === 1 && in_array('client', $roles)) {
+            return in_array('client', $userRoles);
+        }
         if (in_array('site_manager', $userRoles)) {
             return true;
         }

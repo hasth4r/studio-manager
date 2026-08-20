@@ -10,8 +10,7 @@ class Api extends ResourceController
 {
     public function createClient()
     {
-        $role = session()->get('userRole');
-        if (!in_array($role, ['admin', 'project_manager'])) {
+        if (!has_any_role(['site_manager', 'admin', 'project_manager'])) {
             return $this->failUnauthorized('Unauthorized access.');
         }
 
@@ -43,8 +42,7 @@ class Api extends ResourceController
 
     public function createCollaborator()
     {
-        $role = session()->get('userRole');
-        if (!in_array($role, ['admin', 'project_manager'])) {
+        if (!has_any_role(['site_manager', 'admin', 'project_manager'])) {
             return $this->failUnauthorized('Unauthorized access.');
         }
 

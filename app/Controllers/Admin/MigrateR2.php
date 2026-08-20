@@ -13,8 +13,7 @@ class MigrateR2 extends BaseController
             return redirect()->to('/login');
         }
         
-        $userRole = session()->get('userRole');
-        if (!in_array(strtolower($userRole), ['admin', 'system admin'])) {
+        if (!has_any_role(['site_manager', 'admin', 'it'])) {
             return redirect()->to('/admin/dashboard')->with('error', 'Unauthorized access.');
         }
 

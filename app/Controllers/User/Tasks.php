@@ -8,7 +8,7 @@ class Tasks extends BaseController
 {
     public function updateStatus($id)
     {
-        if (!session()->get('isLoggedIn') || session()->get('userRole') !== 'artist') {
+        if (!session()->get('isLoggedIn')) {
             return redirect()->to('/login');
         }
 

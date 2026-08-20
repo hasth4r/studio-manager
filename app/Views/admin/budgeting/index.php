@@ -302,7 +302,7 @@
                     <?php foreach($projectBudgets as $pb): ?>
                         <tr class="hover:bg-ytHover/60 transition-colors">
                             <td class="px-6 py-3.5 font-sans font-medium text-ytText">
-                                <a href="/admin/projects/<?= $pb->id ?>/breakdown" class="hover:text-ytBlue transition-colors flex items-center gap-2">
+                                <a href="/projects/<?= $pb->id ?>/breakdown" class="hover:text-ytBlue transition-colors flex items-center gap-2">
                                     <span class="material-symbols-outlined text-[16px] text-ytBlue">video_library</span>
                                     <span><?= esc($pb->name) ?></span>
                                 </a>
@@ -326,7 +326,7 @@
                                 <?= esc($currency) ?><?= number_format($pb->client_budget, 0) ?>
                             </td>
                             <td class="px-6 py-3.5 text-right font-sans">
-                                <a href="/admin/projects/<?= $pb->id ?>/breakdown" class="bg-ytCard border border-ytBorder hover:border-ytBlue text-ytText hover:text-ytBlue px-3 py-1 rounded-lg text-[11px] font-medium transition-all inline-flex items-center gap-1">
+                                <a href="/projects/<?= $pb->id ?>/breakdown" class="bg-ytCard border border-ytBorder hover:border-ytBlue text-ytText hover:text-ytBlue px-3 py-1 rounded-lg text-[11px] font-medium transition-all inline-flex items-center gap-1">
                                     <span>Breakdown Matrix</span>
                                     <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
                                 </a>

@@ -58,9 +58,13 @@ class Notifications extends BaseController
         }
 
         // Fallback redirection based on role
-        if (session()->get('userRole') === 'artist') {
-            return redirect()->to('/user/dashboard');
+        if (has_any_role(['site_manager', 'admin'])) {
+            return redirect()->to('/admin/dashboard');
+        } elseif (has_role('client')) {
+            return redirect()->to('/client/dashboard');
+        } elseif (has_role('project_manager') || is_any_supervisor()) {
+            return redirect()->to('/pm/dashboard');
         }
-        return redirect()->to('/admin/dashboard');
+        return redirect()->to('/user/dashboard');
     }
 }

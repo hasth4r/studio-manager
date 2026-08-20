@@ -360,7 +360,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function loadData(projectIds) {
-    const url = `/admin/scheduling/data?project_ids=${projectIds}`;
+    const url = `/scheduling/data?project_ids=${projectIds}`;
     const d = await fetch(url).then(r => r.json());
     if (d.status !== 'success') return;
 
@@ -971,7 +971,7 @@ function initAI() {
         const backwards = document.getElementById('backwards-chk').checked ? 1 : 0;
         const pid = state.selectedProjects[0]; // Schedule first selected project
 
-        fetch('/admin/scheduling/autoSchedule', {
+        fetch('/scheduling/autoSchedule', {
             method:'POST',
             headers:{'Content-Type':'application/x-www-form-urlencoded'},
             body:`project_id=${pid}&backwards=${backwards}&${csrfN}=${csrfH}`
@@ -1008,7 +1008,7 @@ document.getElementById('btn-save').addEventListener('click', () => {
     btn.innerHTML = 'Saving…'; btn.style.opacity = '.7';
     const fd = new URLSearchParams();
     fd.append('updates', JSON.stringify(updates)); fd.append(csrfN, csrfH);
-    fetch('/admin/scheduling/saveDates', {method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:fd})
+    fetch('/scheduling/saveDates', {method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:fd})
     .then(r=>r.json()).then(d => {
         btn.style.opacity = '1';
         if (d.status==='success') {
@@ -1052,7 +1052,7 @@ function savePhase() {
     fd.append('start_date', document.getElementById('ph-start').value);
     fd.append('end_date',   document.getElementById('ph-end').value);
     fd.append(csrfN, csrfH);
-    fetch('/admin/phases/save', {method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:fd})
+    fetch('/phases/save', {method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:fd})
     .then(r=>r.json()).then(d => {
         if (d.status==='success') { location.reload(); }
         else alert(d.message);
@@ -1061,7 +1061,7 @@ function savePhase() {
 function deletePhase(id) {
     if (!confirm('Delete this phase?')) return;
     const fd = new URLSearchParams(); fd.append('id',id); fd.append(csrfN,csrfH);
-    fetch('/admin/phases/delete', {method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:fd})
+    fetch('/phases/delete', {method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:fd})
     .then(r=>r.json()).then(d=>{ if(d.status==='success') location.reload(); });
 }
 function editPhase(id) {

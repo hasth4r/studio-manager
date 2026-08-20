@@ -37,12 +37,12 @@
         </div>
         
         <div class="flex items-center space-x-2 overflow-x-auto pb-1 max-w-full flex-nowrap custom-scrollbar shrink-0">
-            <a href="/admin/projects/<?= $project->id ?>/breakdown" class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] text-white shadow-[0_0_15px_rgba(23,123,207,0.3)] border border-[#177bcf]/40 px-3 md:px-4 py-1.5 md:py-2 rounded-full font-bold text-[11px] md:text-[13px] hover:shadow-[0_0_25px_rgba(23,123,207,0.6)] hover:from-[#0d346e] hover:to-[#238bf2] transition-all flex items-center gap-1.5 shrink-0">
+            <a href="/projects/<?= $project->id ?>/breakdown" class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] text-white shadow-[0_0_15px_rgba(23,123,207,0.3)] border border-[#177bcf]/40 px-3 md:px-4 py-1.5 md:py-2 rounded-full font-bold text-[11px] md:text-[13px] hover:shadow-[0_0_25px_rgba(23,123,207,0.6)] hover:from-[#0d346e] hover:to-[#238bf2] transition-all flex items-center gap-1.5 shrink-0">
                 <span class="material-symbols-outlined text-[16px] md:text-[18px]">table_chart</span>
                 <span>Breakdown Matrix</span>
             </a>
             <?php if (can_manage_project($project->id)): ?>
-                <form action="/admin/projects/syncFolders/<?= $project->id ?>" method="POST" class="m-0 p-0 shrink-0">
+                <form action="/projects/syncFolders/<?= $project->id ?>" method="POST" class="m-0 p-0 shrink-0">
                     <?= csrf_field() ?>
                     <button type="submit" title="Force generate missing folders" class="bg-[#1a1a1a] text-ytText border border-ytBorder p-1.5 md:px-3 md:py-2 rounded-full font-medium text-[12px] hover:bg-ytHover transition-colors flex items-center">
                         <span class="material-symbols-outlined text-[16px] md:text-[18px]">sync</span>
@@ -135,7 +135,7 @@
         </div>
 
         <div class="flex items-center gap-2 flex-wrap">
-            <a href="/admin/projects/<?= $project->id ?>/breakdown" class="bg-ytCard border border-ytBorder hover:border-ytBlue text-ytText hover:text-ytBlue px-3.5 py-1.5 rounded-full font-bold text-[11px] md:text-[12px] transition-all flex items-center gap-1.5 shrink-0 shadow-xs">
+            <a href="/projects/<?= $project->id ?>/breakdown" class="bg-ytCard border border-ytBorder hover:border-ytBlue text-ytText hover:text-ytBlue px-3.5 py-1.5 rounded-full font-bold text-[11px] md:text-[12px] transition-all flex items-center gap-1.5 shrink-0 shadow-xs">
                 <span class="material-symbols-outlined text-[15px] text-ytBlue">table_chart</span>
                 <span>Matrix</span>
             </a>
@@ -170,7 +170,7 @@
                             <span class="material-symbols-outlined text-[16px] text-purple-400">photo_camera</span>
                             <span>Auto-Gen WebP Thumbnails</span>
                         </button>
-                        <a href="/admin/projects/<?= $project->id ?>/briefing" class="w-full text-left px-4 py-2 text-[13px] text-ytText hover:bg-ytHover flex items-center gap-2 transition-colors">
+                        <a href="/projects/<?= $project->id ?>/briefing" class="w-full text-left px-4 py-2 text-[13px] text-ytText hover:bg-ytHover flex items-center gap-2 transition-colors">
                             <span class="material-symbols-outlined text-[16px] text-indigo-400">edit_note</span>
                             <span>Shot Briefing &amp; References</span>
                         </a>
@@ -188,7 +188,7 @@
             <p class="text-ytMuted text-[13px] mt-1 mb-4">Break down your project into manageable sequences and shots, or import directly from After Effects.</p>
             <?php if (can_manage_project($project->id)): ?>
             <div class="flex justify-center gap-3">
-                <a href="/admin/projects/<?= $project->id ?>/breakdown" class="bg-ytCard border border-ytBorder text-ytText px-5 py-2.5 rounded-full font-medium text-[13px] hover:bg-ytHover transition-colors flex items-center gap-2">
+                <a href="/projects/<?= $project->id ?>/breakdown" class="bg-ytCard border border-ytBorder text-ytText px-5 py-2.5 rounded-full font-medium text-[13px] hover:bg-ytHover transition-colors flex items-center gap-2">
                     <span class="material-symbols-outlined text-[18px] text-ytBlue">table_chart</span> Shot Breakdown Matrix
                 </a>
                 <button onclick="openModal('importShotsModal')" class="bg-ytCard border border-ytBorder text-ytText px-5 py-2.5 rounded-full font-medium text-[13px] hover:bg-ytHover transition-colors flex items-center gap-2">
@@ -298,7 +298,7 @@
                         <span class="material-symbols-outlined text-[16px]">edit</span> Edit
                     </button>
                     <?php endif; ?>
-                    <a href="/admin/reviews/sequence/<?= $seq->id ?>" class="flex items-center gap-1 bg-[#1a1a1a] border border-ytBorder hover:border-ytBlue hover:text-ytBlue transition-colors px-3 py-1 rounded-full text-[12px] font-medium text-ytMuted">
+                    <a href="/reviews/sequence/<?= $seq->id ?>" class="flex items-center gap-1 bg-[#1a1a1a] border border-ytBorder hover:border-ytBlue hover:text-ytBlue transition-colors px-3 py-1 rounded-full text-[12px] font-medium text-ytMuted">
                         <span class="material-symbols-outlined text-[16px]">movie_edit</span> Lineup Editor
                     </a>
                 </div>
@@ -460,7 +460,7 @@
         <p class="text-[13px] text-ytMuted">Define base hours for tasks.</p>
     </div>
 
-    <form action="/admin/projects/storeBenchmarks" method="POST">
+    <form action="/projects/storeBenchmarks" method="POST">
         <?= csrf_field() ?>
         <input type="hidden" name="project_id" value="<?= $project->id ?>">
 
@@ -528,7 +528,7 @@
             <h3 class="text-[18px] font-medium text-ytText">Add Sequence</h3>
             <button type="button" onclick="closeModal('sequenceModal')" class="text-ytMuted hover:text-ytText"><span class="material-symbols-outlined">close</span></button>
         </div>
-        <form action="/admin/projects/storeSequence" method="POST" class="p-6">
+        <form action="/projects/storeSequence" method="POST" class="p-6">
             <?= csrf_field() ?>
             <input type="hidden" name="project_id" value="<?= $project->id ?>">
             
@@ -555,7 +555,7 @@
             <h3 class="text-[18px] font-medium text-ytText">Add Shot</h3>
             <button type="button" onclick="closeModal('shotModal')" class="text-ytMuted hover:text-ytText"><span class="material-symbols-outlined">close</span></button>
         </div>
-        <form action="/admin/projects/storeShot" method="POST" enctype="multipart/form-data" class="p-6">
+        <form action="/projects/storeShot" method="POST" enctype="multipart/form-data" class="p-6">
             <?= csrf_field() ?>
             <input type="hidden" name="project_id" value="<?= $project->id ?>">
             
@@ -610,7 +610,7 @@
             <h3 class="text-[18px] font-medium text-ytText">Add 3D Asset</h3>
             <button type="button" onclick="closeModal('assetModal')" class="text-ytMuted hover:text-ytText"><span class="material-symbols-outlined">close</span></button>
         </div>
-        <form action="/admin/projects/storeAsset" method="POST" enctype="multipart/form-data" class="p-6">
+        <form action="/projects/storeAsset" method="POST" enctype="multipart/form-data" class="p-6">
             <?= csrf_field() ?>
             <input type="hidden" name="project_id" value="<?= $project->id ?>">
             
@@ -655,7 +655,7 @@
             <h3 class="text-[16px] font-medium text-ytText">Project Settings</h3>
             <button type="button" onclick="closeModal('projectSettingsModal')" class="text-ytMuted hover:text-ytText"><span class="material-symbols-outlined">close</span></button>
         </div>
-        <form action="/admin/projects/updateSettings/<?= $project->id ?>" method="POST" class="p-6">
+        <form action="/projects/updateSettings/<?= $project->id ?>" method="POST" class="p-6">
             <?= csrf_field() ?>
             
             <div class="mb-6">
@@ -784,7 +784,7 @@
             </button>
         </div>
 
-        <form id="importShotsForm" action="/admin/projects/importShots/<?= $project->id ?>" method="POST" enctype="multipart/form-data" class="p-6">
+        <form id="importShotsForm" action="/projects/importShots/<?= $project->id ?>" method="POST" enctype="multipart/form-data" class="p-6">
             <?= csrf_field() ?>
 
             <!-- Method Switcher Tabs -->
@@ -983,7 +983,7 @@
 
                                 const res = await new Promise((resolve, reject) => {
                                     const xhr = new XMLHttpRequest();
-                                    xhr.open('POST', '/admin/projects/chunkUpload/<?= $project->id ?>', true);
+                                    xhr.open('POST', '/projects/chunkUpload/<?= $project->id ?>', true);
                                     xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
 
                                     xhr.upload.onprogress = function(e) {
@@ -1207,14 +1207,14 @@
     let activeSequenceId = null;
     function editSequence(id, name, description) {
         activeSequenceId = id;
-        document.getElementById('editSequenceForm').action = '/admin/projects/updateSequence/' + id;
+        document.getElementById('editSequenceForm').action = '/projects/updateSequence/' + id;
         document.getElementById('edit_sequence_name').value = name;
         document.getElementById('edit_sequence_description').value = description;
         openModal('editSequenceModal');
     }
     function deleteSequence() {
         if(confirm('Are you sure you want to delete this sequence? Its shots will be kept as independent shots.')) {
-            document.getElementById('deleteSequenceForm').action = '/admin/projects/deleteSequence/' + activeSequenceId;
+            document.getElementById('deleteSequenceForm').action = '/projects/deleteSequence/' + activeSequenceId;
             document.getElementById('deleteSequenceForm').submit();
         }
     }
@@ -1224,7 +1224,7 @@
         e.preventDefault();
         e.stopPropagation();
         activeShotId = id;
-        document.getElementById('editShotForm').action = '/admin/projects/updateShot/' + id;
+        document.getElementById('editShotForm').action = '/projects/updateShot/' + id;
         document.getElementById('edit_shot_sequence').value = sequence_id || '';
         document.getElementById('edit_shot_number').value = shot_number;
         document.getElementById('edit_shot_fps').value = fps || '';
@@ -1234,7 +1234,7 @@
     }
     function deleteShot() {
         if(confirm('Are you sure you want to delete this shot? All associated tasks and reviews will be lost.')) {
-            document.getElementById('deleteShotForm').action = '/admin/projects/deleteShot/' + activeShotId;
+            document.getElementById('deleteShotForm').action = '/projects/deleteShot/' + activeShotId;
             document.getElementById('deleteShotForm').submit();
         }
     }
@@ -1311,7 +1311,7 @@
                     formData.append('shot_id', item.id);
                     formData.append('image_data', dataUrl);
 
-                    const res = await fetch('/admin/projects/saveAutoThumbnailAjax', {
+                    const res = await fetch('/projects/saveAutoThumbnailAjax', {
                         method: 'POST',
                         body: formData,
                         headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -1512,7 +1512,7 @@
         formData.append('supervisor_id', supervisorId);
 
         try {
-            const res = await fetch(`/admin/projects/updateSupervisor/${projectId}`, {
+            const res = await fetch(`/projects/updateSupervisor/${projectId}`, {
                 method: 'POST',
                 body: formData,
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -1532,7 +1532,7 @@
         formData.append('supervisor_id', supervisorId);
 
         try {
-            const res = await fetch(`/admin/projects/updateSequenceSupervisor/${sequenceId}`, {
+            const res = await fetch(`/projects/updateSequenceSupervisor/${sequenceId}`, {
                 method: 'POST',
                 body: formData,
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }

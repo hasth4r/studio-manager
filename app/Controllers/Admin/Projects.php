@@ -2333,7 +2333,7 @@ class Projects extends BaseController
     public function updateSupervisor($id)
     {
         try {
-            if (!has_any_role(['site_manager', 'admin', 'project_manager'])) {
+            if (!has_any_role(['site_manager', 'admin', 'project_manager']) && !is_project_supervisor($id)) {
                 return $this->response->setJSON(['success' => false, 'error' => 'Unauthorized'])->setStatusCode(403);
             }
 

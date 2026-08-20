@@ -33,10 +33,15 @@ class Scheduling extends BaseController
         $projects = $projectsQ->get()->getResultArray();
         $pIds = array_column($projects, 'id');
 
-        // Artists
+        // Artists & Production Team
         $artists = $db->table('users')
-            ->select('id,name,global_role,weekly_hours')
-            ->whereIn('global_role',['artist','Internal Artist','admin'])
+            ->select('id,name,global_role,roles,weekly_hours')
+            ->where('status !=', 'inactive')
+            ->groupStart()
+                ->whereIn('global_role', ['artist', 'Internal Artist', 'admin', 'freelancer', 'project_manager'])
+                ->orLike('roles', 'artist')
+                ->orLike('roles', 'freelancer')
+            ->groupEnd()
             ->get()->getResultArray();
 
         // Phases
@@ -142,8 +147,13 @@ class Scheduling extends BaseController
                 ->get()->getResultArray();
 
             $users = $db->table('users')
-                ->select('id, name, global_role, weekly_hours')
-                ->whereIn('global_role', ['artist', 'Internal Artist'])
+                ->select('id, name, global_role, roles, weekly_hours')
+                ->where('status !=', 'inactive')
+                ->groupStart()
+                    ->whereIn('global_role', ['artist', 'Internal Artist', 'freelancer'])
+                    ->orLike('roles', 'artist')
+                    ->orLike('roles', 'freelancer')
+                ->groupEnd()
                 ->get()->getResultArray();
 
             $holidays = $db->table('holidays')

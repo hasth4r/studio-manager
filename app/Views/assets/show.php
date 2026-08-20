@@ -5,7 +5,7 @@
 <!-- Header -->
 <div class="flex items-center justify-between mb-6">
     <div class="flex items-center space-x-4">
-        <a href="/admin/projects/<?= esc($asset->project_id) ?>" class="p-2 hover:bg-ytHover rounded-full transition-colors flex items-center justify-center text-ytMuted">
+        <a href="/projects/<?= esc($asset->project_id) ?>" class="p-2 hover:bg-ytHover rounded-full transition-colors flex items-center justify-center text-ytMuted">
             <span class="material-symbols-outlined">arrow_back</span>
         </a>
         <div>
@@ -13,7 +13,7 @@
                 <h2 class="text-[24px] font-medium text-ytText">Asset: <?= esc($asset->name) ?></h2>
                 <span class="bg-[#1a1a1a] text-ytMuted border border-ytBorder/50 px-2 py-0.5 rounded text-[11px] font-mono uppercase"><?= esc($asset->type) ?></span>
             </div>
-            <p class="text-[13px] text-ytMuted mt-1">Project: <a href="/admin/projects/<?= esc($asset->project_id) ?>" class="text-ytBlue hover:underline"><?= esc($asset->project_name) ?></a></p>
+            <p class="text-[13px] text-ytMuted mt-1">Project: <a href="/projects/<?= esc($asset->project_id) ?>" class="text-ytBlue hover:underline"><?= esc($asset->project_name) ?></a></p>
         </div>
     </div>
 </div>

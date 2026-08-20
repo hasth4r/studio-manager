@@ -6,7 +6,7 @@
 <div class="sticky top-0 z-30 bg-ytBg/95 backdrop-blur-sm pt-6 pb-4 border-b border-ytBorder/50">
     <div class="flex items-center justify-between">
         <div class="flex items-center space-x-4">
-            <a href="/admin/projects/<?= esc($shot->project_id) ?>" class="p-2 hover:bg-ytHover rounded-full transition-colors flex items-center justify-center text-ytMuted">
+            <a href="/projects/<?= esc($shot->project_id) ?>" class="p-2 hover:bg-ytHover rounded-full transition-colors flex items-center justify-center text-ytMuted">
                 <span class="material-symbols-outlined">arrow_back</span>
             </a>
             <div>
@@ -16,7 +16,7 @@
                         <span class="bg-[#1a1a1a] text-ytMuted border border-ytBorder/50 px-2 py-0.5 rounded text-[11px] font-mono">Seq: <?= esc($shot->sequence_name) ?></span>
                     <?php endif; ?>
                 </div>
-                <p class="text-[13px] text-ytMuted mt-1">Project: <a href="/admin/projects/<?= esc($shot->project_id) ?>" class="text-ytBlue hover:underline"><?= esc($shot->project_name) ?></a></p>
+                <p class="text-[13px] text-ytMuted mt-1">Project: <a href="/projects/<?= esc($shot->project_id) ?>" class="text-ytBlue hover:underline"><?= esc($shot->project_name) ?></a></p>
             </div>
         </div>
     </div>
@@ -262,7 +262,7 @@
                                             <span class="material-symbols-outlined text-[16px]">settings</span>
                                         </button>
                                         <?php if(isset($task->pending_review)): ?>
-                                            <a href="/admin/reviews/player/<?= $task->pending_review->id ?>" class="inline-flex items-center bg-[#1a122a] border border-purple-700 text-purple-300 px-3 py-1 rounded-full font-semibold text-[11px] hover:bg-purple-900/50 transition-colors mx-1 gap-1 shadow-[0_0_10px_rgba(126,34,206,0.2)]">
+                                            <a href="/reviews/player/<?= $task->pending_review->id ?>" class="inline-flex items-center bg-[#1a122a] border border-purple-700 text-purple-300 px-3 py-1 rounded-full font-semibold text-[11px] hover:bg-purple-900/50 transition-colors mx-1 gap-1 shadow-[0_0_10px_rgba(126,34,206,0.2)]">
                                                 <span class="material-symbols-outlined text-[14px]">rate_review</span> Open Player
                                             </a>
                                         <?php endif; ?>
@@ -315,7 +315,7 @@
 
                             <?php if(isset($task->pending_review)): ?>
                                 <div class="pt-1">
-                                    <a href="/admin/reviews/player/<?= $task->pending_review->id ?>" class="w-full py-1.5 bg-purple-950/60 border border-purple-600/50 text-purple-300 rounded-lg text-center font-bold text-xs flex items-center justify-center gap-1.5 shadow">
+                                    <a href="/reviews/player/<?= $task->pending_review->id ?>" class="w-full py-1.5 bg-purple-950/60 border border-purple-600/50 text-purple-300 rounded-lg text-center font-bold text-xs flex items-center justify-center gap-1.5 shadow">
                                         <span class="material-symbols-outlined text-[15px]">rate_review</span> Open Review Player
                                     </a>
                                 </div>

@@ -22,7 +22,7 @@
             </div>
         </div>
         <?php if(has_any_role(['site_manager', 'admin', 'project_manager'])): ?>
-            <a href="/admin/projects/create" class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] text-white shadow-[0_0_15px_rgba(23,123,207,0.3)] border border-[#177bcf]/40 px-3 md:px-4 py-1.5 md:py-2 rounded-full font-bold text-[12px] md:text-[13px] hover:shadow-[0_0_25px_rgba(23,123,207,0.6)] hover:from-[#0d346e] hover:to-[#238bf2] transition-all flex items-center shrink-0">
+            <a href="/projects/create" class="bg-gradient-to-br from-[#0a2754] to-[#177bcf] text-white shadow-[0_0_15px_rgba(23,123,207,0.3)] border border-[#177bcf]/40 px-3 md:px-4 py-1.5 md:py-2 rounded-full font-bold text-[12px] md:text-[13px] hover:shadow-[0_0_25px_rgba(23,123,207,0.6)] hover:from-[#0d346e] hover:to-[#238bf2] transition-all flex items-center shrink-0">
                 <span class="material-symbols-outlined mr-1 text-[16px] md:text-[18px]">add</span> New Project
             </a>
         <?php endif; ?>
@@ -41,7 +41,7 @@
                 <div>
                     <!-- Header row -->
                     <div class="flex items-start justify-between gap-2 mb-1.5">
-                        <a href="/admin/projects/<?= $project->id ?>" class="font-bold text-[15px] text-blue-400 hover:underline leading-tight truncate">
+                        <a href="/projects/<?= $project->id ?>" class="font-bold text-[15px] text-blue-400 hover:underline leading-tight truncate">
                             <?= esc($project->name) ?>
                         </a>
                         <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 <?= $project->status === 'active' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : ($project->status === 'completed' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-700/30 text-slate-400 border border-slate-700') ?>">
@@ -76,10 +76,10 @@
 
                 <!-- Action Buttons -->
                 <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/80">
-                    <a href="/admin/projects/<?= $project->id ?>/breakdown" class="bg-[#141a29] hover:bg-[#1f293d] text-slate-200 border border-slate-700/60 font-semibold text-[11px] py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all text-center">
+                    <a href="/projects/<?= $project->id ?>/breakdown" class="bg-[#141a29] hover:bg-[#1f293d] text-slate-200 border border-slate-700/60 font-semibold text-[11px] py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all text-center">
                         <span class="material-symbols-outlined text-[15px] text-purple-400">table_chart</span> Matrix
                     </a>
-                    <a href="/admin/projects/<?= $project->id ?>" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 text-white font-semibold text-[11px] py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all text-center shadow-sm">
+                    <a href="/projects/<?= $project->id ?>" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 text-white font-semibold text-[11px] py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all text-center shadow-sm">
                         <span class="material-symbols-outlined text-[15px]">arrow_forward</span> Details
                     </a>
                 </div>
@@ -111,10 +111,10 @@
                     </tr>
                 <?php else: ?>
                     <?php foreach($projects as $project): ?>
-                        <tr class="hover:bg-ytHover transition-colors cursor-pointer" onclick="window.location.href='/admin/projects/<?= $project->id ?>'">
-                            <td class="px-6 py-4 font-medium text-ytBlue" onclick="window.location.href='/admin/projects/<?= $project->id ?>'"><?= esc($project->name) ?></td>
-                            <td class="px-6 py-4 text-ytMuted" onclick="window.location.href='/admin/projects/<?= $project->id ?>'"><?= esc($project->client_name ?: 'Unknown Client') ?></td>
-                            <td class="px-6 py-4 text-ytMuted capitalize" onclick="window.location.href='/admin/projects/<?= $project->id ?>'"><?= esc($project->project_type_name ?: 'Unknown') ?></td>
+                        <tr class="hover:bg-ytHover transition-colors cursor-pointer" onclick="window.location.href='/projects/<?= $project->id ?>'">
+                            <td class="px-6 py-4 font-medium text-ytBlue" onclick="window.location.href='/projects/<?= $project->id ?>'"><?= esc($project->name) ?></td>
+                            <td class="px-6 py-4 text-ytMuted" onclick="window.location.href='/projects/<?= $project->id ?>'"><?= esc($project->client_name ?: 'Unknown Client') ?></td>
+                            <td class="px-6 py-4 text-ytMuted capitalize" onclick="window.location.href='/projects/<?= $project->id ?>'"><?= esc($project->project_type_name ?: 'Unknown') ?></td>
                             <td class="px-6 py-4 font-mono text-[12px]">
                                 <?php if(can_manage_project($project->id)): ?>
                                     <div class="flex flex-col gap-0.5">
@@ -136,9 +136,9 @@
                             </td>
                             <td class="px-6 py-4 text-ytMuted">
                                 <?php if(can_manage_project($project->id)): ?>
-                                    <form action="/admin/projects/updateSettings/<?= $project->id ?>" method="POST" class="m-0 p-0 inline">
+                                    <form action="/projects/updateSettings/<?= $project->id ?>" method="POST" class="m-0 p-0 inline">
                                         <?= csrf_field() ?>
-                                        <input type="hidden" name="return_url" value="/admin/projects">
+                                        <input type="hidden" name="return_url" value="/projects">
                                         <select name="fps" onchange="this.form.submit()" class="bg-transparent border border-transparent hover:border-ytBorder hover:bg-[#1a1a1a] focus:bg-ytBg focus:border-ytBlue text-[13px] rounded px-1 py-0.5 outline-none text-ytText w-20 cursor-pointer transition-colors" onclick="event.stopPropagation()">
                                             <?php
                                                 $commonFps = [23, 24, 25, 30, 48, 50, 60];
@@ -160,9 +160,9 @@
                             </td>
                             <td class="px-6 py-4">
                                 <?php if(can_manage_project($project->id)): ?>
-                                    <form action="/admin/projects/updateSettings/<?= $project->id ?>" method="POST" class="m-0 p-0 inline">
+                                    <form action="/projects/updateSettings/<?= $project->id ?>" method="POST" class="m-0 p-0 inline">
                                         <?= csrf_field() ?>
-                                        <input type="hidden" name="return_url" value="/admin/projects">
+                                        <input type="hidden" name="return_url" value="/projects">
                                         <select name="status" onchange="this.form.submit()" class="bg-transparent border border-transparent hover:border-ytBorder hover:bg-[#1a1a1a] focus:bg-ytBg focus:border-ytBlue text-[11px] uppercase tracking-wider font-medium rounded px-1 py-0.5 outline-none text-ytText w-28 cursor-pointer transition-colors" onclick="event.stopPropagation()">
                                             <option value="active" <?= $project->status === 'active' ? 'selected' : '' ?>>Active</option>
                                             <option value="completed" <?= $project->status === 'completed' ? 'selected' : '' ?>>Completed</option>
@@ -178,9 +178,9 @@
                             </td>
                             <td class="px-6 py-4">
                                 <?php if(can_manage_project($project->id)): ?>
-                                    <form action="/admin/projects/updateSettings/<?= $project->id ?>" method="POST" class="m-0 p-0 inline">
+                                    <form action="/projects/updateSettings/<?= $project->id ?>" method="POST" class="m-0 p-0 inline">
                                         <?= csrf_field() ?>
-                                        <input type="hidden" name="return_url" value="/admin/projects">
+                                        <input type="hidden" name="return_url" value="/projects">
                                         <select name="priority" onchange="this.form.submit()" class="bg-transparent border border-transparent hover:border-ytBorder hover:bg-[#1a1a1a] focus:bg-ytBg focus:border-ytBlue text-[12px] font-medium rounded px-1 py-0.5 outline-none text-ytText w-24 cursor-pointer transition-colors" onclick="event.stopPropagation()">
                                             <option value="high" <?= $project->priority === 'high' ? 'selected' : '' ?> class="text-red-400">High</option>
                                             <option value="normal" <?= $project->priority === 'normal' ? 'selected' : '' ?> class="text-ytMuted">Normal</option>
@@ -195,10 +195,10 @@
                             </td>
                             <td class="px-6 py-4 text-right">
                                 <div class="flex items-center justify-end gap-1.5" onclick="event.stopPropagation()">
-                                    <a href="/admin/projects/<?= $project->id ?>/breakdown" class="bg-ytCard border border-ytBorder hover:border-ytBlue text-ytText hover:text-ytBlue px-2.5 py-1 rounded text-[11px] font-medium transition-colors" title="Open Shot Breakdown Matrix">
+                                    <a href="/projects/<?= $project->id ?>/breakdown" class="bg-ytCard border border-ytBorder hover:border-ytBlue text-ytText hover:text-ytBlue px-2.5 py-1 rounded text-[11px] font-medium transition-colors" title="Open Shot Breakdown Matrix">
                                         Matrix
                                     </a>
-                                    <a href="/admin/projects/<?= $project->id ?>" class="bg-ytCard border border-ytBorder hover:border-ytBlue text-ytText hover:text-ytBlue p-1 rounded transition-colors" title="View Project Details">
+                                    <a href="/projects/<?= $project->id ?>" class="bg-ytCard border border-ytBorder hover:border-ytBlue text-ytText hover:text-ytBlue p-1 rounded transition-colors" title="View Project Details">
                                         <span class="material-symbols-outlined text-[16px]">visibility</span>
                                     </a>
                                 </div>

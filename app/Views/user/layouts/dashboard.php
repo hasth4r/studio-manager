@@ -94,14 +94,14 @@
                         </a>
 
                         <?php if(has_any_role(['site_manager', 'admin', 'project_manager']) || is_any_supervisor()): ?>
-                        <?php $isActive = (strpos($currentUri, 'admin/projects') === 0 || strpos($currentUri, 'admin/shots') === 0); ?>
-                        <a href="/admin/projects" class="<?= $isActive ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors" title="Projects & Breakdowns">
+                        <?php $isActive = (strpos($currentUri, 'projects') === 0 || strpos($currentUri, 'shots') === 0); ?>
+                        <a href="/projects" class="<?= $isActive ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors" title="Projects & Breakdowns">
                             <span class="material-symbols-outlined <?= $isActive ? 'text-ytBlue' : 'text-ytMuted' ?>">video_library</span>
                             <span class="nav-text">Projects</span>
                         </a>
 
-                        <?php $isActive = (strpos($currentUri, 'admin/reviews') === 0); ?>
-                        <a href="/admin/reviews" class="<?= $isActive ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors" title="Review Inbox">
+                        <?php $isActive = (strpos($currentUri, 'reviews') === 0); ?>
+                        <a href="/reviews" class="<?= $isActive ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors" title="Review Inbox">
                             <span class="material-symbols-outlined <?= $isActive ? 'text-ytBlue' : 'text-ytMuted' ?>">rate_review</span>
                             <span class="nav-text">Review Inbox</span>
                         </a>
@@ -119,7 +119,7 @@
                         <div class="nav-text flex flex-col overflow-hidden">
                             <span class="text-[14px] font-medium text-ytText truncate leading-tight"><?= esc(session()->get('userName')) ?></span>
                             <span class="text-[10px] text-amber-400 font-bold uppercase truncate leading-tight mt-0.5 font-mono">
-                                <?= (has_role('project_manager') || is_any_supervisor()) ? 'SUPERVISOR / PM' : esc(str_replace('_', ' ', session()->get('userRole'))) ?>
+                                <?= esc(str_replace('_', ' ', implode(' • ', get_user_roles()))) ?>
                             </span>
                         </div>
                     </div>

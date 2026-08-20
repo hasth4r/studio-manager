@@ -227,7 +227,7 @@ $done     = count(array_filter($myTasks ?? [], fn($t) => $t->status === 'complet
                             <?php if(in_array($task->status, ['pending', 'revision_needed'])): ?>
                                 <div class="flex items-center gap-2">
                                     <?php if ($task->status === 'revision_needed' && !empty($task->latest_review_id)): ?>
-                                        <a href="/admin/reviews/player/<?= $task->latest_review_id ?>" class="flex items-center gap-1.5 bg-purple-900/20 text-purple-400 border border-purple-700/50 px-3 py-1.5 rounded-full font-semibold text-[12px] hover:bg-purple-900/40 transition-colors whitespace-nowrap">
+                                        <a href="/reviews/player/<?= $task->latest_review_id ?>" class="flex items-center gap-1.5 bg-purple-900/20 text-purple-400 border border-purple-700/50 px-3 py-1.5 rounded-full font-semibold text-[12px] hover:bg-purple-900/40 transition-colors whitespace-nowrap">
                                             <span class="material-symbols-outlined text-[14px]">visibility</span> View Corrections
                                         </a>
                                     <?php endif; ?>
@@ -243,7 +243,7 @@ $done     = count(array_filter($myTasks ?? [], fn($t) => $t->status === 'complet
                             <?php elseif($task->status === 'in_progress'): ?>
                                 <div class="flex items-center gap-2">
                                     <?php if (!empty($task->latest_review_id)): ?>
-                                        <a href="/admin/reviews/player/<?= $task->latest_review_id ?>" class="flex items-center gap-1.5 bg-purple-900/20 text-purple-400 border border-purple-700/50 px-3 py-1.5 rounded-full font-semibold text-[12px] hover:bg-purple-900/40 transition-colors whitespace-nowrap" title="View past corrections">
+                                        <a href="/reviews/player/<?= $task->latest_review_id ?>" class="flex items-center gap-1.5 bg-purple-900/20 text-purple-400 border border-purple-700/50 px-3 py-1.5 rounded-full font-semibold text-[12px] hover:bg-purple-900/40 transition-colors whitespace-nowrap" title="View past corrections">
                                             <span class="material-symbols-outlined text-[14px]">visibility</span>
                                         </a>
                                     <?php endif; ?>

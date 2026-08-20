@@ -12,9 +12,8 @@ class MediaManager extends BaseController
             return redirect()->to('/login');
         }
         
-        $userRole = session()->get('userRole');
-        if (!in_array(strtolower($userRole), ['admin', 'project_manager', 'system admin', 'project manager', 'supervisor'])) {
-            return redirect()->to('/admin/dashboard')->with('error', 'Unauthorized access.');
+        if (!has_any_role(['site_manager', 'admin', 'project_manager']) && !is_any_supervisor()) {
+            return redirect()->to('/user/dashboard')->with('error', 'Unauthorized access.');
         }
 
         $data['title'] = "Media Explorer";
@@ -164,8 +163,7 @@ class MediaManager extends BaseController
 
     public function replaceMedia($reviewId)
     {
-        $userRole = session()->get('userRole');
-        if (!session()->get('isLoggedIn') || !in_array(strtolower($userRole), ['admin', 'project_manager', 'system admin', 'project manager', 'supervisor'])) {
+        if (!session()->get('isLoggedIn') || (!has_any_role(['site_manager', 'admin', 'project_manager']) && !is_any_supervisor())) {
             return redirect()->back()->with('error', 'Unauthorized to replace media.');
         }
 

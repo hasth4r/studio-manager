@@ -5,7 +5,7 @@
 <div class="max-w-4xl">
     
     <div class="flex items-center space-x-3 mb-6">
-        <a href="/admin/projects" class="p-2 hover:bg-ytHover rounded-full transition-colors flex items-center justify-center text-ytMuted">
+        <a href="/projects" class="p-2 hover:bg-ytHover rounded-full transition-colors flex items-center justify-center text-ytMuted">
             <span class="material-symbols-outlined">arrow_back</span>
         </a>
         <div>
@@ -30,7 +30,7 @@
         </div>
     <?php endif; ?>
 
-    <form action="/admin/projects/store" method="POST" class="bg-ytCard border border-ytBorder rounded-xl p-6 sm:p-8">
+    <form action="/projects/store" method="POST" class="bg-ytCard border border-ytBorder rounded-xl p-6 sm:p-8">
         <?= csrf_field() ?>
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">

@@ -8,23 +8,33 @@ class Dashboard extends BaseController
 {
     public function index()
     {
-        if (session()->get('userRole') !== 'client') {
-            return redirect()->to('/login')->with('error', 'Unauthorized access.');
+        if (!session()->get('isLoggedIn')) {
+            return redirect()->to('/login')->with('error', 'Please log in first.');
+        }
+
+        if (!has_role('client') && !has_any_role(['site_manager', 'admin'])) {
+            return redirect()->to('/user/dashboard')->with('error', 'Unauthorized access.');
         }
 
         $db = \Config\Database::connect();
         $clientId = session()->get('clientId');
 
+        // Allow Admin/Site Manager fallback preview
+        if (!$clientId && has_any_role(['site_manager', 'admin'])) {
+            $firstClient = $db->table('clients')->select('id')->orderBy('id', 'ASC')->get()->getRow();
+            $clientId = $firstClient ? $firstClient->id : null;
+        }
+
         // Fetch Currency
         $settingsModel = new \App\Models\SettingsModel();
-        $currency = $settingsModel->getSetting('studio_currency', '$') ?? '$';
+        $currency = $settingsModel->getSetting('studio_currency', '₹') ?? '₹';
 
         // Fetch Client's Active Projects
-        $projects = $db->table('projects')
-            ->where('client_id', $clientId)
-            ->where('status !=', 'completed')
-            ->orderBy('created_at', 'DESC')
-            ->get()->getResult();
+        $projectsBuilder = $db->table('projects')->where('status !=', 'completed')->orderBy('created_at', 'DESC');
+        if ($clientId) {
+            $projectsBuilder->where('client_id', $clientId);
+        }
+        $projects = $projectsBuilder->get()->getResult();
 
         $projectIds = array_column($projects, 'id');
 
@@ -181,7 +191,7 @@ class Dashboard extends BaseController
      */
     public function updateBudget()
     {
-        if (session()->get('userRole') !== 'client') {
+        if (!session()->get('isLoggedIn') || (!has_role('client') && !has_any_role(['site_manager', 'admin']))) {
             return $this->response->setJSON(['status' => 'error', 'message' => 'Unauthorized', 'csrf' => csrf_hash()]);
         }
 
@@ -200,11 +210,12 @@ class Dashboard extends BaseController
 
         $db = \Config\Database::connect();
 
-        // Verify project belongs to this client
-        $project = $db->table('projects')
-            ->where('id', $projectId)
-            ->where('client_id', $clientId)
-            ->get()->getRow();
+        // Verify project belongs to this client or user is admin
+        $projectBuilder = $db->table('projects')->where('id', $projectId);
+        if ($clientId && !has_any_role(['site_manager', 'admin'])) {
+            $projectBuilder->where('client_id', $clientId);
+        }
+        $project = $projectBuilder->get()->getRow();
 
         if (!$project) {
             return $this->response->setJSON(['status' => 'error', 'message' => 'Project not found or access denied', 'csrf' => csrf_hash()]);

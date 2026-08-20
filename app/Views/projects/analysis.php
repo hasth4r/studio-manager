@@ -6,7 +6,7 @@
 <div class="sticky top-0 z-30 bg-ytBg/95 backdrop-blur-sm pt-6 pb-4 border-b border-ytBorder/50 mb-6">
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div class="flex items-center space-x-4">
-            <a href="/admin/projects/<?= $project->id ?>" class="p-2 hover:bg-ytHover rounded-full transition-colors flex items-center justify-center text-ytMuted" title="Back to Project Overview">
+            <a href="/projects/<?= $project->id ?>" class="p-2 hover:bg-ytHover rounded-full transition-colors flex items-center justify-center text-ytMuted" title="Back to Project Overview">
                 <span class="material-symbols-outlined">arrow_back</span>
             </a>
             <div>
@@ -27,11 +27,11 @@
         </div>
         
         <div class="flex items-center gap-2">
-            <a href="/admin/projects/<?= $project->id ?>/breakdown" class="bg-[#181818] border border-ytBlue/50 hover:border-ytBlue text-ytText px-4 py-2 rounded-lg font-medium text-[13px] hover:bg-ytHover transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(23,123,207,0.15)]">
+            <a href="/projects/<?= $project->id ?>/breakdown" class="bg-[#181818] border border-ytBlue/50 hover:border-ytBlue text-ytText px-4 py-2 rounded-lg font-medium text-[13px] hover:bg-ytHover transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(23,123,207,0.15)]">
                 <span class="material-symbols-outlined text-[16px] text-ytBlue">table_chart</span>
                 <span>Shot Breakdown Matrix</span>
             </a>
-            <a href="/admin/projects/<?= $project->id ?>" class="bg-ytCard border border-ytBorder text-ytText px-4 py-2 rounded-lg font-medium text-[13px] hover:bg-ytHover transition-colors flex items-center gap-1.5">
+            <a href="/projects/<?= $project->id ?>" class="bg-ytCard border border-ytBorder text-ytText px-4 py-2 rounded-lg font-medium text-[13px] hover:bg-ytHover transition-colors flex items-center gap-1.5">
                 <span class="material-symbols-outlined text-[16px]">grid_view</span>
                 <span>Project Cards</span>
             </a>

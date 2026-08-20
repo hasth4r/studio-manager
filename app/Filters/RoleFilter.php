@@ -16,7 +16,18 @@ class RoleFilter implements FilterInterface
     {
         helper('auth');
 
+        $isAjax = $request->isAJAX() 
+               || $request->getHeaderLine('X-Requested-With') === 'XMLHttpRequest'
+               || stripos($request->getHeaderLine('Accept'), 'application/json') !== false;
+
         if (!session()->get('isLoggedIn')) {
+            if ($isAjax) {
+                return service('response')->setStatusCode(401)->setJSON([
+                    'success' => false,
+                    'error'   => 'Authentication required. Please log in.',
+                    'redirect' => '/login'
+                ]);
+            }
             return redirect()->to('/login')->with('error', 'Please log in to continue.');
         }
 
@@ -26,12 +37,22 @@ class RoleFilter implements FilterInterface
 
         // Check if user has any of the passed role arguments
         if (!has_any_role($arguments)) {
+            if ($isAjax) {
+                return service('response')->setStatusCode(403)->setJSON([
+                    'success' => false,
+                    'error'   => 'Unauthorized. Insufficient permissions for this action.'
+                ]);
+            }
+
             // Role-based smart fallback redirect
             if (has_role('client')) {
                 return redirect()->to('/client/dashboard')->with('error', 'Access restricted.');
             }
             if (has_any_role(['site_manager', 'admin'])) {
                 return redirect()->to('/admin/dashboard')->with('error', 'Access restricted.');
+            }
+            if (has_role('project_manager') || is_any_supervisor()) {
+                return redirect()->to('/pm/dashboard')->with('error', 'Access restricted.');
             }
             return redirect()->to('/user/dashboard')->with('error', 'You do not have permission to access that area.');
         }

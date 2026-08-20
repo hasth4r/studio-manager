@@ -107,14 +107,14 @@
         </a>
         
         <?php if(has_any_role(['site_manager', 'admin', 'project_manager']) || (!has_role('client') && is_any_supervisor())): ?>
-        <?php $isActiveProj = (strpos(uri_string(), 'admin/projects') === 0 || strpos(uri_string(), 'admin/shots') === 0); ?>
-        <a href="/admin/projects" class="flex flex-col items-center justify-center w-full h-full space-y-1 <?= $isActiveProj ? 'text-ytBlue font-bold' : 'text-ytMuted hover:text-ytText' ?>">
+        <?php $isActiveProj = (strpos(uri_string(), 'projects') === 0 || strpos(uri_string(), 'shots') === 0); ?>
+        <a href="/projects" class="flex flex-col items-center justify-center w-full h-full space-y-1 <?= $isActiveProj ? 'text-ytBlue font-bold' : 'text-ytMuted hover:text-ytText' ?>">
             <span class="material-symbols-outlined text-[22px]">video_library</span>
             <span class="text-[10px] tracking-tight">Projects</span>
         </a>
         
-        <?php $isActiveRev = (strpos(uri_string(), 'admin/reviews') === 0); ?>
-        <a href="/admin/reviews" class="flex flex-col items-center justify-center w-full h-full space-y-1 <?= $isActiveRev ? 'text-ytBlue font-bold' : 'text-ytMuted hover:text-ytText' ?>">
+        <?php $isActiveRev = (strpos(uri_string(), 'reviews') === 0); ?>
+        <a href="/reviews" class="flex flex-col items-center justify-center w-full h-full space-y-1 <?= $isActiveRev ? 'text-ytBlue font-bold' : 'text-ytMuted hover:text-ytText' ?>">
             <span class="material-symbols-outlined text-[22px]">rate_review</span>
             <span class="text-[10px] tracking-tight">Reviews</span>
         </a>
@@ -280,7 +280,7 @@
                         </a>
                         <?php endif; ?>
 
-                        <?php if(has_any_role(['site_manager', 'it'])): ?>
+                        <?php if(has_any_role(['site_manager', 'admin', 'it'])): ?>
                         <?php $isActive = (strpos($currentUri, 'admin/database') === 0); ?>
                         <a href="/admin/database" class="<?= $isActive ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors" title="Database Manager">
                             <span class="material-symbols-outlined <?= $isActive ? 'text-ytBlue' : 'text-ytMuted' ?>">storage</span>
@@ -304,8 +304,8 @@
                 <div class="nav-section">
                     <p class="section-title px-4 text-[11px] font-bold uppercase tracking-wider text-ytMuted mb-2">Studio</p>
                     <div class="space-y-0.5">
-                        <?php $isActive = (strpos($currentUri, 'admin/media') === 0); ?>
-                        <a href="/admin/media" class="<?= $isActive ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors" title="Media Explorer">
+                        <?php $isActive = (strpos($currentUri, 'media') === 0); ?>
+                        <a href="/media" class="<?= $isActive ? 'active-nav-item bg-ytHover text-ytBlue' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2.5 rounded-lg font-medium text-[15px] transition-colors" title="Media Explorer">
                             <span class="material-symbols-outlined <?= $isActive ? 'text-ytBlue' : 'text-ytMuted' ?>">folder_open</span>
                             <span class="nav-text">Media Explorer</span>
                         </a>
@@ -343,8 +343,8 @@
                     <span class="nav-text"><?= $isTelegramLinked ? 'Telegram Connected' : 'Connect Telegram' ?></span>
                 </a>
 
-                <?php if(has_role('site_manager')): ?>
-                <a href="/admin/settings" class="<?= (current_url() == site_url('settings')) ? 'bg-ytHover text-white font-medium' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2 rounded-lg transition-colors mt-0.5 text-[13px]" title="Server Settings">
+                <?php if(has_any_role(['site_manager', 'admin'])): ?>
+                <a href="/admin/settings" class="<?= (strpos($currentUri, 'admin/settings') === 0) ? 'bg-ytHover text-white font-medium' : 'text-ytText hover:bg-ytHover' ?> flex items-center space-x-4 px-4 py-2 rounded-lg transition-colors mt-0.5 text-[13px]" title="Server Settings">
                     <span class="material-symbols-outlined text-ytMuted text-[18px]">settings</span>
                     <span class="nav-text">Site Settings</span>
                 </a>

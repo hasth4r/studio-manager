@@ -8,7 +8,7 @@ class InstallComposer extends BaseController
 {
     public function index()
     {
-        if (!session()->get('isLoggedIn') || !in_array(strtolower(session()->get('userRole')), ['admin', 'system admin'])) {
+        if (!session()->get('isLoggedIn') || !has_any_role(['site_manager', 'admin', 'it'])) {
             return redirect()->to('/login');
         }
 

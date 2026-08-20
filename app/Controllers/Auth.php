@@ -40,6 +40,9 @@ class Auth extends BaseController
         $user = $builder->where('email', $email)->get()->getRow();
 
         if ($user && password_verify($password, $user->password_hash)) {
+            if (isset($user->status) && $user->status === 'inactive') {
+                return redirect()->back()->withInput()->with('error', 'Your account has been deactivated. Please contact your administrator.');
+            }
             
             // Extract Multi-Roles
             $roles = [];
@@ -60,8 +63,10 @@ class Auth extends BaseController
                 $roles[] = 'project_manager';
             }
 
+            $roles = array_values(array_unique(array_filter($roles)));
+
             // RBAC Check for Admin Login Route
-            if ($type === 'ADMIN' && !in_array('admin', $roles) && !in_array('site_manager', $roles) && !in_array('project_manager', $roles)) {
+            if ($type === 'ADMIN' && !in_array('admin', $roles) && !in_array('site_manager', $roles) && !in_array('project_manager', $roles) && !in_array('hr', $roles) && !in_array('it', $roles)) {
                 return redirect()->back()->withInput()->with('error', 'Unauthorized. Management access required.');
             }
 
@@ -70,7 +75,7 @@ class Auth extends BaseController
             // Set Session Data
             $session = session();
             $session->set([
-                'userId'     => $user->id,
+                'userId'     => (int)$user->id,
                 'userRole'   => $primaryRole,
                 'userRoles'  => $roles,
                 'userName'   => $user->name,
@@ -84,6 +89,10 @@ class Auth extends BaseController
                 return redirect()->to('/client/dashboard');
             } elseif (in_array('project_manager', $roles)) {
                 return redirect()->to('/pm/dashboard');
+            } elseif (in_array('hr', $roles)) {
+                return redirect()->to('/admin/users');
+            } elseif (in_array('it', $roles)) {
+                return redirect()->to('/admin/database');
             } else {
                 return redirect()->to('/user/dashboard');
             }

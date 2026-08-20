@@ -68,7 +68,7 @@
                     </p>
                 <?php endif; ?>
 
-                <a href="/admin/reviews/player/<?= $review->id ?>" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 text-white font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-md shadow-purple-900/30 text-center">
+                <a href="/reviews/player/<?= $review->id ?>" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 text-white font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-md shadow-purple-900/30 text-center">
                     <span class="material-symbols-outlined text-[16px]">play_circle</span> Review Version
                 </a>
             </div>
@@ -170,7 +170,7 @@
 
 <script>
 function openPlayer(reviewId) {
-    window.location.href = `/admin/reviews/player/${reviewId}`;
+    window.location.href = `/reviews/player/${reviewId}`;
 }
 </script>
 

@@ -38,7 +38,7 @@ class Briefing extends BaseController
         }
 
         // Access control: Ensure client can only view their own projects (admins can view all)
-        if ($userRole === 'client' && $project->client_id != $clientId) {
+        if (has_role('client') && !has_any_role(['site_manager', 'admin']) && $project->client_id != $clientId) {
             return redirect()->to('/client/dashboard')->with('error', 'Unauthorized access to this project.');
         }
 
@@ -85,7 +85,7 @@ class Briefing extends BaseController
         }
 
         // Verify project ownership if client
-        if (session()->get('userRole') === 'client') {
+        if (has_role('client') && !has_any_role(['site_manager', 'admin'])) {
             $project = $this->projectModel->find($shot->project_id);
             if (!$project || $project->client_id != session()->get('clientId')) {
                 return $this->response->setJSON(['success' => false, 'error' => 'Unauthorized'])->setStatusCode(403);
@@ -131,7 +131,7 @@ class Briefing extends BaseController
         }
 
         // Verify project ownership if client
-        if (session()->get('userRole') === 'client') {
+        if (has_role('client') && !has_any_role(['site_manager', 'admin'])) {
             $project = $this->projectModel->find($shot->project_id);
             if (!$project || $project->client_id != session()->get('clientId')) {
                 return $this->response->setJSON(['success' => false, 'error' => 'Unauthorized'])->setStatusCode(403);
@@ -290,7 +290,7 @@ class Briefing extends BaseController
         }
 
         // Verify project ownership if client
-        if (session()->get('userRole') === 'client') {
+        if (has_role('client') && !has_any_role(['site_manager', 'admin'])) {
             $project = $this->projectModel->find($shot->project_id);
             if (!$project || $project->client_id != session()->get('clientId')) {
                 return $this->response->setJSON(['success' => false, 'error' => 'Unauthorized'])->setStatusCode(403);
