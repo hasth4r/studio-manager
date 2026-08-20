@@ -26,7 +26,7 @@ class Reviews extends BaseController
             ->where('r.id', $reviewId)
             ->get()->getRow();
 
-        if (!$review || $review->client_id != session()->get('clientId')) {
+        if (!$review || ($review->client_id != session()->get('clientId') && !has_any_role(['site_manager', 'admin']))) {
             return redirect()->back()->with('error', 'Review not found or unauthorized.');
         }
 
@@ -183,7 +183,7 @@ class Reviews extends BaseController
             ->where('sequences.id', $seqId)
             ->get()->getRow();
 
-        if (!$sequence || $sequence->client_id != session()->get('clientId')) {
+        if (!$sequence || ($sequence->client_id != session()->get('clientId') && !has_any_role(['site_manager', 'admin']))) {
             return redirect()->back()->with('error', 'Sequence not found or unauthorized.');
         }
 
