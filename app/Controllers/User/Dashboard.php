@@ -29,30 +29,31 @@ class Dashboard extends BaseController
 
         $reviewsTable = $db->prefixTable('reviews');
 
+        $tasksTable = $db->prefixTable('tasks');
         // Fetch assigned tasks for the artist
-        $myTasks = $db->table('tasks t')
-            ->select('t.*, tt.name as task_name, p.name as project_name, s.shot_number, s.thumbnail_path as shot_thumb, sq.name as sequence_name, a.name as asset_name, (SELECT id FROM ' . $reviewsTable . ' WHERE ' . $reviewsTable . '.vfx_task_assignment_id = t.id ORDER BY version_number DESC, created_at DESC LIMIT 1) as latest_review_id')
-            ->join('task_types tt', 'tt.id = t.task_type_id', 'left')
-            ->join('projects p', 'p.id = t.project_id', 'left')
-            ->join('shots s', 's.id = t.shot_id', 'left')
-            ->join('sequences sq', 'sq.id = s.sequence_id', 'left')
-            ->join('assets a', 'a.id = t.asset_id', 'left')
-            ->where('t.assigned_to', $userId)
-            ->orderBy('CASE t.status WHEN "revision_needed" THEN 0 WHEN "in_progress" THEN 1 WHEN "pending" THEN 2 WHEN "ready_for_review" THEN 3 WHEN "completed" THEN 4 ELSE 5 END', 'ASC', false)
+        $myTasks = $db->table('tasks')
+            ->select('tasks.*, task_types.name as task_name, projects.name as project_name, shots.shot_number, shots.thumbnail_path as shot_thumb, sequences.name as sequence_name, assets.name as asset_name, (SELECT id FROM ' . $reviewsTable . ' WHERE ' . $reviewsTable . '.vfx_task_assignment_id = ' . $tasksTable . '.id ORDER BY version_number DESC, created_at DESC LIMIT 1) as latest_review_id')
+            ->join('task_types', 'task_types.id = tasks.task_type_id', 'left')
+            ->join('projects', 'projects.id = tasks.project_id', 'left')
+            ->join('shots', 'shots.id = tasks.shot_id', 'left')
+            ->join('sequences', 'sequences.id = shots.sequence_id', 'left')
+            ->join('assets', 'assets.id = tasks.asset_id', 'left')
+            ->where('tasks.assigned_to', $userId)
+            ->orderBy('CASE ' . $tasksTable . '.status WHEN "revision_needed" THEN 0 WHEN "in_progress" THEN 1 WHEN "pending" THEN 2 WHEN "ready_for_review" THEN 3 WHEN "completed" THEN 4 ELSE 5 END', 'ASC', false)
             ->get()->getResult();
 
         // Fetch projects where user is designated supervisor
-        $supervisedProjects = $db->table('projects p')
-            ->select('p.*, c.company_name as client_name, (SELECT COUNT(*) FROM ' . $db->prefixTable('shots') . ' WHERE project_id = p.id) as shot_count')
-            ->join('clients c', 'c.id = p.client_id', 'left')
-            ->where('p.supervisor_id', $userId)
+        $supervisedProjects = $db->table('projects')
+            ->select('projects.*, clients.company_name as client_name, (SELECT COUNT(*) FROM ' . $db->prefixTable('shots') . ' WHERE project_id = ' . $db->prefixTable('projects') . '.id) as shot_count')
+            ->join('clients', 'clients.id = projects.client_id', 'left')
+            ->where('projects.supervisor_id', $userId)
             ->get()->getResult();
 
         // Fetch sequences where user is designated sequence lead
-        $supervisedSequences = $db->table('sequences sq')
-            ->select('sq.*, p.name as project_name, (SELECT COUNT(*) FROM ' . $db->prefixTable('shots') . ' WHERE sequence_id = sq.id) as shot_count')
-            ->join('projects p', 'p.id = sq.project_id', 'left')
-            ->where('sq.supervisor_id', $userId)
+        $supervisedSequences = $db->table('sequences')
+            ->select('sequences.*, projects.name as project_name, (SELECT COUNT(*) FROM ' . $db->prefixTable('shots') . ' WHERE sequence_id = ' . $db->prefixTable('sequences') . '.id) as shot_count')
+            ->join('projects', 'projects.id = sequences.project_id', 'left')
+            ->where('sequences.supervisor_id', $userId)
             ->get()->getResult();
 
         $data = [

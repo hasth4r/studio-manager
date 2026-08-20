@@ -52,17 +52,17 @@ class Dashboard extends BaseController
 
         if (!empty($projectIds)) {
             // 1. Fetch Recent Submissions / Deliveries
-            $reviews = $db->table('reviews r')
-                ->select('r.*, s.shot_number, s.thumbnail_path as shot_thumb, seq.name as seq_name, a.name as asset_name, p.name as project_name, u.name as artist_name')
-                ->join('tasks t', 't.id = r.vfx_task_assignment_id', 'left')
-                ->join('shots s', 's.id = t.shot_id', 'left')
-                ->join('sequences seq', 'seq.id = s.sequence_id', 'left')
-                ->join('assets a', 'a.id = t.asset_id', 'left')
-                ->join('projects p', 'p.id = t.project_id', 'left')
-                ->join('users u', 'u.id = r.user_id', 'left')
-                ->whereIn('p.id', $projectIds)
-                ->whereIn('r.status', ['pending', 'approved', 'revision_needed'])
-                ->orderBy('r.created_at', 'DESC')
+            $reviews = $db->table('reviews')
+                ->select('reviews.*, shots.shot_number, shots.thumbnail_path as shot_thumb, sequences.name as seq_name, assets.name as asset_name, projects.name as project_name, users.name as artist_name')
+                ->join('tasks', 'tasks.id = reviews.vfx_task_assignment_id', 'left')
+                ->join('shots', 'shots.id = tasks.shot_id', 'left')
+                ->join('sequences', 'sequences.id = shots.sequence_id', 'left')
+                ->join('assets', 'assets.id = tasks.asset_id', 'left')
+                ->join('projects', 'projects.id = tasks.project_id', 'left')
+                ->join('users', 'users.id = reviews.user_id', 'left')
+                ->whereIn('projects.id', $projectIds)
+                ->whereIn('reviews.status', ['pending', 'approved', 'revision_needed'])
+                ->orderBy('reviews.created_at', 'DESC')
                 ->limit(6)
                 ->get()->getResult();
 
@@ -85,12 +85,12 @@ class Dashboard extends BaseController
             }
 
             // 4. Fetch Shots Count per Project
-            $shotsCountRaw = $db->table('shots s')
-                ->select('p.id as project_id, COUNT(s.id) as shot_count')
-                ->join('sequences seq', 'seq.id = s.sequence_id', 'inner')
-                ->join('projects p', 'p.id = seq.project_id', 'inner')
-                ->whereIn('p.id', $projectIds)
-                ->groupBy('p.id')
+            $shotsCountRaw = $db->table('shots')
+                ->select('projects.id as project_id, COUNT(shots.id) as shot_count')
+                ->join('sequences', 'sequences.id = shots.sequence_id', 'inner')
+                ->join('projects', 'projects.id = sequences.project_id', 'inner')
+                ->whereIn('projects.id', $projectIds)
+                ->groupBy('projects.id')
                 ->get()->getResult();
 
             $shotsCountByProject = [];

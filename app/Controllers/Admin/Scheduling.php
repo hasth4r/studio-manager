@@ -56,36 +56,36 @@ class Scheduling extends BaseController
         // Tasks with all joins
         $tasks = [];
         if (!empty($pIds)) {
-            $tasks = $db->table('tasks t')
-                ->select('t.id, t.project_id, t.shot_id, t.assigned_to, t.status,
-                          t.estimated_hours, t.start_date, t.end_date,
-                          t.priority_percentage, t.is_undocked, t.phase_id,
-                          t.frame_count, t.fps, t.complexity, t.gantt_row,
-                          tt.name as task_type_name,
-                          s.shot_number, s.thumbnail_path, seq.name as sequence_name,
-                          u.name as artist_name,
-                          ph.name as phase_name, ph.color as phase_color,
-                          p.name as project_name')
-                ->join('task_types tt',    'tt.id = t.task_type_id',  'left')
-                ->join('shots s',          's.id = t.shot_id',         'left')
-                ->join('sequences seq',    'seq.id = s.sequence_id',   'left')
-                ->join('users u',          'u.id = t.assigned_to',     'left')
-                ->join('project_phases ph','ph.id = t.phase_id',       'left')
-                ->join('projects p',       'p.id = t.project_id',      'left')
-                ->whereIn('t.project_id', $pIds)
+            $tasks = $db->table('tasks')
+                ->select('tasks.id, tasks.project_id, tasks.shot_id, tasks.assigned_to, tasks.status,
+                          tasks.estimated_hours, tasks.start_date, tasks.end_date,
+                          tasks.priority_percentage, tasks.is_undocked, tasks.phase_id,
+                          tasks.frame_count, tasks.fps, tasks.complexity, tasks.gantt_row,
+                          task_types.name as task_type_name,
+                          shots.shot_number, shots.thumbnail_path, sequences.name as sequence_name,
+                          users.name as artist_name,
+                          project_phases.name as phase_name, project_phases.color as phase_color,
+                          projects.name as project_name')
+                ->join('task_types',    'task_types.id = tasks.task_type_id',  'left')
+                ->join('shots',         'shots.id = tasks.shot_id',         'left')
+                ->join('sequences',     'sequences.id = shots.sequence_id',   'left')
+                ->join('users',         'users.id = tasks.assigned_to',     'left')
+                ->join('project_phases','project_phases.id = tasks.phase_id',       'left')
+                ->join('projects',      'projects.id = tasks.project_id',      'left')
+                ->whereIn('tasks.project_id', $pIds)
                 ->get()->getResultArray();
         }
 
         // Unscheduled shots (for search panel)
         $shots = [];
         if (!empty($pIds)) {
-            $shots = $db->table('shots s')
-                ->select('s.id, s.shot_number, s.project_id, s.thumbnail_path, s.description,
-                          p.name as project_name, seq.name as sequence_name')
-                ->join('projects p',   'p.id = s.project_id',     'left')
-                ->join('sequences seq','seq.id = s.sequence_id',  'left')
-                ->whereIn('s.project_id', $pIds)
-                ->orderBy('s.project_id')->orderBy('s.shot_number')
+            $shots = $db->table('shots')
+                ->select('shots.id, shots.shot_number, shots.project_id, shots.thumbnail_path, shots.description,
+                          projects.name as project_name, sequences.name as sequence_name')
+                ->join('projects',   'projects.id = shots.project_id',     'left')
+                ->join('sequences',  'sequences.id = shots.sequence_id',  'left')
+                ->whereIn('shots.project_id', $pIds)
+                ->orderBy('shots.project_id')->orderBy('shots.shot_number')
                 ->get()->getResultArray();
         }
 
@@ -135,15 +135,15 @@ class Scheduling extends BaseController
         if ($projectId) {
             $project = $db->table('projects')->where('id', $projectId)->get()->getRow();
 
-            $tasks = $db->table('tasks t')
-                ->select('t.*, u.name as assigned_to_name, u.weekly_hours as artist_weekly_hours,
-                          tt.name as task_name, s.shot_number, s.frame_count as shot_frames, seq.name as sequence_name')
-                ->join('users u',      'u.id = t.assigned_to',    'left')
-                ->join('task_types tt','tt.id = t.task_type_id',  'left')
-                ->join('shots s',      's.id = t.shot_id',        'left')
-                ->join('sequences seq','seq.id = s.sequence_id',  'left')
-                ->where('t.project_id', $projectId)
-                ->orderBy('t.priority_percentage', 'DESC')
+            $tasks = $db->table('tasks')
+                ->select('tasks.*, users.name as assigned_to_name, users.weekly_hours as artist_weekly_hours,
+                          task_types.name as task_name, shots.shot_number, shots.frame_count as shot_frames, sequences.name as sequence_name')
+                ->join('users',      'users.id = tasks.assigned_to',    'left')
+                ->join('task_types', 'task_types.id = tasks.task_type_id',  'left')
+                ->join('shots',      'shots.id = tasks.shot_id',        'left')
+                ->join('sequences',  'sequences.id = shots.sequence_id',  'left')
+                ->where('tasks.project_id', $projectId)
+                ->orderBy('tasks.priority_percentage', 'DESC')
                 ->get()->getResultArray();
 
             $users = $db->table('users')
@@ -237,13 +237,13 @@ class Scheduling extends BaseController
             
             // Send Notification if assigned_to changed
             if ($assignedTo && (!$oldTask || $oldTask->assigned_to != $assignedTo)) {
-                $taskData = $db->table('tasks t')
-                    ->select('c.name as task_name, s.shot_number, a.name as asset_name, p.name as project_name')
-                    ->join('task_types c', 'c.id = t.task_type_id', 'left')
-                    ->join('shots s', 's.id = t.shot_id', 'left')
-                    ->join('assets a', 'a.id = t.asset_id', 'left')
-                    ->join('projects p', 'p.id = t.project_id', 'left')
-                    ->where('t.id', $u['id'])
+                $taskData = $db->table('tasks')
+                    ->select('task_types.name as task_name, shots.shot_number, assets.name as asset_name, projects.name as project_name')
+                    ->join('task_types', 'task_types.id = tasks.task_type_id', 'left')
+                    ->join('shots', 'shots.id = tasks.shot_id', 'left')
+                    ->join('assets', 'assets.id = tasks.asset_id', 'left')
+                    ->join('projects', 'projects.id = tasks.project_id', 'left')
+                    ->where('tasks.id', $u['id'])
                     ->get()->getRow();
                     
                 if ($taskData) {

@@ -42,11 +42,11 @@ class SchedulerEngine
         }
 
         // 1. Fetch all non-approved tasks
-        $rawTasks = $db->table('tasks t')
-            ->select('t.*, tt.benchmark_hours_per_second')
-            ->join('task_types tt', 'tt.id = t.task_type_id', 'left')
-            ->where('t.project_id', $projectId)
-            ->where('t.status !=', 'approved')
+        $rawTasks = $db->table('tasks')
+            ->select('tasks.*, task_types.benchmark_hours_per_second')
+            ->join('task_types', 'task_types.id = tasks.task_type_id', 'left')
+            ->where('tasks.project_id', $projectId)
+            ->where('tasks.status !=', 'approved')
             ->get()->getResultArray();
 
         if (empty($rawTasks)) {

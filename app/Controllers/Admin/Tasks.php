@@ -52,14 +52,14 @@ class Tasks extends BaseController
         if (!empty($assignedTo)) {
             helper('notification');
             $db = \Config\Database::connect();
-            $taskData = $db->table('tasks t')
-                ->select('c.name as task_name, s.shot_number, seq.name as sequence_name, s.thumbnail_path as shot_thumb, a.name as asset_name, a.thumbnail_path as asset_thumb, p.name as project_name, t.estimated_hours, t.due_date, t.complexity')
-                ->join('task_types c', 'c.id = t.task_type_id', 'left')
-                ->join('shots s', 's.id = t.shot_id', 'left')
-                ->join('sequences seq', 'seq.id = s.sequence_id', 'left')
-                ->join('assets a', 'a.id = t.asset_id', 'left')
-                ->join('projects p', 'p.id = t.project_id', 'left')
-                ->where('t.id', $model->getInsertID())
+            $taskData = $db->table('tasks')
+                ->select('task_types.name as task_name, shots.shot_number, sequences.name as sequence_name, shots.thumbnail_path as shot_thumb, assets.name as asset_name, assets.thumbnail_path as asset_thumb, projects.name as project_name, tasks.estimated_hours, tasks.due_date, tasks.complexity')
+                ->join('task_types', 'task_types.id = tasks.task_type_id', 'left')
+                ->join('shots', 'shots.id = tasks.shot_id', 'left')
+                ->join('sequences', 'sequences.id = shots.sequence_id', 'left')
+                ->join('assets', 'assets.id = tasks.asset_id', 'left')
+                ->join('projects', 'projects.id = tasks.project_id', 'left')
+                ->where('tasks.id', $model->getInsertID())
                 ->get()->getRow();
                 
             if ($taskData) {
@@ -116,14 +116,14 @@ class Tasks extends BaseController
         if (!empty($assignedTo)) {
             helper('notification');
             $db = \Config\Database::connect();
-            $taskData = $db->table('tasks t')
-                ->select('c.name as task_name, s.shot_number, seq.name as sequence_name, s.thumbnail_path as shot_thumb, a.name as asset_name, a.thumbnail_path as asset_thumb, p.name as project_name, t.estimated_hours, t.due_date, t.complexity')
-                ->join('task_types c', 'c.id = t.task_type_id', 'left')
-                ->join('shots s', 's.id = t.shot_id', 'left')
-                ->join('sequences seq', 'seq.id = s.sequence_id', 'left')
-                ->join('assets a', 'a.id = t.asset_id', 'left')
-                ->join('projects p', 'p.id = t.project_id', 'left')
-                ->where('t.id', $taskId)
+            $taskData = $db->table('tasks')
+                ->select('task_types.name as task_name, shots.shot_number, sequences.name as sequence_name, shots.thumbnail_path as shot_thumb, assets.name as asset_name, assets.thumbnail_path as asset_thumb, projects.name as project_name, tasks.estimated_hours, tasks.due_date, tasks.complexity')
+                ->join('task_types', 'task_types.id = tasks.task_type_id', 'left')
+                ->join('shots', 'shots.id = tasks.shot_id', 'left')
+                ->join('sequences', 'sequences.id = shots.sequence_id', 'left')
+                ->join('assets', 'assets.id = tasks.asset_id', 'left')
+                ->join('projects', 'projects.id = tasks.project_id', 'left')
+                ->where('tasks.id', $taskId)
                 ->get()->getRow();
                 
             if ($taskData) {

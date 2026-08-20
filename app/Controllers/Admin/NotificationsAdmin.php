@@ -32,14 +32,14 @@ class NotificationsAdmin extends BaseController
         $count = 0;
 
         // 1. Retroactive Task Assignments
-        $tasks = $db->table('tasks t')
-            ->select('t.assigned_to, c.name as task_name, s.shot_number, a.name as asset_name, p.name as project_name')
-            ->join('task_types c', 'c.id = t.task_type_id', 'left')
-            ->join('shots s', 's.id = t.shot_id', 'left')
-            ->join('assets a', 'a.id = t.asset_id', 'left')
-            ->join('projects p', 'p.id = t.project_id', 'left')
-            ->where('t.assigned_to IS NOT NULL')
-            ->where('t.status !=', 'completed')
+        $tasks = $db->table('tasks')
+            ->select('tasks.assigned_to, task_types.name as task_name, shots.shot_number, assets.name as asset_name, projects.name as project_name')
+            ->join('task_types', 'task_types.id = tasks.task_type_id', 'left')
+            ->join('shots', 'shots.id = tasks.shot_id', 'left')
+            ->join('assets', 'assets.id = tasks.asset_id', 'left')
+            ->join('projects', 'projects.id = tasks.project_id', 'left')
+            ->where('tasks.assigned_to IS NOT NULL')
+            ->where('tasks.status !=', 'completed')
             ->get()->getResult();
 
         foreach ($tasks as $task) {
@@ -50,14 +50,14 @@ class NotificationsAdmin extends BaseController
         }
 
         // 2. Retroactive Review Submissions (Pending Reviews)
-        $pendingReviews = $db->table('reviews r')
-            ->select('r.id as review_id, r.version_string, c.name as task_name, s.shot_number, a.name as asset_name, u.name as artist_name')
-            ->join('tasks t', 't.id = r.vfx_task_assignment_id', 'left')
-            ->join('task_types c', 'c.id = t.task_type_id', 'left')
-            ->join('shots s', 's.id = t.shot_id', 'left')
-            ->join('assets a', 'a.id = t.asset_id', 'left')
-            ->join('users u', 'u.id = r.user_id', 'left')
-            ->where('r.status', 'pending')
+        $pendingReviews = $db->table('reviews')
+            ->select('reviews.id as review_id, reviews.version_string, task_types.name as task_name, shots.shot_number, assets.name as asset_name, users.name as artist_name')
+            ->join('tasks', 'tasks.id = reviews.vfx_task_assignment_id', 'left')
+            ->join('task_types', 'task_types.id = tasks.task_type_id', 'left')
+            ->join('shots', 'shots.id = tasks.shot_id', 'left')
+            ->join('assets', 'assets.id = tasks.asset_id', 'left')
+            ->join('users', 'users.id = reviews.user_id', 'left')
+            ->where('reviews.status', 'pending')
             ->get()->getResult();
 
         $admins = $db->table('users')->whereIn('global_role', ['admin', 'project_manager'])->get()->getResult();
@@ -66,7 +66,7 @@ class NotificationsAdmin extends BaseController
             $target = $rev->shot_number ? "Shot {$rev->shot_number}" : ($rev->asset_name ? "Asset {$rev->asset_name}" : "Task");
             $msg = "{$rev->artist_name} submitted {$rev->version_string} for {$target} ({$rev->task_name}).";
             foreach ($admins as $admin) {
-                send_notification($admin->id, 'review_submitted', 'Review Submitted (Retroactive)', $msg, "/admin/reviews/player/{$rev->review_id}");
+                send_notification($admin->id, 'review_submitted', 'Review Submitted (Retroactive)', $msg, "/reviews/player/{$rev->review_id}");
                 $count++;
             }
         }

@@ -57,15 +57,15 @@ class MediaManager extends BaseController
         $shots = $db->table('shots')->select('id, sequence_id, shot_number, thumbnail_path')->get()->getResultArray();
         
         // 4. Fetch Tasks (including Assets for later if needed, but sticking to Shots first)
-        $tasks = $db->table('tasks t')
-            ->select('t.id, t.shot_id, t.asset_id, tt.name as task_name')
-            ->join('task_types tt', 'tt.id = t.task_type_id', 'left')
+        $tasks = $db->table('tasks')
+            ->select('tasks.id, tasks.shot_id, tasks.asset_id, task_types.name as task_name')
+            ->join('task_types', 'task_types.id = tasks.task_type_id', 'left')
             ->get()->getResultArray();
 
         // 5. Fetch Reviews (Versions) and their files
-        $reviews = $db->table('reviews r')
-            ->select('r.id, r.vfx_task_assignment_id as task_id, r.version_string, rf.proxy_path, rf.file_type')
-            ->join('review_files rf', 'rf.review_id = r.id', 'left')
+        $reviews = $db->table('reviews')
+            ->select('reviews.id, reviews.vfx_task_assignment_id as task_id, reviews.version_string, review_files.proxy_path, review_files.file_type')
+            ->join('review_files', 'review_files.review_id = reviews.id', 'left')
             ->get()->getResultArray();
 
         // Build the tree
@@ -175,14 +175,14 @@ class MediaManager extends BaseController
         $db = \Config\Database::connect();
         
         // Get the review to build the path
-        $review = $db->table('reviews r')
-            ->select('r.*, p.project_code, s.shot_number, seq.name as seq_name, c.name as category_name')
-            ->join('projects p', 'p.id = r.project_id', 'left')
-            ->join('shots s', 's.id = r.shot_id', 'left')
-            ->join('sequences seq', 'seq.id = s.sequence_id', 'left')
-            ->join('tasks vta', 'vta.id = r.vfx_task_assignment_id', 'left')
-            ->join('task_types c', 'c.id = vta.task_type_id', 'left')
-            ->where('r.id', $reviewId)
+        $review = $db->table('reviews')
+            ->select('reviews.*, projects.project_code, shots.shot_number, sequences.name as seq_name, task_types.name as category_name')
+            ->join('projects', 'projects.id = reviews.project_id', 'left')
+            ->join('shots', 'shots.id = reviews.shot_id', 'left')
+            ->join('sequences', 'sequences.id = shots.sequence_id', 'left')
+            ->join('tasks', 'tasks.id = reviews.vfx_task_assignment_id', 'left')
+            ->join('task_types', 'task_types.id = tasks.task_type_id', 'left')
+            ->where('reviews.id', $reviewId)
             ->get()->getRow();
 
         if (!$review) {

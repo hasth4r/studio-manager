@@ -109,11 +109,11 @@ class Tasks extends BaseController
             
         $comments = [];
         if ($lastReview) {
-            $comments = $db->table('review_comments rc')
-                ->select('rc.*, u.name as reviewer_name')
-                ->join('users u', 'u.id = rc.user_id', 'left')
-                ->where('rc.review_id', $lastReview->id)
-                ->where('rc.resolution_status', 'pending')
+            $comments = $db->table('review_comments')
+                ->select('review_comments.*, users.name as reviewer_name')
+                ->join('users', 'users.id = review_comments.user_id', 'left')
+                ->where('review_comments.review_id', $lastReview->id)
+                ->where('review_comments.resolution_status', 'pending')
                 ->get()->getResult();
         }
         

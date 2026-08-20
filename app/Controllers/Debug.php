@@ -63,11 +63,11 @@ class Debug extends BaseController
 
         // 5. Simulate one shot task
         echo '<h2>5. Simulation — First Shot Task</h2>';
-        $task = $db->table('tasks t')
-            ->select('t.*, s.frame_count as shot_fc, s.fps as shot_fps, p.fps as proj_fps')
-            ->join('shots s', 's.id = t.shot_id', 'left')
-            ->join('projects p', 'p.id = t.project_id', 'left')
-            ->where('t.shot_id IS NOT NULL')
+        $task = $db->table('tasks')
+            ->select('tasks.*, shots.frame_count as shot_fc, shots.fps as shot_fps, projects.fps as proj_fps')
+            ->join('shots', 'shots.id = tasks.shot_id', 'left')
+            ->join('projects', 'projects.id = tasks.project_id', 'left')
+            ->where('tasks.shot_id IS NOT NULL')
             ->limit(1)->get()->getRow();
 
         if ($task) {

@@ -1964,11 +1964,11 @@ class Projects extends BaseController
         \App\Libraries\FolderManager::createTaskFolders($projectId, $taskTypeId, $shotId, null);
 
         $db = \Config\Database::connect();
-        $task = $db->table('tasks t')
-            ->select('t.*, tt.name as task_type_name, u.name as assigned_user_name, u.experience_level')
-            ->join('task_types tt', 'tt.id = t.task_type_id', 'left')
-            ->join('users u', 'u.id = t.assigned_to', 'left')
-            ->where('t.id', $newId)
+        $task = $db->table('tasks')
+            ->select('tasks.*, task_types.name as task_type_name, users.name as assigned_user_name, users.experience_level')
+            ->join('task_types', 'task_types.id = tasks.task_type_id', 'left')
+            ->join('users', 'users.id = tasks.assigned_to', 'left')
+            ->where('tasks.id', $newId)
             ->get()->getRow();
 
         // Calculate shot total

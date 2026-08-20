@@ -25,16 +25,16 @@ class Reviews extends BaseController
         }
         
         // Fetch all pending reviews, joining necessary tables to get context
-        $builder = $db->table('reviews r')
-            ->select('r.*, p.name as project_name, p.project_code, s.shot_number, s.thumbnail_path as shot_thumb, seq.name as seq_name, u.name as artist_name, vta.id as vfx_task_assignment_id, c.name as task_name, rf.proxy_path, rf.file_type')
-            ->join('projects p', 'p.id = r.project_id', 'left')
-            ->join('shots s', 's.id = r.shot_id', 'left')
-            ->join('sequences seq', 'seq.id = s.sequence_id', 'left')
-            ->join('tasks vta', 'vta.id = r.vfx_task_assignment_id', 'left')
-            ->join('task_types c', 'c.id = vta.task_type_id', 'left')
-            ->join('users u', 'u.id = r.user_id', 'left')
-            ->join('review_files rf', 'rf.review_id = r.id', 'left')
-            ->where('r.status', 'pending');
+        $builder = $db->table('reviews')
+            ->select('reviews.*, projects.name as project_name, projects.project_code, shots.shot_number, shots.thumbnail_path as shot_thumb, sequences.name as seq_name, users.name as artist_name, tasks.id as vfx_task_assignment_id, task_types.name as task_name, review_files.proxy_path, review_files.file_type')
+            ->join('projects', 'projects.id = reviews.project_id', 'left')
+            ->join('shots', 'shots.id = reviews.shot_id', 'left')
+            ->join('sequences', 'sequences.id = shots.sequence_id', 'left')
+            ->join('tasks', 'tasks.id = reviews.vfx_task_assignment_id', 'left')
+            ->join('task_types', 'task_types.id = tasks.task_type_id', 'left')
+            ->join('users', 'users.id = reviews.user_id', 'left')
+            ->join('review_files', 'review_files.review_id = reviews.id', 'left')
+            ->where('reviews.status', 'pending');
 
         // Dynamic Scope Filtering: If not Site Manager or Admin, only show reviews in supervised projects or self-submitted
         $userId = (int)session()->get('userId');
@@ -48,15 +48,15 @@ class Reviews extends BaseController
 
             if (!empty($allowedProjIds)) {
                 $builder->groupStart()
-                    ->whereIn('r.project_id', $allowedProjIds)
-                    ->orWhere('r.user_id', $userId)
+                    ->whereIn('reviews.project_id', $allowedProjIds)
+                    ->orWhere('reviews.user_id', $userId)
                 ->groupEnd();
             } else {
-                $builder->where('r.user_id', $userId);
+                $builder->where('reviews.user_id', $userId);
             }
         }
 
-        $builder->orderBy('r.created_at', 'DESC');
+        $builder->orderBy('reviews.created_at', 'DESC');
         $query = $builder->get();
 
         $data['pending_reviews'] = $query->getResult();
@@ -73,27 +73,27 @@ class Reviews extends BaseController
 
         $db = \Config\Database::connect();
         
-        $review = $db->table('reviews r')
-            ->select('r.*, p.name as project_name, s.shot_number, seq.name as seq_name, u.name as artist_name, vta.id as vfx_task_assignment_id, vta.status as task_status, c.name as task_name, rf.proxy_path, rf.file_type, rf.updated_at as file_updated_at')
-            ->join('projects p', 'p.id = r.project_id', 'left')
-            ->join('shots s', 's.id = r.shot_id', 'left')
-            ->join('sequences seq', 'seq.id = s.sequence_id', 'left')
-            ->join('tasks vta', 'vta.id = r.vfx_task_assignment_id', 'left')
-            ->join('task_types c', 'c.id = vta.task_type_id', 'left')
-            ->join('users u', 'u.id = r.user_id', 'left')
-            ->join('review_files rf', 'rf.review_id = r.id', 'left')
-            ->where('r.id', $reviewId)
+        $review = $db->table('reviews')
+            ->select('reviews.*, projects.name as project_name, shots.shot_number, sequences.name as seq_name, users.name as artist_name, tasks.id as vfx_task_assignment_id, tasks.status as task_status, task_types.name as task_name, review_files.proxy_path, review_files.file_type, review_files.updated_at as file_updated_at')
+            ->join('projects', 'projects.id = reviews.project_id', 'left')
+            ->join('shots', 'shots.id = reviews.shot_id', 'left')
+            ->join('sequences', 'sequences.id = shots.sequence_id', 'left')
+            ->join('tasks', 'tasks.id = reviews.vfx_task_assignment_id', 'left')
+            ->join('task_types', 'task_types.id = tasks.task_type_id', 'left')
+            ->join('users', 'users.id = reviews.user_id', 'left')
+            ->join('review_files', 'review_files.review_id = reviews.id', 'left')
+            ->where('reviews.id', $reviewId)
             ->get()->getRow();
 
         if (!$review) {
             return redirect()->back()->with('error', 'Review not found.');
         }
 
-        $comments = $db->table('review_comments rc')
-            ->select('rc.*, u.name as reviewer_name, u.global_role as reviewer_role')
-            ->join('users u', 'u.id = rc.user_id', 'left')
-            ->where('rc.review_id', $reviewId)
-            ->orderBy('rc.timecode', 'ASC')
+        $comments = $db->table('review_comments')
+            ->select('review_comments.*, users.name as reviewer_name, users.global_role as reviewer_role')
+            ->join('users', 'users.id = review_comments.user_id', 'left')
+            ->where('review_comments.review_id', $reviewId)
+            ->orderBy('review_comments.timecode', 'ASC')
             ->get()->getResult();
 
         $data['review'] = $review;
@@ -163,13 +163,13 @@ class Reviews extends BaseController
 
         // Send Notification to Artist
         helper('notification');
-        $reviewData = $db->table('reviews r')
-            ->select('r.user_id, r.version_string, c.name as task_name, s.shot_number, a.name as asset_name')
-            ->join('tasks t', 't.id = r.vfx_task_assignment_id', 'left')
-            ->join('task_types c', 'c.id = t.task_type_id', 'left')
-            ->join('shots s', 's.id = t.shot_id', 'left')
-            ->join('assets a', 'a.id = t.asset_id', 'left')
-            ->where('r.id', $reviewId)
+        $reviewData = $db->table('reviews')
+            ->select('reviews.user_id, reviews.version_string, task_types.name as task_name, shots.shot_number, assets.name as asset_name')
+            ->join('tasks', 'tasks.id = reviews.vfx_task_assignment_id', 'left')
+            ->join('task_types', 'task_types.id = tasks.task_type_id', 'left')
+            ->join('shots', 'shots.id = tasks.shot_id', 'left')
+            ->join('assets', 'assets.id = tasks.asset_id', 'left')
+            ->where('reviews.id', $reviewId)
             ->get()->getRow();
 
         if ($reviewData && $reviewData->user_id) {
@@ -302,14 +302,14 @@ class Reviews extends BaseController
             $fps = !empty($shot->fps) ? (float)$shot->fps : 24.0;
             $duration = !empty($shot->frame_count) ? round((float)$shot->frame_count / $fps, 2) : 1.0;
 
-            $latestReview = $db->table('reviews r')
-                ->select('r.id as review_id, rf.proxy_path, rf.file_type, r.version_string, c.name as task_name')
-                ->join('review_files rf', 'rf.review_id = r.id', 'inner')
-                ->join('tasks vta', 'vta.id = r.vfx_task_assignment_id', 'left')
-                ->join('task_types c', 'c.id = vta.task_type_id', 'left')
-                ->where('r.shot_id', $shot->id)
-                ->where('rf.file_type', 'video')
-                ->orderBy('r.created_at', 'DESC')
+            $latestReview = $db->table('reviews')
+                ->select('reviews.id as review_id, review_files.proxy_path, review_files.file_type, reviews.version_string, task_types.name as task_name')
+                ->join('review_files', 'review_files.review_id = reviews.id', 'inner')
+                ->join('tasks', 'tasks.id = reviews.vfx_task_assignment_id', 'left')
+                ->join('task_types', 'task_types.id = tasks.task_type_id', 'left')
+                ->where('reviews.shot_id', $shot->id)
+                ->where('review_files.file_type', 'video')
+                ->orderBy('reviews.created_at', 'DESC')
                 ->limit(1)
                 ->get()->getRow();
                 
@@ -359,11 +359,11 @@ class Reviews extends BaseController
         // Fetch comments for all reviews in the playlist
         $comments = [];
         if (!empty($reviewIds)) {
-            $comments = $db->table('review_comments rc')
-                ->select('rc.*, u.name as reviewer_name, u.global_role as reviewer_role')
-                ->join('users u', 'u.id = rc.user_id', 'left')
-                ->whereIn('rc.review_id', $reviewIds)
-                ->orderBy('rc.timecode', 'ASC')
+            $comments = $db->table('review_comments')
+                ->select('review_comments.*, users.name as reviewer_name, users.global_role as reviewer_role')
+                ->join('users', 'users.id = review_comments.user_id', 'left')
+                ->whereIn('review_comments.review_id', $reviewIds)
+                ->orderBy('review_comments.timecode', 'ASC')
                 ->get()->getResult();
         }
 
@@ -410,12 +410,12 @@ class Reviews extends BaseController
         $playlist = [];
         
         foreach ($shots as $shot) {
-            $latestReview = $db->table('reviews r')
-                ->select('r.id as review_id, rf.proxy_path, rf.file_type')
-                ->join('review_files rf', 'rf.review_id = r.id', 'inner')
-                ->where('r.shot_id', $shot->id)
-                ->where('rf.file_type', 'video')
-                ->orderBy('r.created_at', 'DESC')
+            $latestReview = $db->table('reviews')
+                ->select('reviews.id as review_id, review_files.proxy_path, review_files.file_type')
+                ->join('review_files', 'review_files.review_id = reviews.id', 'inner')
+                ->where('reviews.shot_id', $shot->id)
+                ->where('review_files.file_type', 'video')
+                ->orderBy('reviews.created_at', 'DESC')
                 ->limit(1)
                 ->get()->getRow();
                 

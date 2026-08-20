@@ -59,10 +59,10 @@ class Share extends BaseController
             ->increment('view_count');
 
         // Fetch sequence & project
-        $sequence = $db->table('sequences s')
-            ->select('s.*, p.name as project_name, p.project_code')
-            ->join('projects p', 'p.id = s.project_id', 'left')
-            ->where('s.id', $sequenceId)
+        $sequence = $db->table('sequences')
+            ->select('sequences.*, projects.name as project_name, projects.project_code')
+            ->join('projects', 'projects.id = sequences.project_id', 'left')
+            ->where('sequences.id', $sequenceId)
             ->get()->getRow();
 
         if (!$sequence) {
@@ -80,14 +80,14 @@ class Share extends BaseController
             $fps = !empty($shot->fps) ? (float)$shot->fps : 24.0;
             $duration = !empty($shot->frame_count) ? round((float)$shot->frame_count / $fps, 2) : 1.0;
 
-            $latestReview = $db->table('reviews r')
-                ->select('r.id as review_id, rf.proxy_path, rf.file_type, r.version_string, c.name as task_name')
-                ->join('review_files rf', 'rf.review_id = r.id', 'inner')
-                ->join('tasks vta', 'vta.id = r.vfx_task_assignment_id', 'left')
-                ->join('task_types c', 'c.id = vta.task_type_id', 'left')
-                ->where('r.shot_id', $shot->id)
-                ->where('rf.file_type', 'video')
-                ->orderBy('r.created_at', 'DESC')
+            $latestReview = $db->table('reviews')
+                ->select('reviews.id as review_id, review_files.proxy_path, review_files.file_type, reviews.version_string, task_types.name as task_name')
+                ->join('review_files', 'review_files.review_id = reviews.id', 'inner')
+                ->join('tasks', 'tasks.id = reviews.vfx_task_assignment_id', 'left')
+                ->join('task_types', 'task_types.id = tasks.task_type_id', 'left')
+                ->where('reviews.shot_id', $shot->id)
+                ->where('review_files.file_type', 'video')
+                ->orderBy('reviews.created_at', 'DESC')
                 ->limit(1)
                 ->get()->getRow();
 

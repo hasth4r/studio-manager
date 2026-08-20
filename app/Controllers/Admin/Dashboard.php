@@ -82,29 +82,29 @@ class Dashboard extends BaseController
             $pendingReviewsCount = $pendingReviewsBuilder->countAllResults();
 
             // Top Projects (by number of tasks)
-            $topProjectsBuilder = $db->table('projects p')
-                ->select('p.id, p.name, COUNT(t.id) as task_count')
-                ->join('tasks t', 't.project_id = p.id', 'left')
-                ->groupBy('p.id, p.name')
+            $topProjectsBuilder = $db->table('projects')
+                ->select('projects.id, projects.name, COUNT(tasks.id) as task_count')
+                ->join('tasks', 'tasks.project_id = projects.id', 'left')
+                ->groupBy('projects.id, projects.name')
                 ->orderBy('task_count', 'DESC')
                 ->limit(3);
             if ($allowedProjIds !== null) {
-                $topProjectsBuilder->whereIn('p.id', $allowedProjIds);
+                $topProjectsBuilder->whereIn('projects.id', $allowedProjIds);
             }
             $topProjects = $topProjectsBuilder->get()->getResult();
 
             // Latest Review
-            $latestReviewBuilder = $db->table('reviews r')
-                ->select('r.*, p.name as project_name, u.name as artist_name, c.name as task_name, rf.proxy_path, rf.file_type')
-                ->join('projects p', 'p.id = r.project_id', 'left')
-                ->join('users u', 'u.id = r.user_id', 'left')
-                ->join('tasks t', 't.id = r.vfx_task_assignment_id', 'left')
-                ->join('task_types c', 'c.id = t.task_type_id', 'left')
-                ->join('review_files rf', 'rf.review_id = r.id', 'left')
-                ->orderBy('r.created_at', 'DESC')
+            $latestReviewBuilder = $db->table('reviews')
+                ->select('reviews.*, projects.name as project_name, users.name as artist_name, task_types.name as task_name, review_files.proxy_path, review_files.file_type')
+                ->join('projects', 'projects.id = reviews.project_id', 'left')
+                ->join('users', 'users.id = reviews.user_id', 'left')
+                ->join('tasks', 'tasks.id = reviews.vfx_task_assignment_id', 'left')
+                ->join('task_types', 'task_types.id = tasks.task_type_id', 'left')
+                ->join('review_files', 'review_files.review_id = reviews.id', 'left')
+                ->orderBy('reviews.created_at', 'DESC')
                 ->limit(1);
             if ($allowedProjIds !== null) {
-                $latestReviewBuilder->whereIn('r.project_id', $allowedProjIds);
+                $latestReviewBuilder->whereIn('reviews.project_id', $allowedProjIds);
             }
             $latestReview = $latestReviewBuilder->get()->getRow();
 
